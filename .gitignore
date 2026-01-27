@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-electron/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Output (keep structure, ignore content)
+output/sessions/*
+output/drafts/*
+output/final/*
+!output/sessions/.gitkeep
+!output/drafts/.gitkeep
+!output/final/.gitkeep
+
+# Temporary
+*.tmp
+.temp/
