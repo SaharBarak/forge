@@ -25,7 +25,7 @@ interface SessionStore {
   // Messages
   addMessage: (agentId: string, type: MessageType, content: string, contentHe?: string) => void;
   addHumanMessage: (content: string) => void;
-  setTypingAgents: (agents: string[]) => void;
+  setTypingAgents: (agents: string[] | ((prev: string[]) => string[])) => void;
 
   // Phases
   setPhase: (phase: SessionPhase) => void;
@@ -122,7 +122,11 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   setTypingAgents: (agents) => {
-    set({ typingAgents: agents });
+    if (typeof agents === 'function') {
+      set((state) => ({ typingAgents: agents(state.typingAgents) }));
+    } else {
+      set({ typingAgents: agents });
+    }
   },
 
   setPhase: (phase) => {

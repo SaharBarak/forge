@@ -84,6 +84,7 @@ export interface SessionConfig {
   contextDir: string;
   outputDir: string;
   apiKey?: string;
+  language?: 'hebrew' | 'english' | 'mixed' | string;
 }
 
 export interface Session {
@@ -318,15 +319,124 @@ export interface AppState {
 // ELECTRON API TYPES
 // ============================================================================
 
+export interface LoadedContext {
+  brand: string | null;
+  audience: string | null;
+  research: { file: string; content: string }[];
+  examples: { file: string; content: string }[];
+  competitors: { file: string; content: string }[];
+}
+
+export interface SkillInfo {
+  name: string;
+  description: string;
+  dir: string;
+}
+
+export interface LoadedSkill {
+  name: string;
+  content: string;
+}
+
 export interface ElectronAPI {
+  // File System
   readDir: (dirPath: string) => Promise<FileInfo[]>;
   readFile: (filePath: string) => Promise<string | null>;
   writeFile: (filePath: string, content: string) => Promise<boolean>;
   glob: (pattern: string, options?: object) => Promise<string[]>;
+  exists: (filePath: string) => Promise<boolean>;
+
+  // Context
+  loadContext: (contextDir: string) => Promise<LoadedContext>;
+
+  // Dialogs
   openDirectory: () => Promise<string | null>;
   saveFile: (defaultPath?: string) => Promise<string | null>;
+
+  // App
   getPath: (name: string) => Promise<string>;
   getVersion: () => Promise<string>;
+  getCwd: () => Promise<string>;
+
+  // Skills (loaded from .agents/skills/ via npx skills add)
+  listSkills: () => Promise<SkillInfo[]>;
+  getAllSkills: () => Promise<LoadedSkill[]>;
+  getCombinedSkills: () => Promise<string>;
+
+  // Briefs (loaded from briefs/ directory)
+  readBrief: (briefName: string) => Promise<string | null>;
+  listBriefs: () => Promise<string[]>;
+
+  // Settings (persisted configuration)
+  getSetting: (key: string) => Promise<unknown>;
+  setSetting: (key: string, value: unknown) => Promise<boolean>;
+  getAllSettings: () => Promise<Record<string, unknown>>;
+
+  // Claude Code credentials
+  getClaudeToken: () => Promise<string | null>;
+
+  // Claude Agent SDK (runs in main process)
+  claudeAgentQuery: (params: {
+    prompt: string;
+    systemPrompt?: string;
+    model?: string;
+  }) => Promise<{
+    success: boolean;
+    content?: string;
+    sessionId?: string;
+    usage?: { inputTokens: number; outputTokens: number; costUsd: number };
+    error?: string;
+  }>;
+
+  claudeAgentEvaluate: (params: { evalPrompt: string }) => Promise<{
+    success: boolean;
+    urgency: 'high' | 'medium' | 'low' | 'pass';
+    reason: string;
+    responseType: string;
+  }>;
+
+  // Personas (manage persona sets)
+  listPersonas: () => Promise<PersonaSetInfo[]>;
+  loadPersonas: (name: string) => Promise<{
+    success: boolean;
+    personas?: AgentPersona[];
+    skills?: string;
+    error?: string;
+  }>;
+  savePersonas: (data: {
+    name: string;
+    personas: AgentPersona[];
+    skills?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+  generatePersonas: (params: {
+    projectName: string;
+    goal: string;
+    count?: number;
+  }) => Promise<{
+    success: boolean;
+    personas?: AgentPersona[];
+    skills?: string;
+    savedAs?: string;
+    error?: string;
+  }>;
+
+  // Export (export sessions)
+  exportSession: (params: {
+    session: Session;
+    format?: 'md' | 'json' | 'html';
+    type?: 'transcript' | 'draft' | 'summary' | 'messages';
+  }) => Promise<{ success: boolean; content?: string; filename?: string; error?: string }>;
+  saveSession: (params: { session: Session }) => Promise<{
+    success: boolean;
+    path?: string;
+    error?: string;
+  }>;
+}
+
+export interface PersonaSetInfo {
+  name: string;
+  count: number;
+  personas: { id: string; name: string; role: string }[];
 }
 
 export interface FileInfo {

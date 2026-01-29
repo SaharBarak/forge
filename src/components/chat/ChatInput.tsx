@@ -2,10 +2,17 @@ import { useState, useRef, useEffect } from 'react';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useUIStore } from '../../stores/uiStore';
 
-export function ChatInput() {
+interface ChatInputProps {
+  onSend?: (message: string) => Promise<void>;
+  onInterrupt?: () => void;
+  isRunning?: boolean;
+}
+
+export function ChatInput({ onSend, onInterrupt, isRunning = false }: ChatInputProps) {
   const { session, addHumanMessage, humanInputEnabled, isSending } = useSessionStore();
   const { hebrewMode } = useUIStore();
   const [input, setInput] = useState('');
+  const [mode, setMode] = useState<'join' | 'interrupt'>('join');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const canSend =
@@ -22,10 +29,21 @@ export function ChatInput() {
     }
   }, [input]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!canSend) return;
-    addHumanMessage(input.trim());
+    const message = input.trim();
     setInput('');
+
+    // If interrupt mode and agents are running, pause first
+    if (mode === 'interrupt' && isRunning && onInterrupt) {
+      onInterrupt();
+    }
+
+    if (onSend) {
+      await onSend(message);
+    } else {
+      addHumanMessage(message);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -38,10 +56,14 @@ export function ChatInput() {
 
   const t = {
     placeholder: hebrewMode
-      ? 'הקלד את תגובתך... (Enter לשליחה, Shift+Enter לשורה חדשה)'
-      : 'Type your response... (Enter to send, Shift+Enter for new line)',
-    send: hebrewMode ? 'שלח' : 'Send',
+      ? 'הקלד את תגובתך... (Enter לשליחה)'
+      : 'Type your message... (Enter to send)',
+    join: hebrewMode ? 'הצטרף' : 'Join',
+    interrupt: hebrewMode ? 'קטע' : 'Interrupt',
+    joinDesc: hebrewMode ? 'הוסף הודעה, הסוכנים ימשיכו' : 'Add message, agents continue',
+    interruptDesc: hebrewMode ? 'עצור סוכנים, קח שליטה' : 'Stop agents, take control',
     disabled: hebrewMode ? 'השתתפות מושבתת' : 'Participation disabled',
+    send: hebrewMode ? 'שלח' : 'Send',
   };
 
   if (!session?.config.humanParticipation) {
@@ -54,6 +76,34 @@ export function ChatInput() {
 
   return (
     <div className="px-4 py-3 border-t border-dark-800 bg-dark-900/50">
+      {/* Mode Toggle */}
+      {isRunning && (
+        <div className="flex justify-center gap-2 mb-3">
+          <button
+            onClick={() => setMode('join')}
+            className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
+              mode === 'join'
+                ? 'bg-green-600 text-white'
+                : 'bg-dark-800 text-dark-400 hover:text-dark-200'
+            }`}
+            title={t.joinDesc}
+          >
+            {t.join}
+          </button>
+          <button
+            onClick={() => setMode('interrupt')}
+            className={`px-4 py-1.5 text-sm rounded-full transition-colors ${
+              mode === 'interrupt'
+                ? 'bg-red-600 text-white'
+                : 'bg-dark-800 text-dark-400 hover:text-dark-200'
+            }`}
+            title={t.interruptDesc}
+          >
+            {t.interrupt}
+          </button>
+        </div>
+      )}
+
       <div className="flex items-end gap-3 max-w-4xl mx-auto">
         <div className="flex-1 relative">
           <textarea
@@ -71,12 +121,23 @@ export function ChatInput() {
         <button
           onClick={handleSend}
           disabled={!canSend}
-          className="px-6 py-3 bg-human hover:bg-orange-500 disabled:bg-dark-700 disabled:text-dark-500 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+          className={`px-6 py-3 font-medium rounded-xl transition-colors flex items-center gap-2 ${
+            mode === 'interrupt' && isRunning
+              ? 'bg-red-600 hover:bg-red-500 disabled:bg-dark-700'
+              : 'bg-orange-600 hover:bg-orange-500 disabled:bg-dark-700'
+          } disabled:text-dark-500 text-white`}
         >
           <SendIcon />
-          {t.send}
+          {mode === 'interrupt' && isRunning ? t.interrupt : t.send}
         </button>
       </div>
+
+      {/* Mode hint */}
+      {isRunning && (
+        <p className="text-center text-xs text-dark-500 mt-2">
+          {mode === 'join' ? t.joinDesc : t.interruptDesc}
+        </p>
+      )}
     </div>
   );
 }

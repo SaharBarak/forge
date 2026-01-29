@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge - Multi-Agent Copywriting</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090b;
+            --surface: #18181b;
+            --border: #27272a;
+            --text: #fafafa;
+            --text-dim: #a1a1aa;
+            --accent: #a78bfa;
+            --accent-dim: #7c3aed;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+
+        /* Hero */
+        .hero {
+            padding: 100px 0 80px;
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            margin-bottom: 24px;
+        }
+        h1 {
+            font-size: 2.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 20px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.2;
+        }
+        .hero-sub {
+            font-size: 1.15rem;
+            color: var(--text-dim);
+            max-width: 580px;
+            margin: 0 auto 36px;
+            line-height: 1.7;
+        }
+        .cta-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+        }
+        .btn-primary:hover { background: var(--accent-dim); color: var(--text); }
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { border-color: var(--text-dim); }
+
+        /* Demo */
+        .demo {
+            margin: 60px auto;
+            max-width: 800px;
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 24px;
+            align-items: center;
+        }
+        .demo-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .demo-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+        }
+        .demo-label.bad { color: #f87171; }
+        .demo-label.good { color: #4ade80; }
+        .demo-copy {
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+        .demo-copy.bad { color: var(--text-dim); }
+        .demo-copy.good { color: var(--text); }
+        .demo-arrow {
+            font-size: 2rem;
+            color: var(--border);
+        }
+        .demo-critiques {
+            margin-top: 32px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .critique {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            max-width: 220px;
+        }
+        .critique strong {
+            color: var(--text);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* How it works */
+        .section { padding: 80px 0; }
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .section-sub {
+            text-align: center;
+            color: var(--text-dim);
+            margin-bottom: 48px;
+        }
+        .interfaces {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .interface-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .interface-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.4);
+            border-bottom: 1px solid var(--border);
+        }
+        .interface-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .interface-dot.r { background: #f87171; }
+        .interface-dot.y { background: #fbbf24; }
+        .interface-dot.g { background: #4ade80; }
+        .interface-title {
+            margin-left: 8px;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+        .interface-body {
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.8;
+            min-height: 280px;
+        }
+        .interface-body .prompt { color: #4ade80; }
+        .interface-body .cmd { color: var(--text); }
+        .interface-body .flag { color: var(--accent); }
+        .interface-body .str { color: #fbbf24; }
+        .interface-body .out { color: var(--text-dim); }
+        .interface-body .agent-out {
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            border-left: 2px solid var(--accent);
+        }
+        .interface-body .agent-name { color: var(--accent); font-weight: 500; }
+
+        /* Electron mockup */
+        .electron-body {
+            font-family: 'Space Grotesk', sans-serif;
+            padding: 0;
+            display: flex;
+            min-height: 280px;
+        }
+        .electron-sidebar {
+            width: 180px;
+            background: rgba(0,0,0,0.3);
+            border-right: 1px solid var(--border);
+            padding: 16px;
+        }
+        .electron-sidebar-title {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+        .electron-agent {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            font-size: 0.8rem;
+        }
+        .electron-agent.active { background: var(--border); }
+        .electron-agent-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .electron-agent-dot.pink { background: #f472b6; }
+        .electron-agent-dot.blue { background: #60a5fa; }
+        .electron-agent-dot.green { background: #4ade80; }
+        .electron-chat {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+        .electron-messages {
+            flex: 1;
+        }
+        .electron-msg {
+            margin-bottom: 12px;
+        }
+        .electron-msg-name {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .electron-msg-name.pink { color: #f472b6; }
+        .electron-msg-name.blue { color: #60a5fa; }
+        .electron-msg-name.green { color: #4ade80; }
+        .electron-msg-text {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+        .electron-input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        /* How Steps */
+        .how-step {
+            margin-bottom: 60px;
+        }
+        .how-step-header {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+        .how-step-num {
+            width: 36px;
+            height: 36px;
+            background: var(--accent-dim);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .how-step-header h3 {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+        }
+        .how-step-header p {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            margin: 0;
+        }
+        .how-step-example {
+            padding-left: 56px;
+        }
+
+        /* Research Cards */
+        .research-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .research-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .research-card-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+        .research-card-text {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        /* Install */
+        .install-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .install-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .install-card h3 {
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        .install-card .sub {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            margin-bottom: 16px;
+        }
+        pre {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            color: var(--text-dim);
+        }
+        pre .cmd { color: var(--accent); }
+        pre .comment { color: #52525b; }
+
+        /* Features */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .feature {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .feature h4 { font-size: 0.95rem; margin-bottom: 6px; }
+        .feature p { color: var(--text-dim); font-size: 0.85rem; }
+
+        /* Use Cases */
+        .use-cases {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .use-case {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .use-case-icon {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        .use-case h4 { font-size: 0.95rem; margin-bottom: 6px; }
+        .use-case p { color: var(--text-dim); font-size: 0.85rem; margin: 0; }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 40px 0;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+        footer a { color: var(--text); text-decoration: none; }
+        footer a:hover { color: var(--accent); }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .install-grid, .features, .interfaces, .research-cards { grid-template-columns: 1fr; }
+            .use-cases { grid-template-columns: 1fr 1fr; }
+            .demo-grid {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .demo-arrow { transform: rotate(90deg); }
+            .electron-sidebar { display: none; }
+            .how-step-example { padding-left: 0; }
+        }
+        @media (max-width: 500px) {
+            .use-cases { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero -->
+        <section class="hero">
+            <h1>Stop guessing what your audience wants to hear.</h1>
+            <p class="hero-sub">Forge creates AI personas of your target customers — each one a master copywriter. They research, debate, and rewrite in a loop until every persona is convinced.</p>
+            <div class="cta-row">
+                <a href="#install" class="btn btn-primary">Get Started</a>
+                <a href="https://github.com/yourusername/forge" class="btn btn-secondary">View on GitHub</a>
+            </div>
+        </section>
+
+        <!-- Demo -->
+        <div class="demo">
+            <div class="demo-grid">
+                <div class="demo-card">
+                    <div class="demo-label bad">Your draft</div>
+                    <div class="demo-copy bad">"The all-in-one project management platform trusted by thousands of teams worldwide."</div>
+                </div>
+                <div class="demo-arrow">→</div>
+                <div class="demo-card">
+                    <div class="demo-label good">After debate</div>
+                    <div class="demo-copy good">"Ship projects 2x faster. Kanban, docs, and chat — one tab. Free under 10 users."</div>
+                </div>
+            </div>
+            <div class="demo-critiques">
+                <div class="critique">
+                    <strong>Busy Exec</strong>
+                    "All-in-one" is vague. What does it DO?
+                </div>
+                <div class="critique">
+                    <strong>Skeptic Dev</strong>
+                    "Trusted by thousands" — prove it or cut it.
+                </div>
+                <div class="critique">
+                    <strong>CFO</strong>
+                    Lead with the free tier. That's what gets clicks.
+                </div>
+            </div>
+        </div>
+
+        <!-- How it works -->
+        <section class="section">
+            <h2 class="section-title">How it works</h2>
+
+            <!-- Step 1 -->
+            <div class="how-step">
+                <div class="how-step-header">
+                    <div class="how-step-num">1</div>
+                    <div>
+                        <h3>Create your room</h3>
+                        <p>Define who needs to be convinced. Use built-in personas or generate custom ones from a description of your audience.</p>
+                    </div>
+                </div>
+                <div class="how-step-example">
+                    <div class="interface-card" style="max-width: 500px;">
+                        <div class="interface-header">
+                            <div class="interface-dot r"></div>
+                            <div class="interface-dot y"></div>
+                            <div class="interface-dot g"></div>
+                            <span class="interface-title">Terminal</span>
+                        </div>
+                        <div class="interface-body" style="min-height: auto;">
+                            <div><span class="prompt">$</span> <span class="cmd">forge</span> <span class="flag">persona create</span></div>
+                            <div class="out">? Describe your audience:</div>
+                            <div class="out"><span class="str">"Enterprise IT buyers, skeptical of new vendors, need to justify ROI to leadership"</span></div>
+                            <div class="out" style="margin-top: 8px;">Generated: <span class="str">enterprise-it-buyer</span></div>
+                            <div class="out">  • Skeptical of marketing claims</div>
+                            <div class="out">  • Needs security/compliance info</div>
+                            <div class="out">  • Asks "how does this integrate?"</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="how-step">
+                <div class="how-step-header">
+                    <div class="how-step-num">2</div>
+                    <div>
+                        <h3>They research</h3>
+                        <p>Agents search the web for competitor messaging, industry stats, and audience insights. They come prepared with evidence.</p>
+                    </div>
+                </div>
+                <div class="how-step-example">
+                    <div class="research-cards">
+                        <div class="research-card">
+                            <div class="research-card-title">Competitor Analysis</div>
+                            <div class="research-card-text">Found 3 competitors leading with "AI-powered" — suggests market fatigue with that angle</div>
+                        </div>
+                        <div class="research-card">
+                            <div class="research-card-title">Audience Insight</div>
+                            <div class="research-card-text">Reddit threads show buyers asking about pricing transparency — hidden pricing is a dealbreaker</div>
+                        </div>
+                        <div class="research-card">
+                            <div class="research-card-title">Industry Stats</div>
+                            <div class="research-card-text">73% of B2B buyers prefer vendors who understand their industry (Gartner 2024)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="how-step">
+                <div class="how-step-header">
+                    <div class="how-step-num">3</div>
+                    <div>
+                        <h3>They debate</h3>
+                        <p>Each persona argues from their perspective using real debate methodologies — dialectic, Socratic, adversarial. They challenge each other until the copy satisfies everyone.</p>
+                    </div>
+                </div>
+                <div class="how-step-example">
+                    <div class="interfaces" style="margin: 0;">
+                        <!-- Terminal -->
+                        <div class="interface-card">
+                            <div class="interface-header">
+                                <div class="interface-dot r"></div>
+                                <div class="interface-dot y"></div>
+                                <div class="interface-dot g"></div>
+                                <span class="interface-title">Terminal</span>
+                            </div>
+                            <div class="interface-body" style="min-height: auto;">
+                                <div class="out">Round 3 of debate...</div>
+                                <div class="agent-out">
+                                    <span class="agent-name">Busy Exec:</span> Better. But "streamline workflows" is still vague. What workflow?
+                                </div>
+                                <div class="agent-out">
+                                    <span class="agent-name">Skeptic Dev:</span> I like the specificity. But prove the 40% claim or cut it.
+                                </div>
+                                <div class="agent-out">
+                                    <span class="agent-name">CFO:</span> Finally shows pricing. But add "no credit card required" — that's what gets me to click.
+                                </div>
+                                <div class="out" style="margin-top: 8px; color: var(--accent);">Consensus: 2/3 approve. Revising...</div>
+                            </div>
+                        </div>
+
+                        <!-- Electron App -->
+                        <div class="interface-card">
+                            <div class="interface-header">
+                                <div class="interface-dot r"></div>
+                                <div class="interface-dot y"></div>
+                                <div class="interface-dot g"></div>
+                                <span class="interface-title">Forge Desktop</span>
+                            </div>
+                            <div class="electron-body" style="min-height: auto;">
+                                <div class="electron-sidebar">
+                                    <div class="electron-sidebar-title">Personas</div>
+                                    <div class="electron-agent">
+                                        <div class="electron-agent-dot pink"></div>
+                                        Busy Exec
+                                    </div>
+                                    <div class="electron-agent active">
+                                        <div class="electron-agent-dot blue"></div>
+                                        Skeptic Dev
+                                    </div>
+                                    <div class="electron-agent">
+                                        <div class="electron-agent-dot green"></div>
+                                        CFO
+                                    </div>
+                                    <div class="electron-sidebar-title" style="margin-top: 16px;">Status</div>
+                                    <div style="font-size: 0.7rem; color: var(--accent);">Round 3 • 2/3 ✓</div>
+                                </div>
+                                <div class="electron-chat">
+                                    <div class="electron-messages">
+                                        <div class="electron-msg">
+                                            <div class="electron-msg-name pink">Busy Exec</div>
+                                            <div class="electron-msg-text">"Streamline workflows" is vague. What workflow?</div>
+                                        </div>
+                                        <div class="electron-msg">
+                                            <div class="electron-msg-name blue">Skeptic Dev</div>
+                                            <div class="electron-msg-text">Prove the 40% claim or cut it.</div>
+                                        </div>
+                                        <div class="electron-msg">
+                                            <div class="electron-msg-name green">CFO</div>
+                                            <div class="electron-msg-text">Add "no credit card required."</div>
+                                        </div>
+                                    </div>
+                                    <div class="electron-input">Type to join the debate...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="how-step">
+                <div class="how-step-header">
+                    <div class="how-step-num">4</div>
+                    <div>
+                        <h3>Export when they agree</h3>
+                        <p>When all personas sign off, export the final copy, the full debate transcript, or individual drafts from each round.</p>
+                    </div>
+                </div>
+                <div class="how-step-example">
+                    <div class="interface-card" style="max-width: 500px;">
+                        <div class="interface-header">
+                            <div class="interface-dot r"></div>
+                            <div class="interface-dot y"></div>
+                            <div class="interface-dot g"></div>
+                            <span class="interface-title">Terminal</span>
+                        </div>
+                        <div class="interface-body" style="min-height: auto;">
+                            <div class="out" style="color: #4ade80;">✓ Consensus reached after 4 rounds</div>
+                            <div style="margin-top: 8px;"><span class="prompt">$</span> <span class="cmd">forge</span> <span class="flag">export</span></div>
+                            <div class="out">Saved:</div>
+                            <div class="out">  • ./output/final-copy.md</div>
+                            <div class="out">  • ./output/debate-transcript.md</div>
+                            <div class="out">  • ./output/drafts/round-1.md</div>
+                            <div class="out">  • ./output/drafts/round-2.md</div>
+                            <div class="out">  • ./output/drafts/round-3.md</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Install -->
+        <section class="section" id="install">
+            <h2 class="section-title">Install</h2>
+            <div class="install-grid">
+                <div class="install-card">
+                    <h3>npm</h3>
+                    <p class="sub">Clone and run locally</p>
+                    <pre><code><span class="cmd">git clone</span> https://github.com/yourusername/forge.git
+<span class="cmd">cd</span> forge
+<span class="cmd">npm install</span>
+
+<span class="comment"># Login with Claude Code</span>
+<span class="cmd">forge</span> login
+
+<span class="cmd">npm run</span> electron:dev  <span class="comment"># Desktop app</span>
+<span class="cmd">npm run</span> cli           <span class="comment"># Terminal</span></code></pre>
+                </div>
+                <div class="install-card">
+                    <h3>Homebrew</h3>
+                    <p class="sub">macOS one-liner</p>
+                    <pre><code><span class="cmd">brew tap</span> yourusername/forge
+<span class="cmd">brew install</span> forge
+
+<span class="comment"># Login with your Claude Code account</span>
+<span class="cmd">forge</span> login
+
+<span class="comment"># Run</span>
+<span class="cmd">forge</span> start --goal "Your goal"</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="section">
+            <h2 class="section-title">What the agents do</h2>
+            <div class="features">
+                <div class="feature">
+                    <h4>Research</h4>
+                    <p>Agents search the web for competitor copy, industry stats, and audience insights to back up their arguments.</p>
+                </div>
+                <div class="feature">
+                    <h4>Debate</h4>
+                    <p>Dialectic, Socratic, collaborative, or adversarial. They argue using real methodologies until they reach consensus.</p>
+                </div>
+                <div class="feature">
+                    <h4>Write</h4>
+                    <p>Each agent is a master copywriter. They know conversion psychology, visual hierarchy, and web copy best practices.</p>
+                </div>
+                <div class="feature">
+                    <h4>Loop until done</h4>
+                    <p>They don't stop after one round. Critique → rewrite → critique → rewrite until every persona signs off.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Use Cases -->
+        <section class="section">
+            <h2 class="section-title">Use cases</h2>
+            <div class="use-cases">
+                <div class="use-case">
+                    <div class="use-case-icon">🚀</div>
+                    <h4>Landing Pages</h4>
+                    <p>Hero sections, value props, CTAs that convert every segment</p>
+                </div>
+                <div class="use-case">
+                    <div class="use-case-icon">💰</div>
+                    <h4>Pricing Pages</h4>
+                    <p>Tier names, feature lists, copy that handles objections</p>
+                </div>
+                <div class="use-case">
+                    <div class="use-case-icon">📧</div>
+                    <h4>Email Sequences</h4>
+                    <p>Onboarding, nurture, sales — tested against skeptics</p>
+                </div>
+                <div class="use-case">
+                    <div class="use-case-icon">📢</div>
+                    <h4>Ad Copy</h4>
+                    <p>Headlines and hooks that survive the "scroll past" test</p>
+                </div>
+                <div class="use-case">
+                    <div class="use-case-icon">📦</div>
+                    <h4>Product Descriptions</h4>
+                    <p>Features vs benefits, specs for devs, ROI for buyers</p>
+                </div>
+                <div class="use-case">
+                    <div class="use-case-icon">📝</div>
+                    <h4>Sales Pages</h4>
+                    <p>Long-form copy that addresses every doubt before checkout</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- More -->
+        <section class="section">
+            <h2 class="section-title">Also</h2>
+            <div class="features">
+                <div class="feature">
+                    <h4>Custom Personas</h4>
+                    <p>Describe your audience and Forge generates personas with realistic objections, triggers, and language patterns.</p>
+                </div>
+                <div class="feature">
+                    <h4>Export Everything</h4>
+                    <p>Full debate transcripts, individual drafts, or just the final copy. Markdown, JSON, or plain text.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <div class="container">
+            <a href="https://github.com/yourusername/forge">GitHub</a> · MIT License · Built with Claude
+        </div>
+    </footer>
+</body>
+</html>

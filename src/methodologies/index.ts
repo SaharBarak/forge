@@ -82,6 +82,23 @@ export const ARGUMENTATION_GUIDES = {
       'Judge based on argument quality',
     ],
   },
+  mixed: {
+    name: 'Mixed Methods',
+    nameHe: 'שיטות משולבות',
+    description: 'Adaptive combination of methods',
+    steps: [
+      '1. Start with collaborative brainstorming',
+      '2. Use Socratic questioning to probe ideas',
+      '3. Allow adversarial debate on key tensions',
+      '4. Conclude with dialectic synthesis',
+    ],
+    rules: [
+      'Adapt method to the situation',
+      'Start supportive, increase challenge over time',
+      'Use questioning when stuck',
+      'Always end with synthesis',
+    ],
+  },
 };
 
 // ============================================================================
@@ -337,6 +354,10 @@ export const DEFAULT_METHODOLOGY: MethodologyConfig = {
   structureDecisionRules: STRUCTURE_DECISION_RULES,
   phases: DEFAULT_PHASES,
 };
+
+export function getDefaultMethodology(): MethodologyConfig {
+  return { ...DEFAULT_METHODOLOGY };
+}
 
 export function getMethodologyPrompt(config: MethodologyConfig): string {
   const argGuide = ARGUMENTATION_GUIDES[config.argumentationStyle];

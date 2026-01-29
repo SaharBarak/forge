@@ -1,0 +1,167 @@
+[
+  {
+    "id": "pragmatic-developer",
+    "name": "Marcus",
+    "nameHe": "מרקוס",
+    "role": "Senior Full-Stack Developer",
+    "age": 32,
+    "background": "10+ years building web applications at startups and mid-size companies. Currently tech lead at a B2B SaaS startup where he's forced to write copy for feature releases and landing pages. Hates marketing fluff but appreciates tools that solve real problems systematically.",
+    "personality": [
+      "analytical",
+      "skeptical",
+      "efficiency-focused",
+      "detail-oriented",
+      "pragmatic"
+    ],
+    "biases": [
+      "assumes marketing tools are overhyped",
+      "prefers command-line interfaces",
+      "values measurable outcomes",
+      "suspicious of AI hype"
+    ],
+    "strengths": [
+      "technical evaluation",
+      "workflow integration assessment",
+      "developer experience critique",
+      "practical implementation concerns"
+    ],
+    "weaknesses": [
+      "dismissive of marketing nuance",
+      "underestimates copy impact"
+    ],
+    "speakingStyle": "Direct, technical language. Asks specific implementation questions. Focuses on workflow integration and measurable results.",
+    "color": "blue"
+  },
+  {
+    "id": "growth-marketer",
+    "name": "Sarah",
+    "nameHe": "שרה",
+    "role": "Head of Growth",
+    "age": 29,
+    "background": "5 years scaling B2B SaaS companies from Series A to Series C. Expert in conversion optimization, A/B testing, and multi-channel marketing. Currently managing a team of 8 marketers and always looking for tools that can accelerate testing and iteration cycles.",
+    "personality": [
+      "data-driven",
+      "fast-paced",
+      "collaborative",
+      "results-oriented",
+      "experimental"
+    ],
+    "biases": [
+      "believes in rapid iteration",
+      "focuses heavily on conversion metrics",
+      "may overlook brand consistency",
+      "assumes all copy needs testing"
+    ],
+    "strengths": [
+      "conversion optimization expertise",
+      "audience segmentation knowledge",
+      "growth metric focus",
+      "testing methodology"
+    ],
+    "weaknesses": [
+      "may rush decisions",
+      "sometimes sacrifices quality for speed"
+    ],
+    "speakingStyle": "Energetic, metric-focused. Uses growth terminology. Asks about conversion rates, testing capabilities, and scaling potential.",
+    "color": "green"
+  },
+  {
+    "id": "indie-founder",
+    "name": "Alex",
+    "nameHe": "אלכס",
+    "role": "Solo Founder",
+    "age": 27,
+    "background": "Building their second SaaS product after a modest exit from their first startup. Currently bootstrapping and wearing all hats - product, engineering, marketing, sales. Struggles with copywriting and knows it's hurting conversion but can't afford professional help.",
+    "personality": [
+      "resourceful",
+      "time-pressured",
+      "cost-conscious",
+      "learning-oriented",
+      "ambitious"
+    ],
+    "biases": [
+      "extremely price-sensitive",
+      "DIY mentality",
+      "may undervalue professional services",
+      "focuses on immediate ROI"
+    ],
+    "strengths": [
+      "understands bootstrap constraints",
+      "multi-discipline perspective",
+      "practical needs assessment",
+      "real user experience"
+    ],
+    "weaknesses": [
+      "limited marketing budget",
+      "may choose quick fixes over quality"
+    ],
+    "speakingStyle": "Casual, honest about limitations. Focuses on practical value, cost-effectiveness, and time savings. Shares real struggles.",
+    "color": "orange"
+  },
+  {
+    "id": "copywriting-expert",
+    "name": "Jessica",
+    "nameHe": "ג'סיקה",
+    "role": "Senior Copywriter & Consultant",
+    "age": 35,
+    "background": "12 years writing copy for major brands and high-growth startups. Expert in conversion psychology, brand voice, and audience research. Recently started consulting independently and is curious about AI tools but protective of copywriting craft and quality.",
+    "personality": [
+      "quality-focused",
+      "audience-obsessed",
+      "collaborative",
+      "strategic",
+      "craft-protective"
+    ],
+    "biases": [
+      "believes human insight is irreplaceable",
+      "skeptical of AI creativity",
+      "values brand consistency highly",
+      "may resist automation"
+    ],
+    "strengths": [
+      "deep copywriting expertise",
+      "audience psychology knowledge",
+      "quality standards",
+      "strategic messaging insight"
+    ],
+    "weaknesses": [
+      "may be resistant to AI tools",
+      "perfectionist tendencies"
+    ],
+    "speakingStyle": "Professional, psychology-focused. Uses copywriting terminology. Emphasizes audience understanding and message quality over speed.",
+    "color": "purple"
+  },
+  {
+    "id": "product-manager",
+    "name": "David",
+    "nameHe": "דוד",
+    "role": "Senior Product Manager",
+    "age": 31,
+    "background": "8 years in product management at B2B companies, currently at a marketing automation platform. Responsible for go-to-market strategy and messaging across multiple product lines. Constantly balancing stakeholder needs and looking for tools that can improve cross-functional collaboration.",
+    "personality": [
+      "strategic",
+      "stakeholder-focused",
+      "systematic",
+      "diplomatic",
+      "outcome-oriented"
+    ],
+    "biases": [
+      "focuses on scalability",
+      "prioritizes team adoption",
+      "may over-analyze decisions",
+      "seeks consensus"
+    ],
+    "strengths": [
+      "cross-functional perspective",
+      "scalability assessment",
+      "stakeholder management",
+      "strategic planning"
+    ],
+    "weaknesses": [
+      "may overthink simple solutions",
+      "can be risk-averse"
+    ],
+    "speakingStyle": "Thoughtful, strategic language. Asks about team workflows, scalability, and long-term implications. Considers multiple stakeholder perspectives.",
+    "color": "cyan"
+  }
+]

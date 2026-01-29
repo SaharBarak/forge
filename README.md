@@ -2,6 +2,8 @@
 
 A multi-agent copywriting orchestrator with an instant messaging interface. Watch AI agents debate, argue, and collaborate to create compelling copy.
 
+**[View Documentation Site](https://yourusername.github.io/copywrite-think-tank/)**
+
 ![Think Tank Screenshot](docs/screenshot.png)
 
 ## Features
