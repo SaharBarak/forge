@@ -183,8 +183,14 @@ export class AgentListener {
       const recentMessages = this.bus.getRecentMessages(8);
       const conversationHistory = this.formatConversation(recentMessages);
 
+      // Include brief memory context for better evaluation
+      const memoryContext = this.bus.getEvalMemoryContext();
+      const fullContext = memoryContext
+        ? `${memoryContext}\n\n---\nRecent:\n${conversationHistory}`
+        : conversationHistory;
+
       const reaction = await this.claudeAgent.evaluateReaction(
-        conversationHistory,
+        fullContext,
         this.messagesSinceSpoke
       );
 
@@ -224,8 +230,14 @@ export class AgentListener {
       const recentMessages = this.bus.getRecentMessages(15);
       const conversationHistory = this.formatConversation(recentMessages);
 
+      // Include full memory context for better responses
+      const memoryContext = this.bus.getMemoryContext(this.id);
+      const fullContext = memoryContext
+        ? `${memoryContext}\n\n---\nRecent Discussion:\n${conversationHistory}`
+        : conversationHistory;
+
       const response = await this.claudeAgent.generateResponse(
-        conversationHistory,
+        fullContext,
         reason
       );
 

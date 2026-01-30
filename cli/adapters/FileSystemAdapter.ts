@@ -152,6 +152,16 @@ export class FileSystemAdapter implements IFileSystem {
     }
   }
 
+  async listDir(dirPath: string): Promise<string[]> {
+    try {
+      const fullPath = path.isAbsolute(dirPath) ? dirPath : path.join(this.cwd, dirPath);
+      const entries = await fs.readdir(fullPath, { withFileTypes: true });
+      return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+    } catch {
+      return [];
+    }
+  }
+
   getCwd(): string {
     return this.cwd;
   }

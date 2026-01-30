@@ -5,7 +5,7 @@
  */
 
 import type { AgentPersona, SessionConfig, ContextData } from '../types';
-import type { IAgentRunner, QueryResult } from './interfaces';
+import type { IAgentRunner } from './interfaces';
 
 export interface AgentQueryOptions {
   systemPrompt: string;

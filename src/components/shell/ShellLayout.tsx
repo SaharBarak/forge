@@ -3,7 +3,7 @@
  * Arranges main shell and agent panes like tmux
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -11,10 +11,11 @@ import { MainShell } from './MainShell';
 import { AgentShell } from './AgentShell';
 import { FloorManagerShell } from './FloorManagerShell';
 import { EventBusShell } from './EventBusShell';
-import { AGENT_PERSONAS } from '../../agents/personas';
+import { AGENT_PERSONAS, getActivePersonas } from '../../agents/personas';
 import { EDAOrchestrator } from '../../lib/eda';
+import { messageBus } from '../../lib/eda/MessageBus';
 import { initializeClient, setLoadedSkills } from '../../lib/claude';
-import type { Session, SessionConfig } from '../../types';
+import type { Session, SessionConfig, Message } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Empty - scroll padding handled programmatically
@@ -43,6 +44,8 @@ export function ShellLayout() {
   const orchestratorRef = useRef<EDAOrchestrator | null>(null);
   const [activeAgents, setActiveAgents] = useState<string[]>([]);
   const [sessionRunning, setSessionRunning] = useState(false);
+  const [currentPersonas, setCurrentPersonas] = useState<typeof AGENT_PERSONAS>([]); // Empty until session configured
+  const [, setLoadedMessages] = useState<Message[]>([]); // Stored for potential replay
 
   // Create terminal for main shell
   const createMainTerminal = useCallback(() => {
@@ -101,7 +104,8 @@ export function ShellLayout() {
     const container = agentContainersRef.current.get(agentId);
     if (!container || terminalsRef.current.has(agentId)) return;
 
-    const agent = AGENT_PERSONAS.find(a => a.id === agentId);
+    const personas = getActivePersonas();
+    const agent = personas.find(a => a.id === agentId);
     if (!agent) return;
 
     const color = AGENT_COLORS[agentId] || '#ffffff';
@@ -116,7 +120,7 @@ export function ShellLayout() {
       fontSize: 11,
       lineHeight: 1.2,
       cursorBlink: false,
-      scrollback: 500,
+      scrollback: 2000,
       convertEol: true,
       disableStdin: true,
     });
@@ -287,11 +291,18 @@ export function ShellLayout() {
     const orchestrator = new EDAOrchestrator(session, undefined, skills);
     orchestratorRef.current = orchestrator;
 
-    // Set active agents
+    // Set active agents and personas
     setActiveAgents(config.agents);
     setSessionRunning(true);
 
-    // Start agent shells
+    // Update personas from active personas registry (may be custom generated)
+    const personas = getActivePersonas();
+    setCurrentPersonas(personas);
+
+    // Start agent shells (after personas are set, terminals will be created reactively)
+    // Give time for terminals to be created
+    await new Promise(resolve => setTimeout(resolve, 200));
+
     for (const agentId of config.agents) {
       const instance = terminalsRef.current.get(agentId);
       if (instance?.shell instanceof AgentShell) {
@@ -373,16 +384,12 @@ export function ShellLayout() {
     return null;
   }, []);
 
-  // Initialize terminals on mount
+  // Initialize terminals on mount - only main and system terminals
+  // Agent terminals are created reactively when personas are selected
   useEffect(() => {
     createMainTerminal();
 
-    // Create agent terminals
-    for (const agent of AGENT_PERSONAS) {
-      createAgentTerminal(agent.id);
-    }
-
-    // Create system terminals
+    // Create system terminals (Floor Manager and Event Bus)
     createFloorManagerTerminal();
     createEventBusTerminal();
 
@@ -402,14 +409,139 @@ export function ShellLayout() {
       }
       terminalsRef.current.clear();
     };
-  }, [createMainTerminal, createAgentTerminal, createFloorManagerTerminal, createEventBusTerminal]);
+  }, [createMainTerminal, createFloorManagerTerminal, createEventBusTerminal]);
 
-  // Set ref for agent containers
-  const setAgentContainerRef = (agentId: string) => (el: HTMLDivElement | null) => {
+  // React to persona changes - recreate agent terminals
+  // Using useLayoutEffect to run synchronously after DOM updates
+  useLayoutEffect(() => {
+    // Get current agent IDs from personas
+    const currentAgentIds = new Set(currentPersonas.map(p => p.id));
+
+    // Remove terminals for agents no longer in the list
+    for (const [agentId, instance] of terminalsRef.current.entries()) {
+      if (!currentAgentIds.has(agentId) && agentId !== 'main' && agentId !== 'floor-manager' && agentId !== 'event-bus') {
+        console.log('Disposing terminal for:', agentId);
+        instance.terminal.dispose();
+        terminalsRef.current.delete(agentId);
+      }
+    }
+
+    // Create terminals for new agents with retry logic
+    let retryCount = 0;
+    const maxRetries = 10;
+
+    const tryCreateTerminals = () => {
+      let allCreated = true;
+
+      for (const agent of currentPersonas) {
+        if (!terminalsRef.current.has(agent.id)) {
+          const container = agentContainersRef.current.get(agent.id);
+          if (container) {
+            console.log('Creating terminal for:', agent.id);
+            createAgentTerminal(agent.id);
+          } else {
+            allCreated = false;
+            console.log('Waiting for container ref:', agent.id, 'retry:', retryCount);
+          }
+        }
+      }
+
+      // Retry if not all containers are ready
+      if (!allCreated && retryCount < maxRetries) {
+        retryCount++;
+        setTimeout(tryCreateTerminals, 100);
+      }
+    };
+
+    // Start creating after a short delay
+    const timer = setTimeout(tryCreateTerminals, 50);
+
+    return () => clearTimeout(timer);
+  }, [currentPersonas, createAgentTerminal]);
+
+  // Subscribe to message bus events for session management
+  useEffect(() => {
+    const unsubscribers: (() => void)[] = [];
+
+    // Handle session loaded from terminal
+    unsubscribers.push(
+      messageBus.subscribe('session:loaded', (payload: { metadata: { id: string; projectName: string; goal: string; enabledAgents: string[]; startedAt: string }; messages: Message[] }) => {
+        console.log('Session loaded:', payload.metadata.projectName);
+        setLoadedMessages(payload.messages);
+
+        // Update active personas from getActivePersonas (may have custom personas loaded)
+        const personas = getActivePersonas();
+        setCurrentPersonas(personas);
+      }, 'shell-layout')
+    );
+
+    // Handle personas changed (generated or loaded)
+    unsubscribers.push(
+      messageBus.subscribe('personas:changed', () => {
+        console.log('Personas changed, updating terminals');
+        const personas = getActivePersonas();
+        setCurrentPersonas(personas);
+      }, 'shell-layout')
+    );
+
+    // Handle save request from terminal
+    unsubscribers.push(
+      messageBus.subscribe('session:save-requested', async () => {
+        if (orchestratorRef.current) {
+          const session = orchestratorRef.current.getSession();
+          // Include memory state for context persistence
+          const sessionWithMemory = {
+            ...session,
+            memoryState: messageBus.getMemoryState(),
+          };
+          try {
+            const result = await window.electronAPI?.saveSession?.({ session: sessionWithMemory });
+            if (result?.success) {
+              console.log('Session saved to:', result.path);
+            }
+          } catch (error) {
+            console.error('Failed to save session:', error);
+          }
+        }
+      }, 'shell-layout')
+    );
+
+    // Handle export request from terminal
+    unsubscribers.push(
+      messageBus.subscribe('session:export-requested', async (payload: { format: string }) => {
+        if (orchestratorRef.current) {
+          const session = orchestratorRef.current.getSession();
+          try {
+            const result = await window.electronAPI?.exportSession?.({
+              session,
+              format: (payload.format || 'md') as 'md' | 'json' | 'html',
+              type: 'transcript',
+            });
+            if (result?.success && result.content) {
+              console.log('Session exported');
+              // Could copy to clipboard or show in terminal
+            }
+          } catch (error) {
+            console.error('Failed to export session:', error);
+          }
+        }
+      }, 'shell-layout')
+    );
+
+    return () => {
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [createAgentTerminal]);
+
+  // Set ref for agent containers - use useCallback to stabilize
+  const setAgentContainerRef = useCallback((agentId: string) => (el: HTMLDivElement | null) => {
     if (el) {
       agentContainersRef.current.set(agentId, el);
+    } else {
+      // Element unmounted - clean up
+      agentContainersRef.current.delete(agentId);
     }
-  };
+  }, []);
 
   return (
     <div style={{
@@ -440,7 +572,7 @@ export function ShellLayout() {
         <span style={{ margin: '0 12px' }}>│</span>
         <span>COPYWRITE THINK TANK</span>
         <span style={{ margin: '0 12px' }}>│</span>
-        <span>Agents: {activeAgents.length || AGENT_PERSONAS.length}</span>
+        <span>Agents: {activeAgents.length || currentPersonas.length}</span>
         <div style={{ flex: 1 }} />
         <span style={{ color: '#58a6ff' }}>EDA v1.0</span>
       </div>
@@ -503,17 +635,43 @@ export function ShellLayout() {
             backgroundColor: '#30363d',
             overflow: 'hidden',
           }}>
-            {AGENT_PERSONAS.map((agent) => (
-              <div
-                key={agent.id}
-                ref={setAgentContainerRef(agent.id)}
-                style={{
+            {currentPersonas.length === 0 ? (
+              <>
+                {/* Empty state - show placeholder */}
+                <div style={{
                   backgroundColor: '#0a0a0a',
-                  overflow: 'hidden',
-                  opacity: activeAgents.length === 0 || activeAgents.includes(agent.id) ? 1 : 0.3,
-                }}
-              />
-            ))}
+                  gridColumn: 'span 2',
+                  gridRow: 'span 2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column',
+                  color: '#6e7681',
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  padding: '20px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ marginBottom: '8px', fontSize: '24px' }}>👥</div>
+                  <div>No agents loaded</div>
+                  <div style={{ fontSize: '10px', marginTop: '4px', color: '#484f58' }}>
+                    Type 'new' in the console to configure a session
+                  </div>
+                </div>
+              </>
+            ) : (
+              currentPersonas.map((agent) => (
+                <div
+                  key={agent.id}
+                  ref={setAgentContainerRef(agent.id)}
+                  style={{
+                    backgroundColor: '#0a0a0a',
+                    overflow: 'hidden',
+                    opacity: activeAgents.length === 0 || activeAgents.includes(agent.id) ? 1 : 0.3,
+                  }}
+                />
+              ))
+            )}
             {/* Floor Manager */}
             <div
               ref={floorManagerContainerRef}

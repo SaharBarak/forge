@@ -249,4 +249,45 @@ export class SessionPersistence {
   updateSession(session: Session): void {
     this.session = session;
   }
+
+  /**
+   * Save session with memory state (for full context persistence)
+   */
+  async saveSessionWithMemory(sessionWithMemory: Session & { memoryState?: object }): Promise<void> {
+    if (!this.sessionDir) return;
+
+    // Update session
+    this.session = sessionWithMemory;
+
+    // Save any remaining messages
+    await this.saveIncremental();
+
+    // Generate final files
+    await this.generateTranscript();
+    await this.generateDraft();
+
+    // Update session metadata with end time
+    const metadata = {
+      id: sessionWithMemory.id,
+      projectName: sessionWithMemory.config.projectName,
+      goal: sessionWithMemory.config.goal,
+      enabledAgents: sessionWithMemory.config.enabledAgents,
+      startedAt: sessionWithMemory.startedAt.toISOString(),
+      endedAt: new Date().toISOString(),
+      messageCount: sessionWithMemory.messages.length,
+      currentPhase: sessionWithMemory.currentPhase,
+    };
+    await this.fs.writeFile(
+      path.join(this.sessionDir, 'session.json'),
+      JSON.stringify(metadata, null, 2)
+    );
+
+    // Save memory state if present
+    if (sessionWithMemory.memoryState) {
+      await this.fs.writeFile(
+        path.join(this.sessionDir, 'memory.json'),
+        JSON.stringify(sessionWithMemory.memoryState, null, 2)
+      );
+    }
+  }
 }

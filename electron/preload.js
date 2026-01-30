@@ -41,6 +41,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   claudeAgentQuery: (params) => ipcRenderer.invoke('claude-agent:query', params),
   claudeAgentEvaluate: (params) => ipcRenderer.invoke('claude-agent:evaluate', params),
 
+  // Sessions (manage saved sessions)
+  listSessions: () => ipcRenderer.invoke('sessions:list'),
+  loadSession: (name) => ipcRenderer.invoke('sessions:load', name),
+  deleteSession: (name) => ipcRenderer.invoke('sessions:delete', name),
+
   // Personas (manage persona sets)
   listPersonas: () => ipcRenderer.invoke('personas:list'),
   loadPersonas: (name) => ipcRenderer.invoke('personas:load', name),

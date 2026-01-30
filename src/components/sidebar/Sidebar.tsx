@@ -1,6 +1,6 @@
 import { useSessionStore } from '../../stores/sessionStore';
 import { useUIStore } from '../../stores/uiStore';
-import { AGENT_PERSONAS } from '../../agents/personas';
+import { getActivePersonas } from '../../agents/personas';
 import { AgentCard } from './AgentCard';
 
 export function Sidebar() {
@@ -58,13 +58,15 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* Agents */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="text-xs text-dark-500 mb-2">{t.agents}</div>
+      {/* Agents - scrollable */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-4">
+        <div className="text-xs text-dark-500 mb-2">{t.agents} ({enabledAgents.length})</div>
         <div className="space-y-2">
-          {AGENT_PERSONAS.filter((a) => enabledAgents.includes(a.id)).map((agent) => (
-            <AgentCard key={agent.id} agent={agent} />
-          ))}
+          {getActivePersonas()
+            .filter((a) => enabledAgents.includes(a.id))
+            .map((agent) => (
+              <AgentCard key={agent.id} agent={agent} />
+            ))}
         </div>
       </div>
 
@@ -129,3 +131,4 @@ function SettingsIcon() {
     </svg>
   );
 }
+

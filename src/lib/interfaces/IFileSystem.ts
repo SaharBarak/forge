@@ -73,4 +73,9 @@ export interface IFileSystem {
    * Append to a file (for JSONL)
    */
   appendFile(filePath: string, content: string): Promise<boolean>;
+
+  /**
+   * List directory names (simple string array for directory enumeration)
+   */
+  listDir(dirPath: string): Promise<string[]>;
 }

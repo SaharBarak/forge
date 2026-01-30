@@ -18,6 +18,14 @@ interface SessionStore {
 
   // Actions
   createSession: (config: Partial<SessionConfig>) => void;
+  loadSession: (metadata: {
+    id: string;
+    projectName: string;
+    goal: string;
+    enabledAgents: string[];
+    startedAt: string;
+    endedAt?: string;
+  }, messages: Message[]) => void;
   endSession: () => void;
   pauseSession: () => void;
   resumeSession: () => void;
@@ -71,6 +79,43 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       decisions: [],
       drafts: [],
       startedAt: new Date(),
+      status: 'idle',
+    };
+
+    set({ session, isRunning: false });
+  },
+
+  loadSession: (metadata, messages) => {
+    // Reconstruct session from saved metadata and messages
+    const config: SessionConfig = {
+      id: metadata.id,
+      projectName: metadata.projectName,
+      goal: metadata.goal,
+      enabledAgents: metadata.enabledAgents,
+      humanParticipation: true,
+      maxRounds: 10,
+      consensusThreshold: 0.67,
+      methodology: DEFAULT_METHODOLOGY,
+      contextDir: './context',
+      outputDir: './output',
+    };
+
+    // Parse messages - convert timestamp strings back to Date objects
+    const parsedMessages: Message[] = messages.map(m => ({
+      ...m,
+      timestamp: typeof m.timestamp === 'string' ? new Date(m.timestamp) : m.timestamp,
+    }));
+
+    const session: Session = {
+      id: metadata.id,
+      config,
+      messages: parsedMessages,
+      currentPhase: 'argumentation', // Resume in argumentation phase
+      currentRound: 0,
+      decisions: [],
+      drafts: [],
+      startedAt: new Date(metadata.startedAt),
+      endedAt: metadata.endedAt ? new Date(metadata.endedAt) : undefined,
       status: 'idle',
     };
 

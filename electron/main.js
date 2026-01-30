@@ -282,6 +282,100 @@ ipcMain.handle('briefs:list', async () => {
 });
 
 // ============================================================================
+// SESSIONS HANDLERS (manage saved sessions)
+// ============================================================================
+
+const SESSIONS_DIR = path.join(process.cwd(), 'output', 'sessions');
+
+// List all saved sessions
+ipcMain.handle('sessions:list', async () => {
+  try {
+    await fs.mkdir(SESSIONS_DIR, { recursive: true });
+    const dirs = await fs.readdir(SESSIONS_DIR, { withFileTypes: true });
+    const sessions = [];
+
+    for (const dir of dirs) {
+      if (!dir.isDirectory()) continue;
+
+      const sessionPath = path.join(SESSIONS_DIR, dir.name, 'session.json');
+      try {
+        const content = await fs.readFile(sessionPath, 'utf-8');
+        const metadata = JSON.parse(content);
+        sessions.push({
+          id: metadata.id,
+          name: dir.name,
+          projectName: metadata.projectName,
+          goal: metadata.goal?.slice(0, 100),
+          startedAt: metadata.startedAt,
+          endedAt: metadata.endedAt,
+          messageCount: metadata.messageCount || 0,
+          currentPhase: metadata.currentPhase,
+        });
+      } catch {
+        // Skip invalid sessions
+      }
+    }
+
+    // Sort by date, newest first
+    sessions.sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+    return sessions;
+  } catch {
+    return [];
+  }
+});
+
+// Load a specific session
+ipcMain.handle('sessions:load', async (_, sessionName) => {
+  try {
+    const sessionDir = path.join(SESSIONS_DIR, sessionName);
+    const sessionPath = path.join(sessionDir, 'session.json');
+    const messagesPath = path.join(sessionDir, 'messages.jsonl');
+    const memoryPath = path.join(sessionDir, 'memory.json');
+
+    // Load metadata
+    const metadataContent = await fs.readFile(sessionPath, 'utf-8');
+    const metadata = JSON.parse(metadataContent);
+
+    // Load messages
+    let messages = [];
+    try {
+      const messagesContent = await fs.readFile(messagesPath, 'utf-8');
+      messages = messagesContent
+        .trim()
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => JSON.parse(line));
+    } catch {
+      // No messages file
+    }
+
+    // Load memory state
+    let memoryState = null;
+    try {
+      const memoryContent = await fs.readFile(memoryPath, 'utf-8');
+      memoryState = JSON.parse(memoryContent);
+    } catch {
+      // No memory file (older session)
+    }
+
+    return { success: true, metadata, messages, memoryState };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Delete a session
+ipcMain.handle('sessions:delete', async (_, sessionName) => {
+  try {
+    const sessionDir = path.join(SESSIONS_DIR, sessionName);
+    await fs.rm(sessionDir, { recursive: true });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// ============================================================================
 // SKILLS HANDLERS (reads from .agents/skills/ - installed via npx skills)
 // ============================================================================
 
@@ -602,6 +696,14 @@ ipcMain.handle('export:saveSession', async (_, { session }) => {
     // Save messages as JSONL
     const messagesLines = (session.messages || []).map(m => JSON.stringify(m)).join('\n');
     await fs.writeFile(path.join(sessionDir, 'messages.jsonl'), messagesLines);
+
+    // Save memory state if present
+    if (session.memoryState) {
+      await fs.writeFile(
+        path.join(sessionDir, 'memory.json'),
+        JSON.stringify(session.memoryState, null, 2)
+      );
+    }
 
     // Save transcript
     const transcript = generateTranscript(

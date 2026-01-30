@@ -4,6 +4,8 @@
  */
 
 import type { Message } from '../../types';
+import type { IAgentRunner } from '../interfaces';
+import { ConversationMemory } from './ConversationMemory';
 
 export type MessageBusEvent =
   | 'message:new'           // New message added to conversation
@@ -17,6 +19,10 @@ export type MessageBusEvent =
   | 'session:pause'         // Session paused
   | 'session:resume'        // Session resumed
   | 'session:end'           // Session ended
+  | 'session:loaded'        // Session loaded from file
+  | 'session:save-requested'    // Save requested from terminal
+  | 'session:export-requested'  // Export requested from terminal
+  | 'personas:changed'      // Personas were generated or changed
   | 'human:requested'       // Waiting for human input
   | 'human:received';       // Human input received
 
@@ -40,6 +46,10 @@ export interface MessageBusPayload {
   'session:pause': { reason: string };
   'session:resume': Record<string, never>;
   'session:end': { reason: string };
+  'session:loaded': { metadata: { id: string; projectName: string; goal: string; enabledAgents: string[]; startedAt: string }; messages: Message[] };
+  'session:save-requested': Record<string, never>;
+  'session:export-requested': { format: string };
+  'personas:changed': { count: number };
   'human:requested': { prompt: string };
   'human:received': { content: string };
 }
@@ -56,6 +66,8 @@ export class MessageBus {
   private subscriptions: Subscription[] = [];
   private messageHistory: Message[] = [];
   private isActive = false;
+  private memory: ConversationMemory = new ConversationMemory();
+  private agentRunner?: IAgentRunner;
 
   /**
    * Subscribe to an event
@@ -100,11 +112,60 @@ export class MessageBus {
   }
 
   /**
+   * Set the agent runner for memory summarization
+   */
+  setAgentRunner(runner: IAgentRunner): void {
+    this.agentRunner = runner;
+    this.memory.setRunner(runner);
+  }
+
+  /**
    * Add message to history and emit
    */
   addMessage(message: Message, fromAgent: string): void {
     this.messageHistory.push(message);
+
+    // Process message for memory tracking
+    this.memory.processMessage(message, this.messageHistory).catch(err => {
+      console.error('[MessageBus] Memory processing error:', err);
+    });
+
     this.emit('message:new', { message, fromAgent });
+  }
+
+  /**
+   * Get conversation memory context
+   */
+  getMemoryContext(forAgentId?: string): string {
+    return this.memory.getMemoryContext(forAgentId);
+  }
+
+  /**
+   * Get brief memory context for evaluation
+   */
+  getEvalMemoryContext(): string {
+    return this.memory.getEvalMemoryContext();
+  }
+
+  /**
+   * Get memory stats
+   */
+  getMemoryStats(): { summaryCount: number; decisionCount: number; proposalCount: number; agentCount: number } {
+    return this.memory.getStats();
+  }
+
+  /**
+   * Serialize memory for session save
+   */
+  getMemoryState(): object {
+    return this.memory.toJSON();
+  }
+
+  /**
+   * Restore memory from session load
+   */
+  restoreMemory(state: object): void {
+    this.memory = ConversationMemory.fromJSON(state, this.agentRunner);
   }
 
   /**
@@ -127,6 +188,7 @@ export class MessageBus {
   start(sessionId: string, goal: string): void {
     this.isActive = true;
     this.messageHistory = [];
+    this.memory.reset();
     this.emit('session:start', { sessionId, goal });
   }
 

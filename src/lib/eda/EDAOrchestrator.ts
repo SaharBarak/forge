@@ -11,6 +11,8 @@ import { FloorManager } from './FloorManager';
 import { AgentListener } from './AgentListener';
 import { getAgentById, getResearcherById } from '../../agents/personas';
 import { generateRoundSynthesis } from '../claude';
+import { ModeController } from '../modes/ModeController';
+import { getModeById, getDefaultMode } from '../modes';
 
 export type EDAEventType =
   | 'phase_change'
@@ -72,20 +74,21 @@ export class EDAOrchestrator {
   // Phase management
   private currentPhase: SessionPhase = 'initialization';
   private copySections: CopySection[] = [];
-  private synthesisInsights: string[] = [];
 
   // Consensus tracking
   private agentContributions: Map<string, number> = new Map();
   private keyInsights: Map<string, { content: string; supporters: Set<string>; opposers: Set<string> }> = new Map();
   private consensusThreshold = 0.6; // 60% agreement needed
 
-  // Research state
-  private isResearchPending = false;
-  private pendingResearchRequests: { researcherId: string; query: string; requestedBy: string }[] = [];
+  // Research state (used for tracking pending research)
+  private researchPending = false;
 
   // Dependency injection
   private agentRunner: IAgentRunner | undefined;
   private fileSystem: IFileSystem | undefined;
+
+  // Mode controller for goal anchoring and loop detection
+  private modeController: ModeController;
 
   constructor(
     session: Session,
@@ -100,6 +103,10 @@ export class EDAOrchestrator {
     this.floorManager = new FloorManager(this.bus);
     this.agentRunner = options?.agentRunner;
     this.fileSystem = options?.fileSystem;
+
+    // Initialize mode controller
+    const mode = getModeById(session.config.mode || 'copywrite') || getDefaultMode();
+    this.modeController = new ModeController(mode);
   }
 
   /**
@@ -138,19 +145,39 @@ export class EDAOrchestrator {
     // Emit phase change
     this.emit('phase_change', { phase: 'initialization' });
 
-    // Add initial system message
+    // Get mode info
+    const mode = this.modeController.getMode();
+    const firstPhase = this.modeController.getCurrentPhase();
+
+    // Add initial system message with mode context
     const systemMessage: Message = {
       id: crypto.randomUUID(),
       timestamp: new Date(),
       agentId: 'system',
       type: 'system',
-      content: `🎙️ Session started: ${this.session.config.projectName}\n\n**Goal:** ${this.session.config.goal}\n\n*All agents are now listening. The discussion will flow naturally based on who has something to contribute.*`,
+      content: `🎙️ Session started: ${this.session.config.projectName}
+
+**Mode:** ${mode.icon} ${mode.name}
+**Goal:** ${this.session.config.goal}
+
+**${mode.description}**
+
+📍 **Phase 1: ${firstPhase?.name || 'Discovery'}**
+${firstPhase?.agentFocus || 'Begin the discussion'}
+
+*All agents are now listening. Stay focused on the goal.*`,
     };
     this.bus.addMessage(systemMessage, 'system');
 
-    // Start agents listening with skills
+    // Combine mode instructions with skills
+    const modeInstructions = this.modeController.getAgentInstructions();
+    const combinedSkills = this.skills
+      ? `${this.skills}\n\n## Mode Instructions\n${modeInstructions}`
+      : `## Mode Instructions\n${modeInstructions}`;
+
+    // Start agents listening with skills and mode instructions
     for (const listener of this.agentListeners.values()) {
-      listener.start(this.session.config, this.context, this.skills);
+      listener.start(this.session.config, this.context, combinedSkills);
     }
 
     // Kick off with a compelling prompt that forces engagement
@@ -245,6 +272,9 @@ Ronit - you're up first. Share your initial reaction.`,
 
         // Check for research requests
         this.checkForResearchRequests(payload.message);
+
+        // Process message through mode controller for interventions
+        this.processModeInterventions(payload.message);
       }, 'orchestrator')
     );
 
@@ -385,7 +415,9 @@ Ronit - you're up first. Share your initial reaction.`,
     let recommendation: string;
     let ready = false;
 
-    if (!allAgentsSpoke) {
+    if (this.researchPending) {
+      recommendation = 'מחכים לתוצאות מחקר...';
+    } else if (!allAgentsSpoke) {
       const silent = enabledAgents.filter(id => !agentsWhoSpoke.has(id));
       recommendation = `עדיין לא כל הסוכנים דיברו. חסרים: ${silent.join(', ')}`;
     } else if (totalContributions < minContributions) {
@@ -407,6 +439,79 @@ Ronit - you're up first. Share your initial reaction.`,
       conflictPoints,
       recommendation,
     };
+  }
+
+  /**
+   * Get current mode info
+   */
+  getModeInfo(): { id: string; name: string; phase: string; progress: object } {
+    const mode = this.modeController.getMode();
+    const progress = this.modeController.getProgress();
+    const phase = this.modeController.getCurrentPhase();
+
+    return {
+      id: mode.id,
+      name: mode.name,
+      phase: phase?.name || 'Unknown',
+      progress: {
+        messagesInPhase: progress.messagesInPhase,
+        totalMessages: progress.totalMessages,
+        researchRequests: progress.researchRequests,
+        consensusPoints: progress.consensusPoints,
+        proposalsCount: progress.proposalsCount,
+        loopDetected: progress.loopDetected,
+        outputsProduced: Array.from(progress.outputsProduced),
+      },
+    };
+  }
+
+  /**
+   * Check if mode success criteria are met
+   */
+  checkModeSuccess(): { met: boolean; missing: string[] } {
+    return this.modeController.checkSuccessCriteria();
+  }
+
+  /**
+   * Get mode controller (for serialization)
+   */
+  getModeController(): ModeController {
+    return this.modeController;
+  }
+
+  /**
+   * Process mode interventions (goal reminders, loop detection, phase transitions)
+   */
+  private processModeInterventions(message: Message): void {
+    const interventions = this.modeController.processMessage(message, this.session.messages);
+
+    for (const intervention of interventions) {
+      // Replace {goal} placeholder in goal reminders
+      let content = intervention.message;
+      if (content.includes('{goal}')) {
+        content = content.replace('{goal}', this.session.config.goal);
+      }
+
+      // Create system message for the intervention
+      const interventionMessage: Message = {
+        id: crypto.randomUUID(),
+        timestamp: new Date(),
+        agentId: 'system',
+        type: 'system',
+        content,
+        metadata: {
+          interventionType: intervention.type,
+          priority: intervention.priority,
+        },
+      };
+
+      // Add with a small delay to not interrupt flow
+      setTimeout(() => {
+        this.bus.addMessage(interventionMessage, 'system');
+      }, 500);
+
+      console.log(`[EDAOrchestrator] Mode intervention: ${intervention.type} (${intervention.priority})`);
+    }
   }
 
   /**
@@ -446,7 +551,7 @@ Ronit - you're up first. Share your initial reaction.`,
     if (!researcher) return;
 
     // HALT the discussion
-    this.isResearchPending = true;
+    this.researchPending = true;
     this.bus.pause('Research in progress');
     this.emit('research_halt', { researcherId, query, requestedBy });
 
@@ -508,7 +613,7 @@ Ronit - you're up first. Share your initial reaction.`,
     }
 
     // RESUME the discussion
-    this.isResearchPending = false;
+    this.researchPending = false;
     this.bus.resume();
   }
 

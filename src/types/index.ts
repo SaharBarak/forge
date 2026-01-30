@@ -85,6 +85,7 @@ export interface SessionConfig {
   outputDir: string;
   apiKey?: string;
   language?: 'hebrew' | 'english' | 'mixed' | string;
+  mode?: string; // Mode ID: copywrite, idea-validation, ideation, will-it-work, custom
 }
 
 export interface Session {
@@ -98,6 +99,7 @@ export interface Session {
   startedAt: Date;
   endedAt?: Date;
   status: 'idle' | 'running' | 'paused' | 'completed';
+  memoryState?: object; // Conversation memory for context persistence
 }
 
 export type SessionPhase =
@@ -395,6 +397,24 @@ export interface ElectronAPI {
     responseType: string;
   }>;
 
+  // Sessions (manage saved sessions)
+  listSessions: () => Promise<SavedSessionInfo[]>;
+  loadSession: (name: string) => Promise<{
+    success: boolean;
+    metadata?: {
+      id: string;
+      projectName: string;
+      goal: string;
+      enabledAgents: string[];
+      startedAt: string;
+      endedAt?: string;
+    };
+    messages?: Message[];
+    memoryState?: object;
+    error?: string;
+  }>;
+  deleteSession: (name: string) => Promise<{ success: boolean; error?: string }>;
+
   // Personas (manage persona sets)
   listPersonas: () => Promise<PersonaSetInfo[]>;
   loadPersonas: (name: string) => Promise<{
@@ -437,6 +457,17 @@ export interface PersonaSetInfo {
   name: string;
   count: number;
   personas: { id: string; name: string; role: string }[];
+}
+
+export interface SavedSessionInfo {
+  id: string;
+  name: string;
+  projectName: string;
+  goal?: string;
+  startedAt: string;
+  endedAt?: string;
+  messageCount: number;
+  currentPhase?: string;
 }
 
 export interface FileInfo {

@@ -17,6 +17,7 @@ interface SessionConfig {
   agents: string[];
   contextDir: string;
   language: string;
+  mode: string;
 }
 
 type PhaseCallback = (force?: boolean) => Promise<{ success: boolean; message: string } | void>;
@@ -39,7 +40,6 @@ export class MainShell {
   private state: 'idle' | 'configuring' | 'running' | 'paused' | 'setting_token' | 'generating_personas' | 'selecting_agents' = 'idle' as const;
   private configStep = 0;
   private currentPersonas: AgentPersona[] = AGENT_PERSONAS; // Can be replaced with generated personas
-  private domainSkills: string | null = null;
   private selectedAgentIds: Set<string> = new Set(); // For interactive agent selection
   private onStartSession?: (config: SessionConfig) => Promise<void>;
   private onStopSession?: () => void;
@@ -77,18 +77,17 @@ export class MainShell {
   init(): void {
     this.showBanner();
 
-    // Load saved settings
-    this.loadSavedSettings().then(() => {
-      // Check if we have a saved session
-      if (this.config.projectName && this.config.goal) {
-        this.writeLine(`${GREEN}Last session loaded:${RESET}`);
-        this.writeLine(`${DIM}  Project: ${this.config.projectName}${RESET}`);
-        this.writeLine(`${DIM}  Agents: ${this.config.agents?.join(', ')}${RESET}`);
+    // Load credentials only (not session config)
+    this.loadCredentials().then(async () => {
+      // Check for saved sessions
+      const sessions = await window.electronAPI?.listSessions?.();
+
+      if (sessions && sessions.length > 0) {
+        this.writeLine(`${DIM}${sessions.length} saved session(s) available. Type 'sessions' to view.${RESET}`);
         this.writeLine('');
-        this.writeLine(`${YELLOW}Type 'start' to continue, or 'new' for new project.${RESET}`);
-      } else {
-        this.showHelp();
       }
+
+      this.showHelp();
       this.writeLine('');
       this.prompt();
     });
@@ -112,15 +111,15 @@ export class MainShell {
   }
 
   /**
-   * Load saved settings from electron store and Claude Code credentials
+   * Load credentials only (API key from Claude Code or settings)
    */
-  private async loadSavedSettings(): Promise<void> {
+  private async loadCredentials(): Promise<void> {
     try {
       // First try to load from Claude Code credentials (~/.claude/credentials.json)
       const claudeToken = await window.electronAPI?.getClaudeToken?.();
       if (claudeToken) {
         this.config.apiKey = claudeToken;
-        this.writeLine(`${GREEN}Loaded Claude Code credentials${RESET}`);
+        this.writeLine(`${GREEN}✓ Claude Code credentials loaded${RESET}`);
       } else {
         // Fallback to manually saved API key
         const apiKey = await window.electronAPI?.getSetting?.('apiKey') as string | null;
@@ -129,13 +128,7 @@ export class MainShell {
         }
       }
 
-      // Load last session config
-      const lastSession = await window.electronAPI?.getSetting?.('lastSession') as SessionConfig | null;
-      if (lastSession) {
-        this.config = { ...this.config, ...lastSession };
-        this.writeLine(`${DIM}Loaded last session: ${lastSession.projectName}${RESET}`);
-      }
-
+      // Load language preference only
       const language = await window.electronAPI?.getSetting?.('language') as string | null;
       if (language) {
         this.config.language = language;
@@ -278,6 +271,11 @@ export class MainShell {
         this.showStatus();
         break;
 
+      case 'memory':
+      case 'context':
+        this.showMemoryStats();
+        break;
+
       case 'agents':
         this.showAgents();
         break;
@@ -315,6 +313,15 @@ export class MainShell {
         }
         break;
 
+      case 'recall':
+        // Test agent memory by asking what they remember
+        if (this.state === 'running') {
+          this.testAgentMemory(args[0]);
+        } else {
+          this.writeLine(`${RED}No session running. Start a session first.${RESET}`);
+        }
+        break;
+
       case 'draft':
       case 'write':
         if (this.state === 'running') {
@@ -327,6 +334,36 @@ export class MainShell {
       case 'clear':
       case 'cls':
         this.write('\x1b[2J\x1b[H');
+        break;
+
+      case 'sessions':
+      case 'ls':
+        this.listSessions();
+        break;
+
+      case 'load':
+        if (args.length > 0) {
+          this.loadSession(args.join(' '));
+        } else {
+          this.writeLine(`${YELLOW}Usage: load <session-name>${RESET}`);
+          this.writeLine(`${DIM}Use 'sessions' to see available sessions.${RESET}`);
+        }
+        break;
+
+      case 'export':
+        if (this.state === 'running') {
+          this.exportCurrentSession(args[0] || 'md');
+        } else {
+          this.writeLine(`${RED}No session running. Start a session first.${RESET}`);
+        }
+        break;
+
+      case 'save':
+        if (this.state === 'running') {
+          this.saveCurrentSession();
+        } else {
+          this.writeLine(`${RED}No session running. Start a session first.${RESET}`);
+        }
         break;
 
       case 'exit':
@@ -389,7 +426,6 @@ export class MainShell {
         if (inputLower === 'd' || inputLower === 'default') {
           // Reset to default personas
           this.currentPersonas = AGENT_PERSONAS;
-          this.domainSkills = null;
           this.selectedAgentIds.clear();
           this.currentPersonas.forEach(a => this.selectedAgentIds.add(a.id));
           clearCustomPersonas();
@@ -486,11 +522,45 @@ export class MainShell {
         }
         this.writeLine(`${GREEN}Language: ${this.config.language}${RESET}`);
         this.configStep++;
+        this.showModeSelection();
+        break;
+
+      case 4: // Mode selection
+        const mode = input.toLowerCase().trim();
+        if (mode === '1' || mode === 'copywrite' || mode === 'copy' || !mode) {
+          this.config.mode = 'copywrite';
+          this.writeLine(`${GREEN}Mode: Copywriting ✍️${RESET}`);
+        } else if (mode === '2' || mode === 'survey' || mode === 'site') {
+          this.config.mode = 'site-survey';
+          this.writeLine(`${GREEN}Mode: Site Survey 🔎${RESET}`);
+        } else if (mode === '3' || mode === 'validate' || mode === 'validation') {
+          this.config.mode = 'idea-validation';
+          this.writeLine(`${GREEN}Mode: Idea Validation 🔍${RESET}`);
+        } else if (mode === '4' || mode === 'ideation' || mode === 'ideas') {
+          this.config.mode = 'ideation';
+          this.writeLine(`${GREEN}Mode: Ideation 💡${RESET}`);
+        } else if (mode === '5' || mode === 'work' || mode === 'feasibility') {
+          this.config.mode = 'will-it-work';
+          this.writeLine(`${GREEN}Mode: Will It Work? ⚖️${RESET}`);
+        } else if (mode === '6' || mode === 'business' || mode === 'plan') {
+          this.config.mode = 'business-plan';
+          this.writeLine(`${GREEN}Mode: Business Plan 📊${RESET}`);
+        } else if (mode === '7' || mode === 'gtm' || mode === 'launch') {
+          this.config.mode = 'gtm-strategy';
+          this.writeLine(`${GREEN}Mode: Go-to-Market 🚀${RESET}`);
+        } else if (mode === '8' || mode === 'custom') {
+          this.config.mode = 'custom';
+          this.writeLine(`${GREEN}Mode: Custom ⚙️${RESET}`);
+        } else {
+          this.config.mode = 'copywrite';
+          this.writeLine(`${GREEN}Mode: Copywriting ✍️ (default)${RESET}`);
+        }
+        this.configStep++;
         this.writeLine(`${CYAN}Enter context directory (or press Enter for default):${RESET}`);
         this.write('> ');
         break;
 
-      case 4: // Context directory
+      case 5: // Context directory
         this.config.contextDir = input || 'context';
         this.writeLine(`${GREEN}Context: ${this.config.contextDir}${RESET}`);
         this.finishConfiguration();
@@ -513,6 +583,26 @@ export class MainShell {
   }
 
   /**
+   * Show mode selection options
+   */
+  private showModeSelection(): void {
+    this.writeLine('');
+    this.writeLine(`${CYAN}Select session mode:${RESET}`);
+    this.writeLine(`  ${BOLD}1${RESET} - ✍️  Copywriting - Create compelling website copy (default)`);
+    this.writeLine(`  ${BOLD}2${RESET} - 🔎 Site Survey - Analyze existing site & rewrite copy`);
+    this.writeLine(`  ${BOLD}3${RESET} - 🔍 Idea Validation - Test if an idea is viable`);
+    this.writeLine(`  ${BOLD}4${RESET} - 💡 Ideation - Generate ideas through research`);
+    this.writeLine(`  ${BOLD}5${RESET} - ⚖️  Will It Work? - Reach a definitive conclusion`);
+    this.writeLine(`  ${BOLD}6${RESET} - 📊 Business Plan - Create a structured business plan`);
+    this.writeLine(`  ${BOLD}7${RESET} - 🚀 Go-to-Market - Launch strategy & GTM plan`);
+    this.writeLine(`  ${BOLD}8${RESET} - ⚙️  Custom - Open-ended discussion`);
+    this.writeLine('');
+    this.writeLine(`${DIM}Each mode has specific goals, phases, and keeps agents focused.${RESET}`);
+    this.writeLine(`${DIM}Enter number or mode name:${RESET}`);
+    this.write('> ');
+  }
+
+  /**
    * Start configuration wizard
    */
   private startConfiguration(): void {
@@ -521,7 +611,6 @@ export class MainShell {
     this.configStep = 0;
     this.selectedAgentIds.clear(); // Reset agent selection
     this.currentPersonas = AGENT_PERSONAS; // Reset to default personas
-    this.domainSkills = null;
 
     this.writeLine('');
     this.writeLine(`${MAGENTA}${BOLD}═══════════════════════════════════════${RESET}`);
@@ -587,8 +676,10 @@ export class MainShell {
 
       if (result.success && result.personas) {
         this.currentPersonas = result.personas;
-        this.domainSkills = result.skills || null;
         registerCustomPersonas(result.personas);
+
+        // Notify UI that personas changed
+        messageBus.emit('personas:changed', { count: result.personas.length });
 
         this.writeLine('');
         this.writeLine(`${GREEN}${BOLD}✓ Generated ${result.personas.length} personas:${RESET}`);
@@ -620,12 +711,24 @@ export class MainShell {
     // Save session config for next time
     this.saveSessionConfig();
 
+    const modeNames: Record<string, string> = {
+      'copywrite': '✍️ Copywriting',
+      'site-survey': '🔎 Site Survey',
+      'idea-validation': '🔍 Idea Validation',
+      'ideation': '💡 Ideation',
+      'will-it-work': '⚖️ Will It Work?',
+      'business-plan': '📊 Business Plan',
+      'gtm-strategy': '🚀 Go-to-Market',
+      'custom': '⚙️ Custom',
+    };
+
     this.writeLine('');
     this.writeLine(`${GREEN}${BOLD}Configuration complete!${RESET}`);
     this.writeLine('');
     this.writeLine(`${DIM}Project: ${this.config.projectName}${RESET}`);
     this.writeLine(`${DIM}Goal: ${this.config.goal}${RESET}`);
     this.writeLine(`${DIM}Agents: ${this.config.agents?.join(', ')}${RESET}`);
+    this.writeLine(`${DIM}Mode: ${modeNames[this.config.mode || 'copywrite'] || this.config.mode}${RESET}`);
     this.writeLine(`${DIM}Language: ${this.config.language}${RESET}`);
     this.writeLine('');
     this.writeLine(`${YELLOW}Type 'start' to begin the session, or 'new' for new project.${RESET}`);
@@ -830,6 +933,66 @@ export class MainShell {
   }
 
   /**
+   * Show memory/context stats
+   */
+  private showMemoryStats(): void {
+    const stats = messageBus.getMemoryStats();
+    this.writeLine('');
+    this.writeLine(`${CYAN}${BOLD}CONVERSATION MEMORY${RESET}`);
+    this.writeLine(`${DIM}─────────────────────${RESET}`);
+    this.writeLine(`Summaries: ${stats.summaryCount}`);
+    this.writeLine(`Key Decisions: ${stats.decisionCount}`);
+    this.writeLine(`Active Proposals: ${stats.proposalCount}`);
+    this.writeLine(`Tracked Agents: ${stats.agentCount}`);
+    this.writeLine('');
+    if (stats.summaryCount > 0) {
+      this.writeLine(`${DIM}Memory is active - agents can recall earlier conversation.${RESET}`);
+      this.writeLine(`${DIM}Use 'recall [agent-id]' to test what an agent remembers.${RESET}`);
+    } else {
+      this.writeLine(`${DIM}Memory will build as conversation progresses (~12 messages per summary).${RESET}`);
+    }
+    this.writeLine('');
+  }
+
+  /**
+   * Test agent memory by showing what context they would have
+   */
+  private async testAgentMemory(agentId?: string): Promise<void> {
+    const memoryContext = messageBus.getMemoryContext(agentId);
+    const stats = messageBus.getMemoryStats();
+
+    this.writeLine('');
+    this.writeLine(`${CYAN}${BOLD}AGENT MEMORY TEST${agentId ? ` (${agentId})` : ''}${RESET}`);
+    this.writeLine(`${DIM}─────────────────────${RESET}`);
+
+    if (stats.summaryCount === 0) {
+      this.writeLine(`${YELLOW}No memory built yet.${RESET}`);
+      this.writeLine(`${DIM}Memory builds after ~12 messages. Current messages in session.${RESET}`);
+      const allMessages = messageBus.getAllMessages();
+      this.writeLine(`${DIM}Messages so far: ${allMessages.length}${RESET}`);
+      if (allMessages.length > 0) {
+        this.writeLine('');
+        this.writeLine(`${DIM}Recent topics:${RESET}`);
+        allMessages.slice(-5).forEach(m => {
+          const preview = m.content.slice(0, 80).replace(/\n/g, ' ');
+          this.writeLine(`${DIM}  [${m.agentId}]: ${preview}...${RESET}`);
+        });
+      }
+    } else {
+      this.writeLine(`${GREEN}Memory context an agent would receive:${RESET}`);
+      this.writeLine('');
+      // Display the memory context
+      memoryContext.split('\n').forEach(line => {
+        this.writeLine(`${DIM}  ${line}${RESET}`);
+      });
+    }
+
+    this.writeLine('');
+    this.writeLine(`${DIM}This is the context agents use to remember earlier conversation.${RESET}`);
+    this.writeLine('');
+  }
+
+  /**
    * Show available agents
    */
   private showAgents(): void {
@@ -848,6 +1011,146 @@ export class MainShell {
       this.writeLine(`${DIM}💡 Run 'new' to generate custom personas for your project${RESET}`);
       this.writeLine('');
     }
+  }
+
+  /**
+   * List saved sessions
+   */
+  private async listSessions(): Promise<void> {
+    this.writeLine('');
+    this.writeLine(`${CYAN}${BOLD}SAVED SESSIONS${RESET}`);
+    this.writeLine(`${DIM}─────────────────────${RESET}`);
+
+    try {
+      const sessions = await window.electronAPI?.listSessions?.();
+
+      if (!sessions || sessions.length === 0) {
+        this.writeLine(`${DIM}No saved sessions found.${RESET}`);
+        this.writeLine(`${DIM}Use 'save' during a session to save it.${RESET}`);
+        this.writeLine('');
+        return;
+      }
+
+      for (let i = 0; i < sessions.length; i++) {
+        const s = sessions[i];
+        const date = new Date(s.startedAt).toLocaleDateString();
+        const msgs = s.messageCount;
+        this.writeLine(`  ${BOLD}${i + 1}${RESET}. ${GREEN}${s.projectName}${RESET}`);
+        this.writeLine(`     ${DIM}${date} • ${msgs} messages • ${s.currentPhase || 'unknown'}${RESET}`);
+        this.writeLine(`     ${DIM}ID: ${s.name}${RESET}`);
+      }
+      this.writeLine('');
+      this.writeLine(`${DIM}Use 'load <name>' or 'load <number>' to restore a session.${RESET}`);
+      this.writeLine('');
+    } catch (error) {
+      this.writeLine(`${RED}Failed to list sessions: ${error}${RESET}`);
+      this.writeLine('');
+    }
+  }
+
+  /**
+   * Load a saved session
+   */
+  private async loadSession(nameOrIndex: string): Promise<void> {
+    this.writeLine(`${CYAN}Loading session...${RESET}`);
+
+    try {
+      // First get list of sessions to resolve index to name
+      const sessions = await window.electronAPI?.listSessions?.();
+      if (!sessions || sessions.length === 0) {
+        this.writeLine(`${RED}No saved sessions found.${RESET}`);
+        return;
+      }
+
+      // Check if input is a number (index)
+      let sessionName = nameOrIndex;
+      const index = parseInt(nameOrIndex, 10);
+      if (!isNaN(index) && index >= 1 && index <= sessions.length) {
+        sessionName = sessions[index - 1].name;
+      }
+
+      // Load the session
+      const result = await window.electronAPI?.loadSession?.(sessionName);
+
+      if (!result || !result.success) {
+        this.writeLine(`${RED}Failed to load session: ${result?.error || 'Unknown error'}${RESET}`);
+        return;
+      }
+
+      if (!result.metadata) {
+        this.writeLine(`${RED}Session metadata not found.${RESET}`);
+        return;
+      }
+
+      // Update config from loaded session
+      this.config.projectName = result.metadata.projectName;
+      this.config.goal = result.metadata.goal;
+      this.config.agents = result.metadata.enabledAgents;
+
+      // Check if there are custom personas for this session
+      // Try to load personas with the same name as the session
+      try {
+        const personasResult = await window.electronAPI?.loadPersonas?.(sessionName);
+        if (personasResult?.success && personasResult.personas) {
+          this.currentPersonas = personasResult.personas;
+          registerCustomPersonas(personasResult.personas);
+          this.writeLine(`${DIM}Loaded custom personas for this session.${RESET}`);
+        }
+      } catch {
+        // No matching personas, use defaults
+      }
+
+      // Set selected agents
+      this.selectedAgentIds = new Set(result.metadata.enabledAgents);
+
+      this.writeLine('');
+      this.writeLine(`${GREEN}${BOLD}✓ Session loaded!${RESET}`);
+      this.writeLine(`${DIM}Project: ${result.metadata.projectName}${RESET}`);
+      this.writeLine(`${DIM}Goal: ${result.metadata.goal}${RESET}`);
+      this.writeLine(`${DIM}Agents: ${result.metadata.enabledAgents.join(', ')}${RESET}`);
+      this.writeLine(`${DIM}Messages: ${result.messages?.length || 0}${RESET}`);
+      this.writeLine('');
+      this.writeLine(`${YELLOW}Type 'start' to continue this session.${RESET}`);
+      this.writeLine('');
+
+      // Restore memory state if present
+      if (result.memoryState) {
+        messageBus.restoreMemory(result.memoryState);
+        this.writeLine(`${DIM}Conversation memory restored.${RESET}`);
+      }
+
+      // Notify the UI that we have loaded session data
+      // The messages can be restored by the orchestrator
+      messageBus.emit('session:loaded', {
+        metadata: result.metadata,
+        messages: result.messages || [],
+      });
+
+    } catch (error) {
+      this.writeLine(`${RED}Error loading session: ${error}${RESET}`);
+    }
+  }
+
+  /**
+   * Export current session
+   */
+  private async exportCurrentSession(format: string): Promise<void> {
+    this.writeLine(`${CYAN}Exporting session as ${format}...${RESET}`);
+
+    // Notify UI to trigger export
+    messageBus.emit('session:export-requested', { format });
+    this.writeLine(`${GREEN}Export dialog opened.${RESET}`);
+  }
+
+  /**
+   * Save current session
+   */
+  private async saveCurrentSession(): Promise<void> {
+    this.writeLine(`${CYAN}Saving session...${RESET}`);
+
+    // Notify UI to trigger save
+    messageBus.emit('session:save-requested', {});
+    this.writeLine(`${GREEN}Session save initiated.${RESET}`);
   }
 
   /**
@@ -878,9 +1181,18 @@ export class MainShell {
     this.writeLine(`  ${GREEN}resume${RESET}        - Resume paused session`);
     this.writeLine(`  ${GREEN}say <msg>${RESET}     - Send message to discussion`);
     this.writeLine(`  ${GREEN}status${RESET}        - Show current status`);
+    this.writeLine(`  ${GREEN}memory${RESET}        - Show conversation memory stats`);
+    this.writeLine(`  ${GREEN}recall [id]${RESET}   - Test what agent remembers`);
     this.writeLine(`  ${GREEN}agents${RESET}        - List available agents`);
     this.writeLine(`  ${GREEN}clear${RESET}         - Clear screen`);
     this.writeLine(`  ${GREEN}help${RESET}          - Show this help`);
+    this.writeLine('');
+    this.writeLine(`${YELLOW}${BOLD}SESSION MANAGEMENT${RESET}`);
+    this.writeLine(`${DIM}─────────────────────${RESET}`);
+    this.writeLine(`  ${GREEN}sessions, ls${RESET}  - List saved sessions`);
+    this.writeLine(`  ${GREEN}load <name>${RESET}   - Load a saved session`);
+    this.writeLine(`  ${GREEN}save${RESET}          - Save current session`);
+    this.writeLine(`  ${GREEN}export [fmt]${RESET}  - Export session (md, json, html)`);
     this.writeLine('');
     this.writeLine(`${YELLOW}${BOLD}PERSONA OPTIONS (during setup)${RESET}`);
     this.writeLine(`${DIM}─────────────────────${RESET}`);
