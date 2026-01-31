@@ -6,15 +6,23 @@
  * 3. Important insights from each agent
  */
 
-import type { Message } from '../../types';
+import type { Message, ProposalReaction } from '../../types';
 import type { IAgentRunner } from '../interfaces';
 
+/** Status for tracking proposal lifecycle */
+export type ProposalStatus = 'active' | 'accepted' | 'rejected' | 'modified';
+
 export interface MemoryEntry {
+  id: string; // Unique identifier for this entry
   type: 'summary' | 'decision' | 'proposal' | 'insight' | 'consensus_point';
   content: string;
   agentId?: string;
   timestamp: Date;
   messageRange?: [number, number]; // Message indices this covers
+  // Proposal-specific fields
+  status?: ProposalStatus;
+  reactions?: ProposalReaction[];
+  topic?: string; // Extracted topic for decisions/proposals
 }
 
 export interface AgentMemoryState {
@@ -87,8 +95,9 @@ export function extractTopic(content: string): string {
 
 /**
  * Extract the outcome/content from a decision/proposal message
+ * (per CONVERSATION_MEMORY.md spec - exported for enhanced decision tracking)
  */
-function extractOutcome(content: string): string {
+export function extractOutcome(content: string): string {
   // Remove type tags
   const cleaned = content.replace(/\[(?:TYPE:\s*)?[\w]+\]/gi, '').trim();
 
@@ -194,10 +203,14 @@ export class ConversationMemory {
     const isProposal = message.type === 'proposal' || PROPOSAL_PATTERNS.some(p => p.test(content));
     if (isProposal) {
       this.proposals.push({
+        id: generateMemoryId(),
         type: 'proposal',
         content: extractOutcome(content),
+        topic: extractTopic(content),
         agentId,
         timestamp: message.timestamp,
+        status: 'active', // New proposals start as active
+        reactions: [], // Empty reactions array
       });
       state.keyPoints.push(this.extractFirstSentence(content));
     }
@@ -206,8 +219,10 @@ export class ConversationMemory {
     const isDecision = DECISION_PATTERNS.some(p => p.test(content));
     if (isDecision) {
       this.decisions.push({
+        id: generateMemoryId(),
         type: 'decision',
         content: extractOutcome(content),
+        topic: extractTopic(content),
         agentId,
         timestamp: message.timestamp,
       });
@@ -276,6 +291,7 @@ Summary:`,
 
       if (result.success && result.content) {
         this.summaries.push({
+          id: generateMemoryId(),
           type: 'summary',
           content: result.content,
           timestamp: new Date(),
@@ -305,6 +321,7 @@ Summary:`,
       .map(m => `- ${m.agentId}: ${this.extractFirstSentence(m.content)}`);
 
     this.summaries.push({
+      id: generateMemoryId(),
       type: 'summary',
       content: `Messages ${startIdx + 1}-${endIdx}:\n${keyPoints.join('\n')}`,
       timestamp: new Date(),
@@ -455,5 +472,88 @@ Summary:`,
       proposalCount: this.proposals.length,
       agentCount: this.agentStates.size,
     };
+  }
+
+  /**
+   * Update the status of a proposal (per CONVERSATION_MEMORY.md spec)
+   * @param proposalId - ID of the proposal to update
+   * @param status - New status to set
+   * @returns true if proposal was found and updated, false otherwise
+   */
+  updateProposalStatus(proposalId: string, status: ProposalStatus): boolean {
+    const proposal = this.proposals.find(p => p.id === proposalId);
+    if (proposal) {
+      proposal.status = status;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Add a reaction to a proposal
+   * @param proposalId - ID of the proposal to react to
+   * @param reaction - The reaction to add
+   * @returns true if proposal was found and reaction added, false otherwise
+   */
+  addProposalReaction(proposalId: string, reaction: ProposalReaction): boolean {
+    const proposal = this.proposals.find(p => p.id === proposalId);
+    if (proposal) {
+      if (!proposal.reactions) {
+        proposal.reactions = [];
+      }
+      // Check if agent already reacted - update if so
+      const existingIdx = proposal.reactions.findIndex(r => r.agentId === reaction.agentId);
+      if (existingIdx >= 0) {
+        proposal.reactions[existingIdx] = reaction;
+      } else {
+        proposal.reactions.push(reaction);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get a proposal by ID
+   * @param proposalId - ID of the proposal to find
+   * @returns The proposal if found, undefined otherwise
+   */
+  getProposal(proposalId: string): MemoryEntry | undefined {
+    return this.proposals.find(p => p.id === proposalId);
+  }
+
+  /**
+   * Get all active proposals
+   * @returns Array of proposals with status 'active'
+   */
+  getActiveProposals(): MemoryEntry[] {
+    return this.proposals.filter(p => p.status === 'active');
+  }
+
+  /**
+   * Get the most recent proposal for reaction tracking
+   * @returns The most recent proposal, or undefined if none exist
+   */
+  getLatestProposal(): MemoryEntry | undefined {
+    return this.proposals.length > 0 ? this.proposals[this.proposals.length - 1] : undefined;
+  }
+
+  /**
+   * Track a reaction from an agent to the latest proposal
+   * (Convenience method that auto-detects reaction from content)
+   * @param agentId - ID of the reacting agent
+   * @param content - Content to analyze for reaction type
+   * @returns true if a reaction was tracked, false if no proposals exist
+   */
+  trackReactionToLatest(agentId: string, content: string): boolean {
+    const latest = this.getLatestProposal();
+    if (!latest || !latest.id) return false;
+
+    const reactionType = detectReaction(content);
+    return this.addProposalReaction(latest.id, {
+      agentId,
+      reaction: reactionType,
+      timestamp: new Date(),
+    });
   }
 }

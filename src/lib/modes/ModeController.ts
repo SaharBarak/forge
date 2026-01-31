@@ -10,7 +10,7 @@
  */
 
 import type { Message } from '../../types';
-import type { SessionMode, PhaseConfig, ExitCriteria } from './index';
+import type { SessionMode, ModePhaseConfig, ExitCriteria } from './index';
 import { getDefaultMode } from './index';
 
 export interface ModeProgress {
@@ -573,7 +573,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
   /**
    * Get current phase config
    */
-  getCurrentPhase(): PhaseConfig | undefined {
+  getCurrentPhase(): ModePhaseConfig | undefined {
     return this.mode.phases.find(p => p.id === this.progress.currentPhase);
   }
 

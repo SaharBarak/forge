@@ -17,7 +17,7 @@ export interface SessionMode {
   };
 
   // Phase configuration
-  phases: PhaseConfig[];
+  phases: ModePhaseConfig[];
 
   // Research limits
   research: {
@@ -60,7 +60,12 @@ export interface ExitCriteria {
   requiredOutputs?: string[];   // Specific outputs that must be produced
 }
 
-export interface PhaseConfig {
+/**
+ * Mode-specific phase configuration.
+ * Used by SessionMode to define phase behavior within deliberation modes.
+ * Note: For methodology phase config, see MethodologyPhaseConfig in src/types/index.ts
+ */
+export interface ModePhaseConfig {
   id: string;
   name: string;
   order: number;
@@ -70,6 +75,9 @@ export interface PhaseConfig {
   agentFocus: string;  // What agents should focus on in this phase
   exitCriteria?: ExitCriteria; // Optional structured exit criteria
 }
+
+/** @deprecated Use ModePhaseConfig instead. This alias exists for backward compatibility. */
+export type PhaseConfig = ModePhaseConfig;
 
 // =============================================================================
 // COPYWRITE MODE - Create compelling website copy

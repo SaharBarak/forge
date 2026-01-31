@@ -3,19 +3,10 @@
  * Abstracts between Electron IPC and Node.js fs
  */
 
-export interface FileInfo {
-  name: string;
-  isDirectory: boolean;
-  path: string;
-}
-
-export interface LoadedContext {
-  brand: string | null;
-  audience: string | null;
-  research: { file: string; content: string }[];
-  examples: { file: string; content: string }[];
-  competitors: { file: string; content: string }[];
-}
+// Import and re-export canonical types from src/types/index.ts
+// These were previously duplicated here - now centralized
+import type { FileInfo, LoadedContext } from '../../types';
+export type { FileInfo, LoadedContext };
 
 /**
  * Interface for file system operations

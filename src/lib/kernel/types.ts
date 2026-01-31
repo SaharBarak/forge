@@ -178,19 +178,6 @@ export interface KernelOptions {
 // SESSION INFO (for listing)
 // =============================================================================
 
-export interface SavedSessionInfo {
-  id: string;
-  name: string;
-  projectName: string;
-  goal?: string;
-  startedAt: string;
-  endedAt?: string;
-  messageCount: number;
-  mode?: string;
-}
-
-export interface PersonaSetInfo {
-  name: string;
-  count: number;
-  personas: { id: string; name: string; role: string }[];
-}
+// Re-export canonical types from src/types/index.ts
+// These were previously duplicated here - now centralized
+export type { SavedSessionInfo, PersonaSetInfo } from '../../types';

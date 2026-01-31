@@ -146,6 +146,26 @@ export interface Vote {
   reasoning: string;
 }
 
+/**
+ * A proposal made during deliberation for tracking reactions and status.
+ * Used by ConversationMemory and EDAOrchestrator for consensus tracking.
+ */
+export interface Proposal {
+  id: string;
+  timestamp: Date;
+  proposer: string;
+  content: string;
+  status: 'active' | 'accepted' | 'rejected' | 'modified';
+  reactions: ProposalReaction[];
+}
+
+export interface ProposalReaction {
+  agentId: string;
+  reaction: 'support' | 'oppose' | 'neutral';
+  reasoning?: string;
+  timestamp?: Date;
+}
+
 // ============================================================================
 // DRAFT TYPES
 // ============================================================================
@@ -201,7 +221,7 @@ export interface MethodologyConfig {
   consensusMethod: ConsensusMethod;
   visualDecisionRules: VisualDecisionRule[];
   structureDecisionRules: StructureDecisionRule[];
-  phases: PhaseConfig[];
+  phases: MethodologyPhaseConfig[];
 }
 
 export type ArgumentationStyle =
@@ -232,7 +252,12 @@ export interface StructureDecisionRule {
   examples: string[];
 }
 
-export interface PhaseConfig {
+/**
+ * Methodology-focused phase configuration.
+ * Used by MethodologyConfig to describe deliberation phases.
+ * Note: For mode-specific phase config, see ModePhaseConfig in src/lib/modes/index.ts
+ */
+export interface MethodologyPhaseConfig {
   phase: SessionPhase;
   description: string;
   maxRounds: number;
@@ -321,6 +346,10 @@ export interface AppState {
 // ELECTRON API TYPES
 // ============================================================================
 
+/**
+ * Context loaded from project directories (brand, audience, research, examples, competitors).
+ * This is the canonical definition - do not duplicate elsewhere.
+ */
 export interface LoadedContext {
   brand: string | null;
   audience: string | null;
@@ -453,12 +482,20 @@ export interface ElectronAPI {
   }>;
 }
 
+/**
+ * Information about a persona set for listing purposes.
+ * This is the canonical definition - do not duplicate elsewhere.
+ */
 export interface PersonaSetInfo {
   name: string;
   count: number;
   personas: { id: string; name: string; role: string }[];
 }
 
+/**
+ * Information about a saved session for listing purposes.
+ * This is the canonical definition - do not duplicate elsewhere.
+ */
 export interface SavedSessionInfo {
   id: string;
   name: string;
@@ -468,8 +505,13 @@ export interface SavedSessionInfo {
   endedAt?: string;
   messageCount: number;
   currentPhase?: string;
+  mode?: string;
 }
 
+/**
+ * File information returned by directory listing operations.
+ * This is the canonical definition - do not duplicate elsewhere.
+ */
 export interface FileInfo {
   name: string;
   isDirectory: boolean;

@@ -24,7 +24,8 @@ export type EDAEventType =
   | 'research_result'
   | 'error'
   | 'floor_status'
-  | 'draft_section';
+  | 'draft_section'
+  | 'intervention'; // ModeController interventions (goal_reminder, loop_detected, etc.)
 
 // SessionPhase is imported from types/index.ts (10 phases: initialization, context_loading, research, brainstorming, argumentation, synthesis, drafting, review, consensus, finalization)
 export type { SessionPhase };
@@ -520,6 +521,14 @@ Ronit - you're up first. Share your initial reaction.`,
           priority: intervention.priority,
         },
       };
+
+      // Emit intervention event for UI/SessionKernel (per SESSION_KERNEL.md spec)
+      this.emit('intervention', {
+        type: intervention.type,
+        message: content,
+        priority: intervention.priority,
+        action: intervention.action,
+      });
 
       // Add with a small delay to not interrupt flow
       setTimeout(() => {

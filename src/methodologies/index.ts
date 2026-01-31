@@ -6,7 +6,7 @@ import type {
   MethodologyConfig,
   VisualDecisionRule,
   StructureDecisionRule,
-  PhaseConfig,
+  MethodologyPhaseConfig,
   SessionPhase,
   ArgumentationStyle,
   ConsensusMethod,
@@ -359,7 +359,7 @@ export function getPhaseMethodology(phase: SessionPhase): PhaseMethodology {
 // PHASE CONFIGURATIONS
 // ============================================================================
 
-export const DEFAULT_PHASES: PhaseConfig[] = [
+export const DEFAULT_PHASES: MethodologyPhaseConfig[] = [
   {
     phase: 'initialization',
     description: 'Set up the session and introduce the goal',
