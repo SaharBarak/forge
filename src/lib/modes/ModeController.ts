@@ -300,6 +300,7 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
 
   /**
    * Check for phase transition
+   * Per MODE_SYSTEM.md: Enforces requiredBeforeSynthesis and phase exit criteria
    */
   private checkPhaseTransition(): ModeIntervention | null {
     const currentPhaseConfig = this.mode.phases.find(p => p.id === this.progress.currentPhase);
@@ -312,6 +313,19 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
     ) {
       const nextPhase = this.mode.phases.find(p => p.order === currentPhaseConfig.order + 1);
       if (nextPhase) {
+        // Check if transitioning to synthesis requires research first
+        // Per spec: requiredBeforeSynthesis enforces minimum research before synthesis
+        if (this.isSynthesisPhase(nextPhase.id)) {
+          const researchCheck = this.checkRequiredResearch();
+          if (!researchCheck.allowed) {
+            return {
+              type: 'research_limit',
+              priority: 'high',
+              message: researchCheck.message
+            };
+          }
+        }
+
         this.progress.currentPhase = nextPhase.id;
         this.progress.messagesInPhase = 0;
 
@@ -328,6 +342,47 @@ Previous phase complete. Carry forward what we learned, but shift focus.`
     }
 
     return null;
+  }
+
+  /**
+   * Check if a phase is a synthesis-type phase
+   */
+  private isSynthesisPhase(phaseId: string): boolean {
+    const synthesisPhases = ['synthesis', 'synthesize', 'verdict', 'conclude', 'drafting', 'executive-summary'];
+    return synthesisPhases.some(s => phaseId.toLowerCase().includes(s));
+  }
+
+  /**
+   * Check if required research has been completed before synthesis
+   * Per spec: research.requiredBeforeSynthesis enforces minimum research
+   */
+  checkRequiredResearch(): { allowed: boolean; message: string } {
+    const required = this.mode.research.requiredBeforeSynthesis;
+    const completed = this.progress.researchRequests;
+
+    if (completed < required) {
+      return {
+        allowed: false,
+        message: `⚠️ **RESEARCH REQUIRED BEFORE SYNTHESIS**
+
+נדרש לפחות ${required} בקשות מחקר לפני מעבר לסינתזה.
+בוצעו עד כה: ${completed}
+
+**פעולה נדרשת:** הסוכנים צריכים לבקש מידע נוסף מהחוקרים לפני שממשיכים.
+
+**חוקרים זמינים:**
+- @stats-finder - נתונים וסטטיסטיקות
+- @competitor-analyst - ניתוח מתחרים
+- @audience-insight - תובנות קהל יעד
+- @copy-explorer - דוגמאות קופי
+- @local-context - הקשר מקומי`
+      };
+    }
+
+    return {
+      allowed: true,
+      message: `✅ דרישות המחקר התמלאו (${completed}/${required})`
+    };
   }
 
   /**

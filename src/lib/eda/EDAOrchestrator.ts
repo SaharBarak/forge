@@ -830,11 +830,79 @@ Provide research findings in Hebrew:
   }
 
   /**
-   * Transition to synthesis phase - consolidate insights from brainstorming
+   * Transition to argumentation phase - structured debate on brainstorming ideas
+   * Per DELIBERATION_WORKFLOW.md: Argumentation follows brainstorming for critical evaluation
+   */
+  async transitionToArgumentation(): Promise<{ success: boolean; message: string }> {
+    if (this.currentPhase !== 'brainstorming') {
+      return { success: false, message: `לא ניתן לעבור לדיון משלב ${this.currentPhase}` };
+    }
+
+    // Check if minimum discussion occurred
+    const status = this.getConsensusStatus();
+    if (!status.allAgentsSpoke) {
+      return {
+        success: false,
+        message: `עדיין לא כל הסוכנים דיברו. המתן לתגובות מ: ${this.session.config.enabledAgents.filter(id => !status.agentParticipation.has(id)).join(', ')}`
+      };
+    }
+
+    this.currentPhase = 'argumentation';
+    this.emit('phase_change', { phase: 'argumentation' });
+
+    // Announce phase transition
+    const transitionMessage: Message = {
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+      agentId: 'system',
+      type: 'system',
+      content: `⚔️ **PHASE: ARGUMENTATION**
+
+עכשיו נבחן את הרעיונות בצורה ביקורתית.
+
+**מטרת השלב:**
+- העלו טיעוני נגד לרעיונות שהוצעו
+- אתגרו הנחות יסוד
+- זהו חולשות וסיכונים
+- הגנו על רעיונות טובים עם ראיות
+
+**כללי הדיון:**
+- כל סוכן חייב להעלות לפחות טיעון אחד נגד רעיון שהוצע
+- השתמשו בתגיות: [ARGUMENT], [COUNTER], [DEFENSE]
+- אל תסכימו מהר מדי - בדקו את הרעיונות לעומק
+
+**מתחילים!** ${this.getNextSpeakerForArgumentation()} - העלה/י טיעון ביקורתי לגבי אחד הרעיונות.`,
+    };
+    this.bus.addMessage(transitionMessage, 'system');
+
+    // Force first agent to speak
+    setTimeout(() => {
+      const firstAgent = this.getNextSpeakerForArgumentation();
+      this.forceAgentToSpeak(firstAgent, 'Opening argumentation with critical analysis');
+    }, 2000);
+
+    return { success: true, message: 'עוברים לשלב הדיון הביקורתי' };
+  }
+
+  /**
+   * Get next speaker for argumentation phase (prefer devil's advocate persona)
+   */
+  private getNextSpeakerForArgumentation(): string {
+    const agents = Array.from(this.agentListeners.keys());
+    // Start with the critic/analyst (yossi) if available - good at challenging ideas
+    if (agents.includes('yossi')) return 'yossi';
+    // Or michal for balanced perspective
+    if (agents.includes('michal')) return 'michal';
+    return agents[0] || 'yossi';
+  }
+
+  /**
+   * Transition to synthesis phase - consolidate insights from brainstorming/argumentation
    * @param force - Skip consensus check and force transition
    */
   async transitionToSynthesis(force = false): Promise<{ success: boolean; message: string }> {
-    if (this.currentPhase !== 'brainstorming') {
+    // Allow transition from both brainstorming AND argumentation phases
+    if (this.currentPhase !== 'brainstorming' && this.currentPhase !== 'argumentation') {
       return { success: false, message: `לא ניתן לעבור לסינתזה משלב ${this.currentPhase}` };
     }
 
