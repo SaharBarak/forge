@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { Box, Text } from 'ink';
-import type { SessionPhase } from '../../src/lib/eda/EDAOrchestrator';
+import type { SessionPhase } from '../../src/types';
 
 interface StatusBarProps {
   phase: SessionPhase;
@@ -17,17 +17,27 @@ interface StatusBarProps {
 
 const PHASE_EMOJI: Record<SessionPhase, string> = {
   initialization: '🚀',
+  context_loading: '📂',
+  research: '🔍',
   brainstorming: '💭',
+  argumentation: '⚖️',
   synthesis: '📊',
   drafting: '✍️',
+  review: '👁️',
+  consensus: '🤝',
   finalization: '🎉',
 };
 
 const PHASE_COLORS: Record<SessionPhase, string> = {
   initialization: 'gray',
+  context_loading: 'blue',
+  research: 'cyan',
   brainstorming: 'cyan',
+  argumentation: 'yellow',
   synthesis: 'magenta',
   drafting: 'green',
+  review: 'blue',
+  consensus: 'green',
   finalization: 'yellow',
 };
 

@@ -8,8 +8,8 @@ import { StatusBar } from './StatusBar';
 import { AgentList } from './AgentList';
 import { ChatPane } from './ChatPane';
 import { InputPane, CommandHelp } from './InputPane';
-import type { Message, Session } from '../../src/types';
-import type { EDAOrchestrator, SessionPhase, EDAEvent } from '../../src/lib/eda/EDAOrchestrator';
+import type { Message, Session, SessionPhase } from '../../src/types';
+import type { EDAOrchestrator, EDAEvent } from '../../src/lib/eda/EDAOrchestrator';
 import type { SessionPersistence } from '../adapters/SessionPersistence';
 import { getAgentById } from '../../src/agents/personas';
 
