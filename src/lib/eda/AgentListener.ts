@@ -13,15 +13,19 @@ import { getAgentById } from '../../agents/personas';
 type AgentState = 'listening' | 'thinking' | 'speaking' | 'waiting';
 
 interface AgentListenerConfig {
-  reactivityThreshold: number;  // 0-1, how likely to react
+  reactivityThreshold: number;  // 0-1, how likely to react (higher = more reactive)
   minSilenceBeforeReact: number; // messages to wait before reacting
   evaluationDebounce: number;    // ms to debounce evaluations
+  maxEvaluationMessages: number; // context messages for evaluation
+  maxResponseMessages: number;   // context messages for response generation
 }
 
 const DEFAULT_CONFIG: AgentListenerConfig = {
   reactivityThreshold: 0.5,
   minSilenceBeforeReact: 1,
   evaluationDebounce: 500,
+  maxEvaluationMessages: 8,  // Messages used when evaluating whether to respond
+  maxResponseMessages: 15,    // Messages used when generating actual response
 };
 
 export class AgentListener {
@@ -177,10 +181,18 @@ export class AgentListener {
       return;
     }
 
+    // Probabilistic check - agents don't always react even when they could
+    // This prevents over-chatty behavior and creates more natural flow
+    // Higher threshold = more likely to react (threshold of 1.0 = always react)
+    if (Math.random() > this.config.reactivityThreshold) {
+      console.log(`[AgentListener:${this.id}] Skipping reaction (probability threshold ${this.config.reactivityThreshold})`);
+      return;
+    }
+
     this.state = 'thinking';
 
     try {
-      const recentMessages = this.bus.getRecentMessages(8);
+      const recentMessages = this.bus.getRecentMessages(this.config.maxEvaluationMessages);
       const conversationHistory = this.formatConversation(recentMessages);
 
       // Include brief memory context for better evaluation
@@ -227,7 +239,7 @@ export class AgentListener {
     console.log(`[AgentListener:${this.id}] Got floor, speaking...`);
 
     try {
-      const recentMessages = this.bus.getRecentMessages(15);
+      const recentMessages = this.bus.getRecentMessages(this.config.maxResponseMessages);
       const conversationHistory = this.formatConversation(recentMessages);
 
       // Include full memory context for better responses

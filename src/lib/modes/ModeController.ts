@@ -10,7 +10,7 @@
  */
 
 import type { Message } from '../../types';
-import type { SessionMode, PhaseConfig } from './index';
+import type { SessionMode, PhaseConfig, ExitCriteria } from './index';
 import { getDefaultMode } from './index';
 
 export interface ModeProgress {
@@ -260,17 +260,23 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
 
   /**
    * Detect if agents are going in circles
+   * Uses configurable parameters for window size and hash comparison
    */
   private detectLoop(): ModeIntervention | null {
     if (!this.mode.loopDetection.enabled) return null;
 
     const settings = this.mode.loopDetection;
 
-    // Check for similar messages
-    const recentHashes = this.messageHashes.slice(-10);
+    // Use configurable parameters with defaults
+    const windowSize = settings.windowSize ?? 10;
+    const minHashLength = settings.minHashLength ?? 10;
+    const messagesPerRound = settings.messagesPerRound ?? 3;
+
+    // Check for similar messages within the window
+    const recentHashes = this.messageHashes.slice(-windowSize);
     const hashCounts = new Map<string, number>();
     for (const hash of recentHashes) {
-      if (hash.length > 10) { // Only meaningful hashes
+      if (hash.length > minHashLength) { // Only meaningful hashes
         hashCounts.set(hash, (hashCounts.get(hash) || 0) + 1);
       }
     }
@@ -287,7 +293,7 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
 
     // Check for rounds without progress
     const messagesSinceProgress = this.progress.totalMessages - this.progress.lastProgressAt;
-    if (messagesSinceProgress >= settings.maxRoundsWithoutProgress * 3) { // ~3 messages per "round"
+    if (messagesSinceProgress >= settings.maxRoundsWithoutProgress * messagesPerRound) {
       return {
         type: 'loop_detected',
         priority: 'high',
@@ -306,11 +312,15 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
     const currentPhaseConfig = this.mode.phases.find(p => p.id === this.progress.currentPhase);
     if (!currentPhaseConfig) return null;
 
-    // Check if max messages reached
-    if (
-      currentPhaseConfig.autoTransition &&
-      this.progress.messagesInPhase >= currentPhaseConfig.maxMessages
-    ) {
+    // Skip if not autoTransition
+    if (!currentPhaseConfig.autoTransition) return null;
+
+    // Check if max messages reached OR exit criteria met (whichever comes first)
+    const maxMessagesReached = this.progress.messagesInPhase >= currentPhaseConfig.maxMessages;
+    const exitCriteriaMet = this.checkExitCriteria(currentPhaseConfig.exitCriteria);
+
+    // Transition if either condition is met
+    if (maxMessagesReached || exitCriteriaMet.met) {
       const nextPhase = this.mode.phases.find(p => p.order === currentPhaseConfig.order + 1);
       if (nextPhase) {
         // Check if transitioning to synthesis requires research first
@@ -329,11 +339,17 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
         this.progress.currentPhase = nextPhase.id;
         this.progress.messagesInPhase = 0;
 
+        // Include info about why we transitioned
+        const transitionReason = exitCriteriaMet.met
+          ? 'Exit criteria met'
+          : `Max messages (${currentPhaseConfig.maxMessages}) reached`;
+
         return {
           type: 'phase_transition',
           priority: 'high',
           message: `📍 **PHASE TRANSITION**: Moving to "${nextPhase.name}"
 
+**Reason**: ${transitionReason}
 **Focus now on**: ${nextPhase.agentFocus}
 
 Previous phase complete. Carry forward what we learned, but shift focus.`
@@ -342,6 +358,60 @@ Previous phase complete. Carry forward what we learned, but shift focus.`
     }
 
     return null;
+  }
+
+  /**
+   * Check if structured exit criteria are met for current phase
+   * Per MODE_SYSTEM.md spec: Phases should check specific criteria, not just message count
+   */
+  private checkExitCriteria(criteria?: ExitCriteria): { met: boolean; details: string[] } {
+    // If no criteria specified, never consider them "met" (rely on maxMessages)
+    if (!criteria) {
+      return { met: false, details: [] };
+    }
+
+    const details: string[] = [];
+    let allMet = true;
+
+    // Check minimum proposals
+    if (criteria.minProposals !== undefined) {
+      const met = this.progress.proposalsCount >= criteria.minProposals;
+      if (!met) {
+        allMet = false;
+        details.push(`Proposals: ${this.progress.proposalsCount}/${criteria.minProposals}`);
+      }
+    }
+
+    // Check minimum consensus points
+    if (criteria.minConsensusPoints !== undefined) {
+      const met = this.progress.consensusPoints >= criteria.minConsensusPoints;
+      if (!met) {
+        allMet = false;
+        details.push(`Consensus: ${this.progress.consensusPoints}/${criteria.minConsensusPoints}`);
+      }
+    }
+
+    // Check minimum research requests
+    if (criteria.minResearchRequests !== undefined) {
+      const met = this.progress.researchRequests >= criteria.minResearchRequests;
+      if (!met) {
+        allMet = false;
+        details.push(`Research: ${this.progress.researchRequests}/${criteria.minResearchRequests}`);
+      }
+    }
+
+    // Check required outputs
+    if (criteria.requiredOutputs && criteria.requiredOutputs.length > 0) {
+      const missing = criteria.requiredOutputs.filter(
+        output => !this.progress.outputsProduced.has(output)
+      );
+      if (missing.length > 0) {
+        allMet = false;
+        details.push(`Missing outputs: ${missing.join(', ')}`);
+      }
+    }
+
+    return { met: allMet, details };
   }
 
   /**

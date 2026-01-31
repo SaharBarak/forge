@@ -32,6 +32,9 @@ export interface SessionMode {
     maxSimilarMessages: number;  // Trigger after N similar messages
     maxRoundsWithoutProgress: number; // Trigger after N rounds with no new proposals
     intervention: string;  // Message to inject when loop detected
+    windowSize?: number;  // Number of recent messages to analyze (default: 10)
+    minHashLength?: number;  // Minimum hash length to consider meaningful (default: 10)
+    messagesPerRound?: number;  // Approximate messages per round for progress calc (default: 3)
   };
 
   // Success criteria
@@ -45,14 +48,27 @@ export interface SessionMode {
   agentInstructions: string; // Additional instructions for all agents in this mode
 }
 
+/**
+ * Exit criteria that can be automatically checked by ModeController.
+ * When specified, phase will only transition when these conditions are met
+ * (in addition to maxMessages if autoTransition is true).
+ */
+export interface ExitCriteria {
+  minProposals?: number;      // Minimum proposals made in this phase
+  minConsensusPoints?: number; // Minimum consensus/agreements reached
+  minResearchRequests?: number; // Minimum research conducted
+  requiredOutputs?: string[];   // Specific outputs that must be produced
+}
+
 export interface PhaseConfig {
   id: string;
   name: string;
   order: number;
   maxMessages: number;
   autoTransition: boolean;  // Auto-transition when criteria met
-  transitionCriteria: string;
+  transitionCriteria: string; // Human-readable description
   agentFocus: string;  // What agents should focus on in this phase
+  exitCriteria?: ExitCriteria; // Optional structured exit criteria
 }
 
 // =============================================================================

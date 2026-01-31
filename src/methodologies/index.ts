@@ -7,6 +7,9 @@ import type {
   VisualDecisionRule,
   StructureDecisionRule,
   PhaseConfig,
+  SessionPhase,
+  ArgumentationStyle,
+  ConsensusMethod,
 } from '../types';
 
 // ============================================================================
@@ -267,6 +270,92 @@ export const STRUCTURE_DECISION_RULES: StructureDecisionRule[] = [
 ];
 
 // ============================================================================
+// PHASE METHODOLOGY MAP
+// Auto-selects optimal argumentation style and consensus method per phase
+// Per DELIBERATION_WORKFLOW.md specification
+// ============================================================================
+
+export interface PhaseMethodology {
+  argumentationStyle: ArgumentationStyle;
+  consensusMethod: ConsensusMethod;
+  rationale: string;
+}
+
+/**
+ * Maps each session phase to its optimal methodology combination.
+ * This enables phase-aware methodology selection for more effective deliberation.
+ *
+ * Design rationale:
+ * - Early phases (brainstorming) use collaborative "Yes, and..." approach
+ * - Middle phases (argumentation) use dialectic thesis→antithesis→synthesis
+ * - Late phases (synthesis, consensus) focus on synthesis and consent-building
+ */
+export const PHASE_METHODOLOGY_MAP: Record<SessionPhase, PhaseMethodology> = {
+  initialization: {
+    argumentationStyle: 'collaborative',
+    consensusMethod: 'consent',
+    rationale: 'Setup phase - collaborative introduction, no contentious decisions',
+  },
+  context_loading: {
+    argumentationStyle: 'collaborative',
+    consensusMethod: 'consent',
+    rationale: 'Information gathering - collaborative review of materials',
+  },
+  research: {
+    argumentationStyle: 'socratic',
+    consensusMethod: 'consent',
+    rationale: 'Question-driven exploration to identify information gaps',
+  },
+  brainstorming: {
+    argumentationStyle: 'collaborative',
+    consensusMethod: 'consent',
+    rationale: 'Idea generation - "Yes, and..." builds on ideas without premature criticism',
+  },
+  argumentation: {
+    argumentationStyle: 'dialectic',
+    consensusMethod: 'supermajority',
+    rationale: 'Critical debate - thesis→antithesis→synthesis refines ideas rigorously',
+  },
+  synthesis: {
+    argumentationStyle: 'mixed',
+    consensusMethod: 'synthesis',
+    rationale: 'Combining best elements - adaptive methods converge on combined solutions',
+  },
+  drafting: {
+    argumentationStyle: 'collaborative',
+    consensusMethod: 'consent',
+    rationale: 'Content creation - collaborative building with rapid iteration',
+  },
+  review: {
+    argumentationStyle: 'adversarial',
+    consensusMethod: 'supermajority',
+    rationale: 'Critical review - strong opposing viewpoints catch issues',
+  },
+  consensus: {
+    argumentationStyle: 'mixed',
+    consensusMethod: 'unanimous',
+    rationale: 'Final agreement - all voices heard, full alignment required',
+  },
+  finalization: {
+    argumentationStyle: 'collaborative',
+    consensusMethod: 'consent',
+    rationale: 'Wrap-up phase - no objections needed to proceed',
+  },
+};
+
+/**
+ * Gets the optimal methodology for a given phase.
+ * Falls back to default if phase not found.
+ */
+export function getPhaseMethodology(phase: SessionPhase): PhaseMethodology {
+  return PHASE_METHODOLOGY_MAP[phase] || {
+    argumentationStyle: 'mixed',
+    consensusMethod: 'consent',
+    rationale: 'Fallback methodology',
+  };
+}
+
+// ============================================================================
 // PHASE CONFIGURATIONS
 // ============================================================================
 
@@ -359,12 +448,33 @@ export function getDefaultMethodology(): MethodologyConfig {
   return { ...DEFAULT_METHODOLOGY };
 }
 
-export function getMethodologyPrompt(config: MethodologyConfig): string {
-  const argGuide = ARGUMENTATION_GUIDES[config.argumentationStyle];
-  const consGuide = CONSENSUS_GUIDES[config.consensusMethod];
+/**
+ * Gets methodology prompt for the current configuration.
+ * When phase is provided, overrides config's methodology with phase-optimal settings.
+ *
+ * @param config - The methodology configuration
+ * @param currentPhase - Optional phase to use phase-specific methodology
+ */
+export function getMethodologyPrompt(config: MethodologyConfig, currentPhase?: SessionPhase): string {
+  // Use phase-specific methodology if phase is provided
+  const phaseMethodology = currentPhase ? getPhaseMethodology(currentPhase) : null;
 
-  return `
-## ARGUMENTATION METHODOLOGY: ${argGuide.name}
+  const argStyle = phaseMethodology?.argumentationStyle || config.argumentationStyle;
+  const consMethod = phaseMethodology?.consensusMethod || config.consensusMethod;
+
+  const argGuide = ARGUMENTATION_GUIDES[argStyle];
+  const consGuide = CONSENSUS_GUIDES[consMethod];
+
+  // Build phase context if available
+  const phaseContext = phaseMethodology
+    ? `
+## CURRENT PHASE: ${currentPhase?.toUpperCase()}
+Methodology rationale: ${phaseMethodology.rationale}
+
+`
+    : '';
+
+  return `${phaseContext}## ARGUMENTATION METHODOLOGY: ${argGuide.name}
 ${argGuide.description}
 
 Steps:
@@ -385,4 +495,16 @@ ${config.visualDecisionRules.map((r) => `- ${r.condition} → ${r.recommendedVis
 ## WHEN TO USE WHICH STRUCTURE
 ${config.structureDecisionRules.map((r) => `- ${r.condition} → ${r.recommendedStructure}: ${r.reasoning}`).join('\n')}
 `.trim();
+}
+
+/**
+ * Gets a methodology prompt optimized for a specific phase.
+ * Uses PHASE_METHODOLOGY_MAP for automatic methodology selection.
+ *
+ * @param phase - The session phase to get methodology for
+ * @param config - Optional config for visual/structure rules (uses DEFAULT if not provided)
+ */
+export function getPhaseMethodologyPrompt(phase: SessionPhase, config?: MethodologyConfig): string {
+  const effectiveConfig = config || DEFAULT_METHODOLOGY;
+  return getMethodologyPrompt(effectiveConfig, phase);
 }
