@@ -53,9 +53,10 @@ interface EvalParams {
 }
 
 interface EvalResult {
-  shouldRespond: boolean;
-  interestLevel: 'low' | 'medium' | 'high';
-  reasoning?: string;
+  success: boolean;          // Whether the evaluation was successful
+  urgency: 'high' | 'medium' | 'low' | 'pass';  // How urgently the agent wants to speak ('pass' = content to listen)
+  reason: string;            // Brief explanation for the urgency level
+  responseType: string;      // Type of response intended: 'argument' | 'question' | 'proposal' | 'agreement' | 'disagreement' | 'synthesis' | ''
 }
 ```
 

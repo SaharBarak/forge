@@ -54,8 +54,9 @@ export class CLIAgentRunner implements IAgentRunner {
 
   async evaluate(params: EvalParams): Promise<EvalResult> {
     try {
+      // Use haiku for evaluations - fast and cost-effective per ADAPTERS.md spec
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514', // Use faster model for evaluations
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 200,
         messages: [
           {

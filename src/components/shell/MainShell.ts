@@ -787,10 +787,11 @@ export class MainShell {
     this.writeLine(`${CYAN}Testing Claude Agent SDK connection...${RESET}`);
 
     try {
+      // Use haiku for API connection test - fast and cost-effective
       const result = await window.electronAPI?.claudeAgentQuery?.({
         prompt: 'Say "Hello! API connection successful." in exactly those words.',
         systemPrompt: 'You are a helpful assistant. Respond concisely.',
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-5-haiku-20241022',
       });
 
       if (!result) {

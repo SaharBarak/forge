@@ -571,6 +571,9 @@ Ronit - you're up first. Share your initial reaction.`,
     this.bus.pause('Research in progress');
     this.emit('research_halt', { researcherId, query, requestedBy });
 
+    // Emit message:research event to MessageBus subscribers (per MessageBus.ts event spec)
+    this.bus.emit('message:research', { request: { researcherId, query }, fromAgent: requestedBy });
+
     // Announce research halt
     const announceMessage: Message = {
       id: crypto.randomUUID(),
@@ -744,6 +747,9 @@ Provide research findings in Hebrew:
 
       this.bus.addMessage(synthMessage, 'system');
       this.emit('synthesis', { synthesis, messageCount: this.messageCount });
+
+      // Emit message:synthesis event to MessageBus subscribers (per MessageBus.ts event spec)
+      this.bus.emit('message:synthesis', { synthesis, round: Math.floor(this.messageCount / 10) });
     } catch (error) {
       console.error('[EDAOrchestrator] Synthesis error:', error);
     }

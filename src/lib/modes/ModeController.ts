@@ -27,9 +27,10 @@ export interface ModeProgress {
 }
 
 export interface ModeIntervention {
-  type: 'goal_reminder' | 'loop_detected' | 'phase_transition' | 'research_limit' | 'force_synthesis';
+  type: 'goal_reminder' | 'loop_detected' | 'phase_transition' | 'research_limit' | 'force_synthesis' | 'success_check';
   message: string;
   priority: 'low' | 'medium' | 'high';
+  action?: 'inject_message' | 'transition_phase' | 'pause';
 }
 
 export class ModeController {
@@ -139,6 +140,12 @@ export class ModeController {
     // Check for forced synthesis
     if (this.shouldForceSynthesis()) {
       interventions.push(this.createForcedSynthesisIntervention());
+    }
+
+    // Check success criteria (per MODE_SYSTEM.md spec)
+    const successCheck = this.checkSuccessCriteria();
+    if (successCheck.met) {
+      interventions.push(this.createSuccessCheckIntervention());
     }
 
     // Store intervention history
@@ -351,6 +358,26 @@ Time's up. No more discussion. We must now:
 3. Produce our final output
 
 Each agent: State your final position in 2 sentences. Then let's conclude.`
+    };
+  }
+
+  /**
+   * Create success check intervention when all criteria are met
+   * Per MODE_SYSTEM.md spec: notify when session goals have been achieved
+   */
+  private createSuccessCheckIntervention(): ModeIntervention {
+    const outputs = Array.from(this.progress.outputsProduced).join(', ');
+    return {
+      type: 'success_check',
+      priority: 'high',
+      action: 'pause',
+      message: `✅ **SUCCESS CRITERIA MET**
+
+All session goals have been achieved:
+- Consensus points: ${this.progress.consensusPoints}/${this.mode.successCriteria.minConsensusPoints}
+- Required outputs: ${outputs}
+
+The session can now be finalized. Review the outputs and confirm completion.`
     };
   }
 
