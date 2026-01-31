@@ -13,7 +13,7 @@ Run these after implementing to get immediate feedback:
 
 - Typecheck: `npm run typecheck`
 - Build: `npm run build`
-- Tests: `npm run test` (270 tests: SessionKernel, MessageBus, AgentListener, ConversationMemory, ModeController, FloorManager)
+- Tests: `npm run test` (332 tests: SessionKernel, MessageBus, AgentListener, ConversationMemory, ModeController, FloorManager, EDAOrchestrator)
 - Lint: `npm run lint` (requires eslint setup - not configured)
 
 ## Operational Notes
