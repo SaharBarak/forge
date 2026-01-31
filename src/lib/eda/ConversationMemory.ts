@@ -28,9 +28,10 @@ export interface MemoryEntry {
 export interface AgentMemoryState {
   agentId: string;
   keyPoints: string[];        // Agent's main contributions
-  positions: string[];        // Stances they've taken
+  positions: string[];        // Stances they've taken (history, not just current)
   agreements: string[];       // Things they've agreed to
   disagreements: string[];    // Things they've pushed back on
+  messageCount: number;       // Number of messages from this agent (per spec)
 }
 
 export interface ConversationMemoryState {
@@ -193,10 +194,15 @@ export class ConversationMemory {
         positions: [],
         agreements: [],
         disagreements: [],
+        messageCount: 0,
       });
     }
 
     const state = this.agentStates.get(agentId)!;
+
+    // Increment message count per spec (CONVERSATION_MEMORY.md)
+    state.messageCount++;
+
     const content = message.content;
 
     // Check for proposals using regex patterns
@@ -442,7 +448,14 @@ Summary:`,
     if (data.decisions) memory.decisions = data.decisions;
     if (data.proposals) memory.proposals = data.proposals;
     if (data.agentStates) {
-      memory.agentStates = new Map(Object.entries(data.agentStates as Record<string, AgentMemoryState>));
+      // Restore agent states with backwards compatibility for messageCount
+      const entries = Object.entries(data.agentStates as Record<string, AgentMemoryState>);
+      for (const [agentId, state] of entries) {
+        memory.agentStates.set(agentId, {
+          ...state,
+          messageCount: state.messageCount ?? 0, // Default for old saved sessions
+        });
+      }
     }
     if (data.lastSummarizedIndex) memory.lastSummarizedIndex = data.lastSummarizedIndex;
     if (data.totalMessages) memory.totalMessages = data.totalMessages;
