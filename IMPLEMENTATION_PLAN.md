@@ -133,6 +133,16 @@ All metrics achieved:
 
 ---
 
+## Future Work (Optional Enhancements)
+
+| Priority | Task | Notes |
+|----------|------|-------|
+| Medium | Add unit tests | No test framework configured; consider Vitest for critical components (SessionKernel, ModeController, ConversationMemory) |
+| Low | Electron adapter formalization | ElectronFileSystem uses IPC fallbacks; could implement formal IFileSystem adapter |
+| Low | Bundle size optimization | Main JS bundle is 646 kB (recommended < 500 kB); consider code-splitting |
+
+---
+
 ## Key Implementation Files
 
 | File | Purpose |
