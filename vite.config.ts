@@ -16,4 +16,14 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  test: {
+    globals: true,
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      include: ['src/lib/**/*.ts'],
+    },
+  },
 });

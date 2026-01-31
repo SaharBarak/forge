@@ -13,8 +13,8 @@ Run these after implementing to get immediate feedback:
 
 - Typecheck: `npm run typecheck`
 - Build: `npm run build`
+- Tests: `npm run test` (81 tests for ConversationMemory and ModeController)
 - Lint: `npm run lint` (requires eslint setup - not configured)
-- Tests: No test framework configured
 
 ## Operational Notes
 

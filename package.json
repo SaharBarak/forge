@@ -18,7 +18,10 @@
     "cli:kernel": "tsx cli/kernel-cli.ts",
     "cli:build": "esbuild cli/index.ts --bundle --platform=node --target=node18 --outfile=dist-cli/cli/index.js --format=esm --packages=external",
     "lint": "eslint src --ext ts,tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.20",
@@ -47,6 +50,7 @@
     "@types/react-dom": "^18.2.18",
     "@types/uuid": "^9.0.7",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^4.0.18",
     "autoprefixer": "^10.4.17",
     "concurrently": "^8.2.2",
     "electron": "^28.2.0",
@@ -57,6 +61,7 @@
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.12",
+    "vitest": "^4.0.18",
     "wait-on": "^7.2.0"
   },
   "build": {
