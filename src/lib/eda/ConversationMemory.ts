@@ -36,6 +36,101 @@ export interface ConversationMemoryState {
 
 const SUMMARY_INTERVAL = 12; // Summarize every 12 messages
 
+// Pattern arrays for decision/proposal/reaction detection (per CONVERSATION_MEMORY.md spec)
+const DECISION_PATTERNS = [
+  /we('ve)?\s+(agreed|decided|concluded)/i,
+  /consensus\s+(is|reached)/i,
+  /let's\s+go\s+with/i,
+  /final\s+(decision|answer)/i,
+  /\[CONSENSUS\]/i,
+  /\[DECISION\]/i,
+];
+
+const PROPOSAL_PATTERNS = [
+  /I\s+propose/i,
+  /what\s+if\s+we/i,
+  /let's\s+consider/i,
+  /my\s+suggestion/i,
+  /\[PROPOSAL\]/i,
+];
+
+const REACTION_PATTERNS = {
+  support: [/I\s+agree/i, /great\s+idea/i, /let's\s+do\s+it/i, /מסכים/i, /רעיון מצוין/i],
+  oppose: [/I\s+disagree/i, /won't\s+work/i, /problem\s+with/i, /לא מסכים/i, /בעיה עם/i],
+  neutral: [/not\s+sure/i, /need\s+more\s+info/i, /לא בטוח/i],
+};
+
+/**
+ * Extract the topic from a decision/proposal message
+ * (per CONVERSATION_MEMORY.md spec - exported for enhanced decision tracking)
+ */
+export function extractTopic(content: string): string {
+  // Remove type tags
+  const cleaned = content.replace(/\[(?:TYPE:\s*)?[\w]+\]/gi, '').trim();
+
+  // Try to extract a quoted topic
+  const quoteMatch = cleaned.match(/"([^"]+)"|'([^']+)'/);
+  if (quoteMatch) {
+    return (quoteMatch[1] || quoteMatch[2]).slice(0, 100);
+  }
+
+  // Try to extract text after "about", "regarding", "on"
+  const aboutMatch = cleaned.match(/(?:about|regarding|on|for)\s+(.+?)(?:\.|,|$)/i);
+  if (aboutMatch) {
+    return aboutMatch[1].slice(0, 100);
+  }
+
+  // Fall back to first noun phrase (simplified)
+  const words = cleaned.split(/\s+/).slice(0, 8);
+  return words.join(' ').slice(0, 100);
+}
+
+/**
+ * Extract the outcome/content from a decision/proposal message
+ */
+function extractOutcome(content: string): string {
+  // Remove type tags
+  const cleaned = content.replace(/\[(?:TYPE:\s*)?[\w]+\]/gi, '').trim();
+
+  // Try to extract text after decision indicators
+  const outcomeMatch = cleaned.match(/(?:decided|agreed|concluded|will|should)\s+(?:to\s+)?(.+?)(?:\.|!|$)/i);
+  if (outcomeMatch) {
+    return outcomeMatch[1].slice(0, 200);
+  }
+
+  // Fall back to first sentence
+  const sentenceMatch = cleaned.match(/^(.+?[.!?])/);
+  if (sentenceMatch) {
+    return sentenceMatch[1].slice(0, 200);
+  }
+
+  return cleaned.slice(0, 200);
+}
+
+/**
+ * Detect reaction type from content
+ */
+function detectReaction(content: string): 'support' | 'oppose' | 'neutral' {
+  for (const pattern of REACTION_PATTERNS.support) {
+    if (pattern.test(content)) return 'support';
+  }
+  for (const pattern of REACTION_PATTERNS.oppose) {
+    if (pattern.test(content)) return 'oppose';
+  }
+  for (const pattern of REACTION_PATTERNS.neutral) {
+    if (pattern.test(content)) return 'neutral';
+  }
+  return 'neutral';
+}
+
+/**
+ * Generate a unique ID
+ * (per CONVERSATION_MEMORY.md spec - exported for enhanced decision/proposal tracking)
+ */
+export function generateMemoryId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 export class ConversationMemory {
   private summaries: MemoryEntry[] = [];
   private decisions: MemoryEntry[] = [];
@@ -72,7 +167,8 @@ export class ConversationMemory {
   }
 
   /**
-   * Extract key info from a single message
+   * Extract key info from a single message using pattern matching
+   * (per CONVERSATION_MEMORY.md spec)
    */
   private extractFromMessage(message: Message): void {
     const agentId = message.agentId;
@@ -92,36 +188,46 @@ export class ConversationMemory {
     }
 
     const state = this.agentStates.get(agentId)!;
-    const content = message.content.toLowerCase();
+    const content = message.content;
 
-    // Track message types
-    if (message.type === 'proposal') {
+    // Check for proposals using regex patterns
+    const isProposal = message.type === 'proposal' || PROPOSAL_PATTERNS.some(p => p.test(content));
+    if (isProposal) {
       this.proposals.push({
         type: 'proposal',
-        content: this.extractFirstSentence(message.content),
+        content: extractOutcome(content),
         agentId,
         timestamp: message.timestamp,
       });
-      state.keyPoints.push(this.extractFirstSentence(message.content));
+      state.keyPoints.push(this.extractFirstSentence(content));
     }
 
+    // Check for decisions/consensus using regex patterns
+    const isDecision = DECISION_PATTERNS.some(p => p.test(content));
+    if (isDecision) {
+      this.decisions.push({
+        type: 'decision',
+        content: extractOutcome(content),
+        agentId,
+        timestamp: message.timestamp,
+      });
+    }
+
+    // Track agreements/disagreements using patterns
     if (message.type === 'agreement') {
-      state.agreements.push(this.extractFirstSentence(message.content));
+      state.agreements.push(this.extractFirstSentence(content));
+    } else {
+      // Check content for agreement patterns
+      const reactionType = detectReaction(content);
+      if (reactionType === 'support') {
+        state.agreements.push(this.extractFirstSentence(content));
+      } else if (reactionType === 'oppose') {
+        state.disagreements.push(this.extractFirstSentence(content));
+      }
     }
 
     if (message.type === 'disagreement') {
-      state.disagreements.push(this.extractFirstSentence(message.content));
-    }
-
-    // Look for consensus-related keywords
-    if (content.includes('consensus') || content.includes('הסכמה') ||
-        content.includes('agree') || content.includes('מסכים')) {
-      this.decisions.push({
-        type: 'consensus_point',
-        content: this.extractFirstSentence(message.content),
-        agentId,
-        timestamp: message.timestamp,
-      });
+      state.disagreements.push(this.extractFirstSentence(content));
     }
   }
 
@@ -165,7 +271,7 @@ ${conversationText}
 
 Summary:`,
         systemPrompt: 'You are a concise summarizer. Output only the summary, no preamble.',
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-5-haiku-20241022', // Use haiku for fast, cheap summarization (per CONVERSATION_MEMORY.md)
       });
 
       if (result.success && result.content) {

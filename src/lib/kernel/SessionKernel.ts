@@ -226,7 +226,7 @@ export class SessionKernel {
   // ===========================================================================
 
   private startConfiguration(): KernelResponse[] {
-    this.state = 'configuring';
+    this.updateState('configuring');
     this.config = { language: 'hebrew', mode: 'copywrite' };
     this.configStep = 0;
     this.selectedAgentIds.clear();
@@ -358,9 +358,9 @@ export class SessionKernel {
 
     // Generate new personas
     if (lower === 'g' || lower === 'generate') {
-      this.state = 'generating';
+      this.updateState('generating');
       const result = await this.generatePersonas();
-      this.state = 'configuring';
+      this.updateState('configuring');
 
       if (result.success && result.personas) {
         this.currentPersonas = result.personas;
@@ -473,7 +473,7 @@ export class SessionKernel {
   }
 
   private finishConfiguration(): KernelResponse[] {
-    this.state = 'ready';
+    this.updateState('ready');
     this.configStep = 0;
 
     const mode = getModeById(this.config.mode || 'copywrite');
@@ -561,7 +561,7 @@ export class SessionKernel {
     });
 
     // Start
-    this.state = 'running';
+    this.updateState('running');
     this.orchestrator.start();
 
     const mode = getModeById(this.config.mode || 'copywrite');
@@ -586,7 +586,7 @@ export class SessionKernel {
     this.orchestrator.stop();
     this.orchestrator = null;
     this.session = null;
-    this.state = 'idle';
+    this.updateState('idle');
 
     return [{ type: 'success', content: 'Session ended and saved' }];
   }
@@ -597,7 +597,7 @@ export class SessionKernel {
     }
 
     messageBus.pause('user requested');
-    this.state = 'paused';
+    this.updateState('paused');
 
     return [{ type: 'success', content: "Session paused. Type 'resume' to continue." }];
   }
@@ -608,7 +608,7 @@ export class SessionKernel {
     }
 
     messageBus.resume();
-    this.state = 'running';
+    this.updateState('running');
 
     return [{ type: 'success', content: 'Session resumed' }];
   }
@@ -727,7 +727,7 @@ export class SessionKernel {
       this.config.agents = metadata.enabledAgents;
       this.config.mode = metadata.mode;
       this.selectedAgentIds = new Set(metadata.enabledAgents || []);
-      this.state = 'ready';
+      this.updateState('ready');
 
       this.emitEvent({ type: 'session_loaded', data: { metadata, messages } });
 
@@ -1164,5 +1164,18 @@ Create 4-5 personas that would be valuable stakeholders in debating and making d
         console.error('[SessionKernel] Event callback error:', error);
       }
     }
+  }
+
+  /**
+   * Update kernel state and emit state_change event
+   * (per SESSION_KERNEL.md spec: all state changes must emit events)
+   */
+  private updateState(newState: KernelState): void {
+    const oldState = this.state;
+    this.state = newState;
+    this.emitEvent({
+      type: 'state_change',
+      data: { from: oldState, to: newState },
+    });
   }
 }

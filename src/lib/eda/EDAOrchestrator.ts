@@ -4,7 +4,7 @@
  * Supports dependency injection for Electron and CLI environments
  */
 
-import type { Session, Message, ContextData } from '../../types';
+import type { Session, Message, ContextData, SessionPhase } from '../../types';
 import type { IAgentRunner, IFileSystem } from '../interfaces';
 import { MessageBus, messageBus } from './MessageBus';
 import { FloorManager } from './FloorManager';
@@ -26,7 +26,8 @@ export type EDAEventType =
   | 'floor_status'
   | 'draft_section';
 
-export type SessionPhase = 'initialization' | 'brainstorming' | 'synthesis' | 'drafting' | 'finalization';
+// SessionPhase is imported from types/index.ts (10 phases: initialization, context_loading, research, brainstorming, argumentation, synthesis, drafting, review, consensus, finalization)
+export type { SessionPhase };
 
 export interface CopySection {
   id: string;
@@ -257,8 +258,9 @@ Ronit - you're up first. Share your initial reaction.`,
         this.messageCount++;
         this.session.messages.push(payload.message);
 
-        // Track agent contributions for consensus
-        if (payload.fromAgent !== 'system' && payload.fromAgent !== 'human') {
+        // Track agent contributions for consensus (including human input)
+        // Per DELIBERATION_WORKFLOW.md: "Human input is weighted in consensus"
+        if (payload.fromAgent !== 'system') {
           this.trackAgentContribution(payload.fromAgent, payload.message);
         }
 
@@ -393,12 +395,26 @@ Ronit - you're up first. Share your initial reaction.`,
     const allAgentsSpoke = enabledAgents.every(id => agentsWhoSpoke.has(id));
 
     // Count consensus and conflict points
+    // Human input counts with double weight (per DELIBERATION_WORKFLOW.md: human input is weighted in consensus)
     let consensusPoints = 0;
     let conflictPoints = 0;
+    const humanWeight = 2; // Human vote counts as 2 agents
 
     for (const insight of this.keyInsights.values()) {
-      const supportRatio = insight.supporters.size / enabledAgents.length;
-      const opposeRatio = insight.opposers.size / enabledAgents.length;
+      // Calculate effective support/oppose counts (human gets double weight)
+      let effectiveSupport = insight.supporters.size;
+      let effectiveOppose = insight.opposers.size;
+      if (insight.supporters.has('human')) {
+        effectiveSupport += humanWeight - 1; // Add extra weight (already counted once)
+      }
+      if (insight.opposers.has('human')) {
+        effectiveOppose += humanWeight - 1; // Add extra weight (already counted once)
+      }
+
+      // Calculate ratio against total participants (agents + human weight)
+      const totalWeight = enabledAgents.length + (this.agentContributions.has('human') ? humanWeight : 0);
+      const supportRatio = effectiveSupport / totalWeight;
+      const opposeRatio = effectiveOppose / totalWeight;
 
       if (supportRatio >= this.consensusThreshold) {
         consensusPoints++;
