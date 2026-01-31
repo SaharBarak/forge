@@ -39,6 +39,7 @@ import {
   clearCustomPersonas,
   getActivePersonas,
   getAgentById,
+  generatePersonas,
 } from '../../agents/personas';
 
 // Configuration wizard steps are built dynamically via getConfigSteps()
@@ -359,12 +360,17 @@ export class SessionKernel {
     // Generate new personas
     if (lower === 'g' || lower === 'generate') {
       this.updateState('generating');
-      const result = await this.generatePersonas();
+      const result = await generatePersonas(
+        this.config.projectName || 'New Project',
+        this.config.goal || 'General deliberation',
+        5, // default count
+        this.config.apiKey
+      );
       this.updateState('configuring');
 
-      if (result.success && result.personas) {
+      if (result && result.personas) {
         this.currentPersonas = result.personas;
-        this.domainSkills = result.skills;
+        this.domainSkills = result.expertise;
         registerCustomPersonas(result.personas);
         this.selectedAgentIds = new Set(result.personas.map(p => p.id));
 
@@ -380,7 +386,7 @@ export class SessionKernel {
           },
         ];
       } else {
-        return [{ type: 'error', content: result.error || 'Failed to generate personas' }];
+        return [{ type: 'error', content: 'Failed to generate personas' }];
       }
     }
 
@@ -1094,47 +1100,6 @@ export class SessionKernel {
         ],
       },
     }];
-  }
-
-  // ===========================================================================
-  // PERSONA GENERATION
-  // ===========================================================================
-
-  private async generatePersonas(): Promise<{ success: boolean; personas?: AgentPersona[]; skills?: string; error?: string }> {
-    try {
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic({ apiKey: this.config.apiKey });
-
-      const prompt = `Generate debate personas for this project:
-
-**Project:** ${this.config.projectName}
-**Goal:** ${this.config.goal}
-
-Create 4-5 personas that would be valuable stakeholders in debating and making decisions for this project.`;
-
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        system: `You generate debate personas. Return JSON with "personas" array and optional "expertise" string.`,
-        messages: [{ role: 'user', content: prompt }],
-      });
-
-      const text = response.content[0].type === 'text' ? response.content[0].text : '';
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-      if (!jsonMatch) {
-        return { success: false, error: 'Failed to parse response' };
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        success: true,
-        personas: parsed.personas || parsed,
-        skills: parsed.expertise,
-      };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
   }
 
   // ===========================================================================

@@ -18,7 +18,7 @@ import { SessionPersistence } from './adapters/SessionPersistence';
 import { EDAOrchestrator } from '../src/lib/eda/EDAOrchestrator';
 import { messageBus } from '../src/lib/eda/MessageBus';
 import { getDefaultMethodology } from '../src/methodologies';
-import { AGENT_PERSONAS, registerCustomPersonas, clearCustomPersonas, getActivePersonas } from '../src/agents/personas';
+import { AGENT_PERSONAS, registerCustomPersonas, clearCustomPersonas, getActivePersonas, generatePersonas } from '../src/agents/personas';
 import { createPersonasCommand } from './commands/personas';
 import { createExportCommand } from './commands/export';
 import type { Session, SessionConfig, AgentPersona, Message } from '../src/types';
@@ -57,63 +57,21 @@ async function promptYesNo(question: string, defaultYes = true): Promise<boolean
 
 /**
  * Generate personas on-the-fly based on goal
+ * Uses the shared generatePersonas function from personas.ts
  */
 async function generatePersonasForGoal(cwd: string, goal: string, projectName: string): Promise<{ name: string; personas: AgentPersona[]; skills?: string } | null> {
-  const Anthropic = (await import('@anthropic-ai/sdk')).default;
-
   console.log('\n🔥 Generating personas for your project...\n');
 
-  const prompt = `Generate debate personas for this project:
-
-**Project:** ${projectName}
-**Goal:** ${goal}
-
-Create 4-5 personas that would be valuable stakeholders in debating and making decisions for this project. Include diverse perspectives that will create productive tension.`;
-
   try {
-    const client = new Anthropic();
+    // Use the shared generatePersonas function from personas.ts
+    const result = await generatePersonas(projectName, goal, 5);
 
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      system: `You are an expert at creating debate personas for multi-agent deliberation systems.
-
-Your task is to generate a set of personas that will engage in productive debate about a specific domain or project.
-
-## Output Format
-Return a JSON object with TWO fields:
-
-### 1. "expertise" field
-A markdown string containing domain-specific knowledge ALL personas should have.
-
-### 2. "personas" field
-An array of personas. Each persona must have:
-- id: lowercase, no spaces (e.g., "skeptical-engineer")
-- name: A realistic first name
-- nameHe: Hebrew version of the name
-- role: Short role description
-- age: Realistic age
-- background: 2-3 sentence background
-- personality: Array of 4-5 traits
-- biases: Array of 3-4 biases
-- strengths: Array of 3-4 strengths
-- weaknesses: Array of 2 weaknesses
-- speakingStyle: How they communicate
-- color: One of: pink, green, purple, orange, blue, cyan, yellow, red`,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) {
+    if (!result) {
       console.error('Failed to generate personas');
       return null;
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    const personas = parsed.personas || parsed;
-    const skills = parsed.expertise;
+    const { personas, expertise: skills } = result;
 
     // Save for future use
     const safeName = projectName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 30);
