@@ -34,15 +34,9 @@ export interface TemplateGalleryProps {
 }
 
 /**
- * Filter category type includes 'all' for UI filtering
- */
-export type FilterCategory = TemplateCategory | 'all';
-
-/**
  * Category labels for UI display
  */
-export const CATEGORY_LABELS: Record<FilterCategory, { en: string; he: string }> = {
-  all: { en: 'All Templates', he: 'כל התבניות' },
+export const CATEGORY_LABELS: Record<TemplateCategory, { en: string; he: string }> = {
   copywriting: { en: 'Copywriting', he: 'קופירייטינג' },
   strategy: { en: 'Strategy', he: 'אסטרטגיה' },
   validation: { en: 'Validation', he: 'אימות' },

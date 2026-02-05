@@ -3,18 +3,18 @@
  */
 
 import { useState, useMemo } from 'react';
-import type { SessionTemplate } from '../../types';
+import type { SessionTemplate, TemplateCategory } from '../../types';
 import { BUILT_IN_TEMPLATES } from '../../lib/templates/builtInTemplates';
 import { TemplateCard } from './TemplateCard';
 import { CATEGORY_LABELS, getTemplateDisplayInfo } from './types';
-import type { TemplateGalleryProps, FilterCategory } from './types';
+import type { TemplateGalleryProps } from './types';
 
 export function TemplateGallery({ 
   onSelectTemplate, 
   onStartFresh,
   hebrewMode = false 
 }: TemplateGalleryProps) {
-  const [selectedCategory, setSelectedCategory] = useState<FilterCategory>('all');
+  const [selectedCategory, setSelectedCategory] = useState<TemplateCategory | 'all'>('all');
   const [selectedTemplate, setSelectedTemplate] = useState<SessionTemplate | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -42,7 +42,7 @@ export function TemplateGallery({
     return templates;
   }, [selectedCategory, searchQuery, allTemplates]);
 
-  const categories: FilterCategory[] = ['all', 'copywriting', 'strategy', 'validation', 'custom'];
+  const categories: (TemplateCategory | 'all')[] = ['all', 'copywriting', 'strategy', 'validation', 'custom'];
 
   const handleTemplateSelect = (template: SessionTemplate) => {
     setSelectedTemplate(template);
@@ -73,11 +73,12 @@ export function TemplateGallery({
     all: hebrewMode ? 'הכל' : 'All',
   };
 
-  const getCategoryLabel = (category: FilterCategory): string => {
+  const getCategoryLabel = (category: TemplateCategory | 'all'): string => {
+    if (category === 'all') return labels.all;
     return hebrewMode ? CATEGORY_LABELS[category].he : CATEGORY_LABELS[category].en;
   };
 
-  const getCategoryCount = (category: FilterCategory): number => {
+  const getCategoryCount = (category: TemplateCategory | 'all'): number => {
     if (category === 'all') return allTemplates.length;
     return allTemplates.filter(t => t.category === category).length;
   };
