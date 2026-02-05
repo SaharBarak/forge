@@ -76,6 +76,7 @@ export interface SessionConfig {
   projectName: string;
   goal: string;
   goalHe?: string;
+  initialCopy?: string;  // Optional existing copy for agents to critique/improve
   enabledAgents: string[];
   humanParticipation: boolean;
   maxRounds: number;
@@ -326,6 +327,70 @@ export interface ExampleContext {
   content: string;
   notes: string;
   rating?: number;
+}
+
+// ============================================================================
+// TEMPLATE TYPES
+// ============================================================================
+
+export type SessionMode = 'copywrite' | 'idea-validation' | 'ideation' | 'will-it-work' | 'custom';
+export type TemplateCategory = 'copywriting' | 'strategy' | 'validation' | 'custom' | 'marketing' | 'website' | 'social' | 'email' | 'brand' | 'product';
+export type ExportFormat = 'md' | 'json' | 'html' | 'pdf' | 'docx';
+
+/**
+ * Session template for pre-configured workflows.
+ * Templates encode best practices and reduce setup friction.
+ */
+export interface SessionTemplate {
+  id: string;
+  name: string;
+  nameHe?: string;         // Hebrew name for UI
+  description: string;
+  descriptionHe?: string;  // Hebrew description for UI
+  category: TemplateCategory;
+  
+  // Pre-filled configuration
+  mode: SessionMode;
+  methodology?: ArgumentationStyle;
+  consensusMethod?: ConsensusMethod;
+  defaultAgents?: string[];
+  suggestedAgents?: string[];  // Alternative to defaultAgents for UI
+  suggestedMode?: string;      // Alternative to mode for UI
+  
+  // Guided setup prompts
+  prompts?: {
+    goal: string;           // Placeholder/example text for goal input
+    context: string[];      // Required context types (brand, audience, research, etc.)
+  };
+  defaultGoal?: string;        // Alternative goal format for UI
+  defaultGoalHe?: string;      // Hebrew goal for UI
+  
+  // Post-session recommendations
+  suggestedExports?: ExportFormat[];
+  
+  // UI display properties (optional)
+  icon?: string;
+  color?: string;
+  tags?: string[];
+  estimatedDuration?: string;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  
+  // Metadata
+  version?: number;
+  builtIn?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Information about a template for listing purposes.
+ */
+export interface TemplateInfo {
+  id: string;
+  name: string;
+  description: string;
+  category: TemplateCategory;
+  builtIn: boolean;
 }
 
 // ============================================================================
