@@ -121,6 +121,12 @@ export class AgentListener {
     this.unsubscribers.push(
       this.bus.subscribe('session:resume', () => {
         console.log(`[AgentListener:${this.id}] Resumed`);
+        // Re-evaluate if there were messages during pause
+        if (this.messagesSinceSpoke >= this.config.minSilenceBeforeReact) {
+          this.pendingEvaluation = setTimeout(() => {
+            this.evaluateAndReact();
+          }, this.config.evaluationDebounce);
+        }
       }, this.id)
     );
 

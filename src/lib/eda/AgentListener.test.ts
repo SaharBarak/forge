@@ -525,6 +525,26 @@ describe('AgentListener', () => {
       // Should evaluate after resume
       expect(mockRunner.evaluate).toHaveBeenCalled();
     });
+
+    it('evaluates messages that arrived during pause', async () => {
+      bus.pause('test pause');
+
+      // Add message DURING pause
+      bus.addMessage(createMessage(), 'other-agent');
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Should NOT evaluate while paused
+      expect(mockRunner.evaluate).not.toHaveBeenCalled();
+
+      // Now resume
+      bus.resume();
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Should evaluate accumulated messages after resume
+      expect(mockRunner.evaluate).toHaveBeenCalled();
+    });
   });
 
   describe('minimum silence requirement', () => {
