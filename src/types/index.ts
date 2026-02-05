@@ -86,6 +86,7 @@ export interface SessionConfig {
   apiKey?: string;
   language?: 'hebrew' | 'english' | 'mixed' | string;
   mode?: string; // Mode ID: copywrite, idea-validation, ideation, will-it-work, custom
+  initialCopy?: string; // Optional initial copy text to critique
 }
 
 export interface Session {
@@ -475,6 +476,41 @@ export interface ElectronAPI {
     format?: 'md' | 'json' | 'html';
     type?: 'transcript' | 'draft' | 'summary' | 'messages';
   }) => Promise<{ success: boolean; content?: string; filename?: string; error?: string }>;
+  
+  // Advanced export with full customization (Issue #14)
+  exportSessionAdvanced: (params: {
+    session: Session;
+    options: {
+      format: 'md' | 'pdf' | 'docx' | 'html' | 'json';
+      sections: {
+        transcript: boolean;
+        decisions: boolean;
+        proposals: boolean;
+        drafts: boolean;
+        summary: boolean;
+        timeline: boolean;
+      };
+      structure: {
+        coverPage: boolean;
+        tableOfContents: boolean;
+        appendix: boolean;
+        pageNumbers: boolean;
+      };
+      style: {
+        template: 'minimal' | 'professional' | 'creative' | 'academic';
+        primaryColor: string;
+        includeLogo: boolean;
+        logoUrl?: string;
+        fontFamily: 'inter' | 'georgia' | 'arial' | 'times' | 'courier';
+      };
+      metadata: {
+        includeMetadata: boolean;
+        includeTimestamps: boolean;
+        includeAgentAvatars: boolean;
+      };
+    };
+  }) => Promise<{ success: boolean; content?: string; filename?: string; error?: string }>;
+  
   saveSession: (params: { session: Session }) => Promise<{
     success: boolean;
     path?: string;
