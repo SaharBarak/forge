@@ -487,6 +487,7 @@ describe('AgentListener', () => {
       listener = new AgentListener(persona, bus, {
         evaluationDebounce: 50, // Longer debounce
         reactivityThreshold: 1.0,
+        minSilenceBeforeReact: 1, // React after 1 message
       }, mockRunner);
       listener.start(sessionConfig);
       bus.start('test-session', 'Test goal');

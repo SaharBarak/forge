@@ -18,14 +18,16 @@ interface AgentListenerConfig {
   evaluationDebounce: number;    // ms to debounce evaluations
   maxEvaluationMessages: number; // context messages for evaluation
   maxResponseMessages: number;   // context messages for response generation
+  postSpeakCooldown: number;     // ms cooldown after speaking before can evaluate again
 }
 
 const DEFAULT_CONFIG: AgentListenerConfig = {
-  reactivityThreshold: 0.5,
-  minSilenceBeforeReact: 1,
-  evaluationDebounce: 500,
-  maxEvaluationMessages: 8,  // Messages used when evaluating whether to respond
-  maxResponseMessages: 15,    // Messages used when generating actual response
+  reactivityThreshold: 0.3,    // Reduced from 0.5 - only 30% chance to react (prevents cascade)
+  minSilenceBeforeReact: 2,    // Increased from 1 - wait for 2 messages before reacting
+  evaluationDebounce: 3000,    // Increased from 500ms to 3s - prevents rapid evaluation cascade
+  maxEvaluationMessages: 8,    // Messages used when evaluating whether to respond
+  maxResponseMessages: 15,     // Messages used when generating actual response
+  postSpeakCooldown: 5000,     // 5 second cooldown after speaking before can evaluate again
 };
 
 export class AgentListener {
@@ -40,6 +42,8 @@ export class AgentListener {
   private pendingEvaluation: ReturnType<typeof setTimeout> | null = null;
   private unsubscribers: (() => void)[] = [];
   private config: AgentListenerConfig;
+  private lastSpokeAt = 0; // Timestamp of last speech for cooldown
+  private paused = false; // Track paused state for session:pause/resume
 
   // Claude Code Agent instance
   private claudeAgent: ClaudeCodeAgent | null = null;
@@ -109,6 +113,7 @@ export class AgentListener {
     // Pause during research
     this.unsubscribers.push(
       this.bus.subscribe('session:pause', () => {
+        this.paused = true;
         if (this.pendingEvaluation) {
           clearTimeout(this.pendingEvaluation);
           this.pendingEvaluation = null;
@@ -120,6 +125,7 @@ export class AgentListener {
 
     this.unsubscribers.push(
       this.bus.subscribe('session:resume', () => {
+        this.paused = false;
         console.log(`[AgentListener:${this.id}] Resumed`);
       }, this.id)
     );
@@ -154,6 +160,11 @@ export class AgentListener {
 
     this.messagesSinceSpoke++;
 
+    // Don't evaluate if paused
+    if (this.paused) {
+      return;
+    }
+
     // Don't evaluate if already speaking or thinking
     if (this.state === 'speaking' || this.state === 'thinking') {
       return;
@@ -178,6 +189,13 @@ export class AgentListener {
 
     // Check minimum silence
     if (this.messagesSinceSpoke < this.config.minSilenceBeforeReact) {
+      return;
+    }
+
+    // Check post-speak cooldown to prevent rapid cascade
+    const timeSinceSpoke = Date.now() - this.lastSpokeAt;
+    if (timeSinceSpoke < this.config.postSpeakCooldown) {
+      console.log(`[AgentListener:${this.id}] Still in cooldown (${Math.round((this.config.postSpeakCooldown - timeSinceSpoke) / 1000)}s remaining)`);
       return;
     }
 
@@ -273,6 +291,7 @@ export class AgentListener {
       this.bus.emit('floor:released', { agentId: this.id });
       this.state = 'listening';
       this.messagesSinceSpoke = 0;
+      this.lastSpokeAt = Date.now(); // Start cooldown to prevent rapid cascade
 
     } catch (error) {
       console.error(`[AgentListener:${this.id}] Response error:`, error);
