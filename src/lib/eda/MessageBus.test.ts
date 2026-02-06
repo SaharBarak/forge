@@ -637,6 +637,258 @@ describe('MessageBus', () => {
   });
 
   // ===========================================================================
+  // MESSAGE LIMITS AND PRUNING (#24)
+  // ===========================================================================
+
+  describe('message limits and pruning', () => {
+    it('enforces maxMessages limit', () => {
+      const limitedBus = new MessageBus({ maxMessages: 10 });
+      limitedBus.start('test-session', 'Test goal');
+
+      for (let i = 0; i < 20; i++) {
+        limitedBus.addMessage(createMessage({ content: `Message ${i}` }), 'agent-1');
+      }
+
+      // Should have pruned to max
+      expect(limitedBus.getAllMessages().length).toBeLessThanOrEqual(10);
+
+      limitedBus.stop('cleanup');
+    });
+
+    it('tracks pruned message count', () => {
+      const limitedBus = new MessageBus({ maxMessages: 10, pruneThreshold: 1.0 });
+      limitedBus.start('test-session', 'Test goal');
+
+      for (let i = 0; i < 20; i++) {
+        limitedBus.addMessage(createMessage({ content: `Message ${i}` }), 'agent-1');
+      }
+
+      expect(limitedBus.getTotalMessageCount()).toBe(20);
+
+      limitedBus.stop('cleanup');
+    });
+
+    it('getRecentMessages respects maxMessagesForContext', () => {
+      const limitedBus = new MessageBus({ maxMessages: 100, maxMessagesForContext: 5 });
+      limitedBus.start('test-session', 'Test goal');
+
+      for (let i = 0; i < 50; i++) {
+        limitedBus.addMessage(createMessage({ content: `Message ${i}` }), 'agent-1');
+      }
+
+      // Even if we ask for 20, should be capped at 5
+      const recent = limitedBus.getRecentMessages(20);
+      expect(recent.length).toBe(5);
+
+      limitedBus.stop('cleanup');
+    });
+
+    it('setBusConfig updates limits', () => {
+      const limitedBus = new MessageBus({ maxMessages: 100 });
+      limitedBus.start('test-session', 'Test goal');
+
+      for (let i = 0; i < 50; i++) {
+        limitedBus.addMessage(createMessage({ content: `Message ${i}` }), 'agent-1');
+      }
+
+      expect(limitedBus.getAllMessages().length).toBe(50);
+
+      // Lower the limit
+      limitedBus.setBusConfig({ maxMessages: 20 });
+
+      // Should have pruned
+      expect(limitedBus.getAllMessages().length).toBeLessThanOrEqual(20);
+
+      limitedBus.stop('cleanup');
+    });
+
+    it('compact aggressively prunes to 50%', () => {
+      const limitedBus = new MessageBus({ maxMessages: 100 });
+      limitedBus.start('test-session', 'Test goal');
+
+      for (let i = 0; i < 100; i++) {
+        limitedBus.addMessage(createMessage({ content: `Message ${i}` }), 'agent-1');
+      }
+
+      limitedBus.compact();
+
+      // Should be at ~50 messages after compact
+      expect(limitedBus.getAllMessages().length).toBeLessThanOrEqual(50);
+
+      limitedBus.stop('cleanup');
+    });
+
+    it('getUsageStats reports accurate statistics', () => {
+      const limitedBus = new MessageBus({ maxMessages: 100 });
+      limitedBus.start('test-session', 'Test goal');
+
+      for (let i = 0; i < 50; i++) {
+        limitedBus.addMessage(createMessage({ content: `Message ${i}` }), 'agent-1');
+      }
+
+      const stats = limitedBus.getUsageStats();
+
+      expect(stats.messages.count).toBe(50);
+      expect(stats.messages.max).toBe(100);
+      expect(stats.messages.usage).toBeCloseTo(0.5);
+      expect(stats.memory).toBeDefined();
+      expect(stats.subscriptions).toBe(0);
+
+      limitedBus.stop('cleanup');
+    });
+
+    it('start resets pruned message count', () => {
+      const limitedBus = new MessageBus({ maxMessages: 5, pruneThreshold: 1.0 });
+      limitedBus.start('session-1', 'Goal 1');
+
+      for (let i = 0; i < 10; i++) {
+        limitedBus.addMessage(createMessage(), 'agent-1');
+      }
+
+      expect(limitedBus.getTotalMessageCount()).toBe(10);
+
+      // Restart should reset
+      limitedBus.start('session-2', 'Goal 2');
+
+      expect(limitedBus.getTotalMessageCount()).toBe(0);
+
+      limitedBus.stop('cleanup');
+    });
+  });
+
+  // ===========================================================================
+  // VIRTUAL SCROLLING SUPPORT (#24)
+  // ===========================================================================
+
+  describe('virtual scrolling', () => {
+    let scrollBus: MessageBus;
+
+    beforeEach(() => {
+      scrollBus = new MessageBus({ maxMessages: 50, virtualScrollWindow: 10, pruneThreshold: 1.0 });
+      scrollBus.start('test-session', 'Test goal');
+
+      // Add 100 messages (50 will be pruned)
+      for (let i = 0; i < 100; i++) {
+        scrollBus.addMessage(createMessage({ content: `Message ${i}` }), 'agent-1');
+      }
+    });
+
+    afterEach(() => {
+      scrollBus.stop('cleanup');
+    });
+
+    it('getMessageWindow returns correct window from available messages', () => {
+      const scrollInfo = scrollBus.getScrollInfo();
+      const window = scrollBus.getMessageWindow(scrollInfo.availableStart, 10);
+
+      expect(window.length).toBe(10);
+      expect(window[0].content).toBe('Message 50'); // First available after pruning
+    });
+
+    it('getScrollInfo reports virtual scroll boundaries', () => {
+      const info = scrollBus.getScrollInfo();
+
+      expect(info.totalCount).toBe(100);
+      expect(info.prunedCount).toBe(50);
+      expect(info.availableStart).toBe(50);
+      expect(info.availableEnd).toBe(99);
+    });
+
+    it('getMessageWindow handles out of range start', () => {
+      // Request pruned messages
+      const window = scrollBus.getMessageWindow(0, 10);
+
+      // Should return what's available or empty
+      expect(window.length).toBeLessThanOrEqual(10);
+    });
+
+    it('getMessageWindow handles end of list', () => {
+      const scrollInfo = scrollBus.getScrollInfo();
+      const window = scrollBus.getMessageWindow(scrollInfo.availableEnd - 5, 10);
+
+      // Should return remaining messages
+      expect(window.length).toBeLessThanOrEqual(10);
+    });
+
+    it('getMessageWindow uses default window size from config', () => {
+      const window = scrollBus.getMessageWindow(50); // No count specified
+
+      expect(window.length).toBe(10); // Uses virtualScrollWindow config
+    });
+  });
+
+  // ===========================================================================
+  // INACTIVE AGENT CLEANUP (#24)
+  // ===========================================================================
+
+  describe('inactive agent cleanup', () => {
+    beforeEach(() => {
+      bus.start('test-session', 'Test goal');
+    });
+
+    it('clearInactiveAgents removes unused agents from memory', async () => {
+      // Add messages from multiple agents
+      bus.addMessage(createMessage({ agentId: 'agent-1', content: 'Hello' }), 'agent-1');
+      bus.addMessage(createMessage({ agentId: 'agent-2', content: 'Hi there' }), 'agent-2');
+      bus.addMessage(createMessage({ agentId: 'agent-3', content: 'Greetings' }), 'agent-3');
+
+      // Wait for async processing
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Clear inactive (keep only agent-1)
+      bus.clearInactiveAgents(new Set(['agent-1']));
+
+      // Memory context should only have agent-1 data
+      const context = bus.getMemoryContext('agent-1');
+      expect(typeof context).toBe('string');
+    });
+  });
+
+  // ===========================================================================
+  // CONFIGURATION (#24)
+  // ===========================================================================
+
+  describe('configuration', () => {
+    it('getConfig returns current configuration', () => {
+      const config = bus.getConfig();
+
+      expect(config.bus).toBeDefined();
+      expect(config.bus.maxMessages).toBeDefined();
+      expect(config.memory).toBeDefined();
+      expect(config.memory.maxSummaries).toBeDefined();
+    });
+
+    it('setMemoryConfig updates memory limits', () => {
+      bus.setMemoryConfig({ maxSummaries: 5 });
+
+      const config = bus.getConfig();
+      expect(config.memory.maxSummaries).toBe(5);
+    });
+
+    it('accepts partial bus config in constructor', () => {
+      const customBus = new MessageBus({ maxMessages: 200 });
+      const config = customBus.getConfig();
+
+      expect(config.bus.maxMessages).toBe(200);
+      // Defaults should still be set
+      expect(config.bus.maxMessagesForContext).toBeDefined();
+
+      customBus.stop('cleanup');
+    });
+
+    it('accepts partial memory config in constructor', () => {
+      const customBus = new MessageBus(undefined, { maxDecisions: 10 });
+      const config = customBus.getConfig();
+
+      expect(config.memory.maxDecisions).toBe(10);
+      // Defaults should still be set
+      expect(config.memory.maxSummaries).toBeDefined();
+
+      customBus.stop('cleanup');
+    });
+  });
+
+  // ===========================================================================
   // EDGE CASES
   // ===========================================================================
 
@@ -661,14 +913,18 @@ describe('MessageBus', () => {
     });
 
     it('handles large message history', () => {
-      bus.start('test-session', 'Test goal');
+      // Use a bus with high limit for this test
+      const largeBus = new MessageBus({ maxMessages: 2000 });
+      largeBus.start('test-session', 'Test goal');
 
       for (let i = 0; i < 1000; i++) {
-        bus.addMessage(createMessage({ content: `Message ${i}` }), 'agent-1');
+        largeBus.addMessage(createMessage({ content: `Message ${i}` }), 'agent-1');
       }
 
-      expect(bus.getAllMessages()).toHaveLength(1000);
-      expect(bus.getRecentMessages(10)).toHaveLength(10);
+      expect(largeBus.getAllMessages()).toHaveLength(1000);
+      expect(largeBus.getRecentMessages(10)).toHaveLength(10);
+
+      largeBus.stop('cleanup');
     });
 
     it('can be restarted multiple times', () => {

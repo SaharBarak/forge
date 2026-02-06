@@ -5,7 +5,25 @@
 
 import type { Message } from '../../types';
 import type { IAgentRunner } from '../interfaces';
-import { ConversationMemory } from './ConversationMemory';
+import { ConversationMemory, type MemoryConfig } from './ConversationMemory';
+
+/**
+ * Configuration for MessageBus limits
+ */
+export interface MessageBusConfig {
+  maxMessages: number;              // Max messages in history (oldest pruned)
+  maxMessagesForContext: number;    // Max messages returned for agent context
+  virtualScrollWindow: number;      // Window size for virtual scrolling support
+  pruneThreshold: number;           // Trigger pruning at this % of max
+}
+
+/** Default MessageBus configuration */
+export const DEFAULT_BUS_CONFIG: MessageBusConfig = {
+  maxMessages: 500,
+  maxMessagesForContext: 50,
+  virtualScrollWindow: 100,
+  pruneThreshold: 0.9,
+};
 
 export type MessageBusEvent =
   | 'message:new'           // New message added to conversation
@@ -66,8 +84,54 @@ export class MessageBus {
   private subscriptions: Subscription[] = [];
   private messageHistory: Message[] = [];
   private isActive = false;
-  private memory: ConversationMemory = new ConversationMemory();
+  private memory: ConversationMemory;
   private agentRunner?: IAgentRunner;
+  private busConfig: MessageBusConfig;
+  private prunedMessageCount = 0; // Track pruned messages for virtual scroll offset
+
+  constructor(busConfig?: Partial<MessageBusConfig>, memoryConfig?: Partial<MemoryConfig>) {
+    this.busConfig = { ...DEFAULT_BUS_CONFIG, ...busConfig };
+    this.memory = new ConversationMemory(undefined, memoryConfig);
+  }
+
+  /**
+   * Configure message bus limits
+   */
+  setBusConfig(config: Partial<MessageBusConfig>): void {
+    this.busConfig = { ...this.busConfig, ...config };
+    this.pruneMessagesIfNeeded(true);
+  }
+
+  /**
+   * Configure memory limits
+   */
+  setMemoryConfig(config: Partial<MemoryConfig>): void {
+    this.memory.setConfig(config);
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): { bus: MessageBusConfig; memory: MemoryConfig } {
+    return {
+      bus: { ...this.busConfig },
+      memory: this.memory.getConfig(),
+    };
+  }
+
+  /**
+   * Prune old messages if history exceeds limit
+   */
+  private pruneMessagesIfNeeded(force = false): void {
+    const threshold = force ? 1.0 : this.busConfig.pruneThreshold;
+    const maxWithThreshold = this.busConfig.maxMessages * threshold;
+
+    if (this.messageHistory.length > maxWithThreshold) {
+      const toRemove = this.messageHistory.length - this.busConfig.maxMessages;
+      this.messageHistory = this.messageHistory.slice(toRemove);
+      this.prunedMessageCount += toRemove;
+    }
+  }
 
   /**
    * Subscribe to an event
@@ -130,6 +194,9 @@ export class MessageBus {
       console.error('[MessageBus] Memory processing error:', err);
     });
 
+    // Prune if needed
+    this.pruneMessagesIfNeeded();
+
     this.emit('message:new', { message, fromAgent });
   }
 
@@ -170,16 +237,108 @@ export class MessageBus {
 
   /**
    * Get recent messages for context
+   * @param count - Number of messages (capped at maxMessagesForContext)
    */
   getRecentMessages(count = 10): Message[] {
-    return this.messageHistory.slice(-count);
+    const effectiveCount = Math.min(count, this.busConfig.maxMessagesForContext);
+    return this.messageHistory.slice(-effectiveCount);
   }
 
   /**
-   * Get all messages
+   * Get all messages currently in memory
+   * Note: May not include all session messages if pruning occurred
    */
   getAllMessages(): Message[] {
     return [...this.messageHistory];
+  }
+
+  /**
+   * Get total message count including pruned messages
+   */
+  getTotalMessageCount(): number {
+    return this.prunedMessageCount + this.messageHistory.length;
+  }
+
+  /**
+   * Get a window of messages for virtual scrolling
+   * @param startIndex - Virtual index (accounts for pruned messages)
+   * @param count - Number of messages to retrieve
+   * @returns Messages in the window, or empty if out of range
+   */
+  getMessageWindow(startIndex: number, count?: number): Message[] {
+    const windowSize = count ?? this.busConfig.virtualScrollWindow;
+
+    // Adjust for pruned messages
+    const adjustedStart = startIndex - this.prunedMessageCount;
+
+    if (adjustedStart < 0) {
+      // Requested messages have been pruned
+      const availableStart = Math.max(0, adjustedStart + windowSize);
+      if (availableStart >= this.messageHistory.length) {
+        return [];
+      }
+      return this.messageHistory.slice(availableStart, availableStart + windowSize);
+    }
+
+    if (adjustedStart >= this.messageHistory.length) {
+      return [];
+    }
+
+    return this.messageHistory.slice(adjustedStart, adjustedStart + windowSize);
+  }
+
+  /**
+   * Get virtual scroll info for UI
+   */
+  getScrollInfo(): {
+    totalCount: number;
+    availableStart: number;
+    availableEnd: number;
+    prunedCount: number;
+  } {
+    return {
+      totalCount: this.getTotalMessageCount(),
+      availableStart: this.prunedMessageCount,
+      availableEnd: this.prunedMessageCount + this.messageHistory.length - 1,
+      prunedCount: this.prunedMessageCount,
+    };
+  }
+
+  /**
+   * Get memory usage statistics
+   */
+  getUsageStats(): {
+    messages: { count: number; max: number; pruned: number; usage: number };
+    memory: ReturnType<ConversationMemory['getMemoryUsage']>;
+    subscriptions: number;
+  } {
+    return {
+      messages: {
+        count: this.messageHistory.length,
+        max: this.busConfig.maxMessages,
+        pruned: this.prunedMessageCount,
+        usage: this.messageHistory.length / this.busConfig.maxMessages,
+      },
+      memory: this.memory.getMemoryUsage(),
+      subscriptions: this.subscriptions.length,
+    };
+  }
+
+  /**
+   * Compact memory to free resources
+   * Aggressively prunes to 50% of limits
+   */
+  compact(): void {
+    // Compact message history
+    const targetMessages = Math.ceil(this.busConfig.maxMessages / 2);
+    if (this.messageHistory.length > targetMessages) {
+      const toRemove = this.messageHistory.length - targetMessages;
+      this.messageHistory = this.messageHistory.slice(toRemove);
+      this.prunedMessageCount += toRemove;
+    }
+
+    // Compact conversation memory
+    this.memory.compact();
   }
 
   /**
@@ -188,6 +347,7 @@ export class MessageBus {
   start(sessionId: string, goal: string): void {
     this.isActive = true;
     this.messageHistory = [];
+    this.prunedMessageCount = 0;
     this.memory.reset();
     this.emit('session:start', { sessionId, goal });
   }
@@ -212,7 +372,16 @@ export class MessageBus {
   stop(reason: string): void {
     this.isActive = false;
     this.emit('session:end', { reason });
+    // Clear subscriptions to release references
     this.subscriptions = [];
+  }
+
+  /**
+   * Clear inactive agent memory
+   * @param activeAgentIds - Set of currently active agent IDs
+   */
+  clearInactiveAgents(activeAgentIds: Set<string>): void {
+    this.memory.clearInactiveAgents(activeAgentIds);
   }
 
   /**

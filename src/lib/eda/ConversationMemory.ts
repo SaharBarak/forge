@@ -12,6 +12,53 @@ import type { IAgentRunner } from '../interfaces';
 /** Status for tracking proposal lifecycle */
 export type ProposalStatus = 'active' | 'accepted' | 'rejected' | 'modified';
 
+/**
+ * Configuration for memory limits and pruning
+ */
+export interface MemoryConfig {
+  maxSummaries: number;        // Max summaries to keep (oldest pruned first)
+  maxDecisions: number;        // Max decisions to keep
+  maxProposals: number;        // Max proposals to keep
+  maxAgentKeyPoints: number;   // Max key points per agent
+  maxAgentPositions: number;   // Max positions per agent
+  pruneThreshold: number;      // Trigger pruning when arrays exceed this % of max
+}
+
+/**
+ * Legacy retention limits interface for backwards compatibility
+ * @deprecated Use MemoryConfig instead
+ */
+export interface RetentionLimits {
+  maxSummaries?: number;
+  maxDecisions?: number;
+  maxProposals?: number;
+  maxKeyPoints?: number;
+  maxPositions?: number;
+  maxAgreements?: number;
+  maxDisagreements?: number;
+}
+
+/** Default memory configuration */
+export const DEFAULT_MEMORY_CONFIG: MemoryConfig = {
+  maxSummaries: 20,
+  maxDecisions: 50,
+  maxProposals: 30,
+  maxAgentKeyPoints: 20,
+  maxAgentPositions: 15,
+  pruneThreshold: 0.9, // Prune when at 90% capacity
+};
+
+// Legacy default for backwards compatibility
+const DEFAULT_RETENTION_LIMITS: Required<RetentionLimits> = {
+  maxSummaries: 20,
+  maxDecisions: 50,
+  maxProposals: 30,
+  maxKeyPoints: 10,
+  maxPositions: 10,
+  maxAgreements: 10,
+  maxDisagreements: 10,
+};
+
 export interface MemoryEntry {
   id: string; // Unique identifier for this entry
   type: 'summary' | 'decision' | 'proposal' | 'insight' | 'consensus_point';
@@ -41,31 +88,11 @@ export interface ConversationMemoryState {
   agentStates: Record<string, AgentMemoryState>; // Record for JSON serialization
   lastSummarizedIndex: number;
   totalMessages: number;
-  retentionLimits?: RetentionLimits; // Optional for backwards compatibility
+  config?: MemoryConfig;
+  retentionLimits?: RetentionLimits; // Legacy support
 }
 
 const SUMMARY_INTERVAL = 12; // Summarize every 12 messages
-
-// Memory retention limits to prevent unbounded growth (#24)
-const DEFAULT_RETENTION_LIMITS = {
-  maxSummaries: 20,       // Keep last 20 summaries (~240 messages worth)
-  maxDecisions: 50,       // Keep last 50 decisions
-  maxProposals: 30,       // Keep last 30 proposals
-  maxKeyPoints: 10,       // Per agent: keep last 10 key points
-  maxPositions: 10,       // Per agent: keep last 10 positions
-  maxAgreements: 10,      // Per agent: keep last 10 agreements
-  maxDisagreements: 10,   // Per agent: keep last 10 disagreements
-};
-
-export interface RetentionLimits {
-  maxSummaries?: number;
-  maxDecisions?: number;
-  maxProposals?: number;
-  maxKeyPoints?: number;
-  maxPositions?: number;
-  maxAgreements?: number;
-  maxDisagreements?: number;
-}
 
 // Pattern arrays for decision/proposal/reaction detection (per CONVERSATION_MEMORY.md spec)
 const DECISION_PATTERNS = [
@@ -163,6 +190,19 @@ export function generateMemoryId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/**
+ * Convert legacy RetentionLimits to MemoryConfig
+ */
+function retentionLimitsToConfig(limits: RetentionLimits): Partial<MemoryConfig> {
+  return {
+    maxSummaries: limits.maxSummaries,
+    maxDecisions: limits.maxDecisions,
+    maxProposals: limits.maxProposals,
+    maxAgentKeyPoints: limits.maxKeyPoints,
+    maxAgentPositions: limits.maxPositions,
+  };
+}
+
 export class ConversationMemory {
   private summaries: MemoryEntry[] = [];
   private decisions: MemoryEntry[] = [];
@@ -171,11 +211,36 @@ export class ConversationMemory {
   private lastSummarizedIndex = 0;
   private totalMessages = 0;
   private runner?: IAgentRunner;
-  private retentionLimits: Required<RetentionLimits>;
+  private config: MemoryConfig;
 
-  constructor(runner?: IAgentRunner, retentionLimits?: RetentionLimits) {
+  constructor(runner?: IAgentRunner, config?: Partial<MemoryConfig>) {
     this.runner = runner;
-    this.retentionLimits = { ...DEFAULT_RETENTION_LIMITS, ...retentionLimits };
+    this.config = { ...DEFAULT_MEMORY_CONFIG, ...config };
+  }
+
+  /**
+   * Update memory configuration
+   */
+  setConfig(config: Partial<MemoryConfig>): void {
+    this.config = { ...this.config, ...config };
+    // Immediately prune if new limits are lower
+    this.pruneIfNeeded(true);
+  }
+
+  /**
+   * Get current memory configuration
+   */
+  getConfig(): MemoryConfig {
+    return { ...this.config };
+  }
+
+  /**
+   * Set retention limits (legacy API for backwards compatibility)
+   * @deprecated Use setConfig() instead
+   */
+  setRetentionLimits(limits: RetentionLimits): void {
+    const configPatch = retentionLimitsToConfig(limits);
+    this.setConfig(configPatch);
   }
 
   /**
@@ -186,92 +251,109 @@ export class ConversationMemory {
   }
 
   /**
-   * Set retention limits (for runtime configuration)
+   * Prune memory arrays if they exceed configured limits
+   * @param force - If true, prune to exact limits; otherwise use threshold
    */
-  setRetentionLimits(limits: RetentionLimits): void {
-    this.retentionLimits = { ...this.retentionLimits, ...limits };
-    // Apply limits immediately
-    this.enforceRetentionLimits();
+  private pruneIfNeeded(force = false): void {
+    const threshold = force ? 1.0 : this.config.pruneThreshold;
+
+    // Prune summaries (keep most recent)
+    if (this.summaries.length > this.config.maxSummaries * threshold) {
+      const toRemove = this.summaries.length - this.config.maxSummaries;
+      this.summaries = this.summaries.slice(toRemove);
+    }
+
+    // Prune decisions (keep most recent)
+    if (this.decisions.length > this.config.maxDecisions * threshold) {
+      const toRemove = this.decisions.length - this.config.maxDecisions;
+      this.decisions = this.decisions.slice(toRemove);
+    }
+
+    // Prune proposals (keep most recent, but prioritize active ones)
+    if (this.proposals.length > this.config.maxProposals * threshold) {
+      // Separate active and resolved proposals
+      const active = this.proposals.filter(p => p.status === 'active');
+      const resolved = this.proposals.filter(p => p.status !== 'active');
+
+      const targetTotal = this.config.maxProposals;
+
+      if (active.length >= targetTotal) {
+        // Too many active - keep only most recent active ones
+        this.proposals = active.slice(-targetTotal);
+      } else {
+        // Keep all active, fill remaining slots with most recent resolved
+        const resolvedToKeep = targetTotal - active.length;
+        this.proposals = [
+          ...resolved.slice(-resolvedToKeep),
+          ...active,
+        ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      }
+    }
+
+    // Prune agent states
+    for (const [agentId, state] of this.agentStates) {
+      if (state.keyPoints.length > this.config.maxAgentKeyPoints * threshold) {
+        state.keyPoints = state.keyPoints.slice(-this.config.maxAgentKeyPoints);
+      }
+      if (state.positions.length > this.config.maxAgentPositions * threshold) {
+        state.positions = state.positions.slice(-this.config.maxAgentPositions);
+      }
+      if (state.agreements.length > this.config.maxAgentPositions * threshold) {
+        state.agreements = state.agreements.slice(-this.config.maxAgentPositions);
+      }
+      if (state.disagreements.length > this.config.maxAgentPositions * threshold) {
+        state.disagreements = state.disagreements.slice(-this.config.maxAgentPositions);
+      }
+      this.agentStates.set(agentId, state);
+    }
   }
 
   /**
-   * Enforce retention limits to prevent memory leaks (#24)
-   * Removes oldest entries when limits are exceeded
+   * Legacy method for backwards compatibility
+   * @deprecated Use pruneIfNeeded() internally; this is kept for existing tests
    */
   private enforceRetentionLimits(): void {
-    // Trim summaries
-    if (this.summaries.length > this.retentionLimits.maxSummaries) {
-      const toRemove = this.summaries.length - this.retentionLimits.maxSummaries;
-      this.summaries.splice(0, toRemove);
-    }
-
-    // Trim decisions
-    if (this.decisions.length > this.retentionLimits.maxDecisions) {
-      const toRemove = this.decisions.length - this.retentionLimits.maxDecisions;
-      this.decisions.splice(0, toRemove);
-    }
-
-    // Trim proposals (keep active ones, remove old completed/rejected first)
-    if (this.proposals.length > this.retentionLimits.maxProposals) {
-      // Separate active and non-active proposals
-      const active = this.proposals.filter(p => p.status === 'active');
-      const nonActive = this.proposals.filter(p => p.status !== 'active');
-      
-      // First, try to fit within limit by removing non-active
-      if (nonActive.length > 0) {
-        const maxNonActive = Math.max(0, this.retentionLimits.maxProposals - active.length);
-        const trimmedNonActive = nonActive.slice(-maxNonActive);
-        this.proposals = [...trimmedNonActive, ...active];
-      }
-      
-      // If still over limit (too many active), trim oldest active proposals
-      if (this.proposals.length > this.retentionLimits.maxProposals) {
-        this.proposals = this.proposals.slice(-this.retentionLimits.maxProposals);
-      }
-    }
-
-    // Trim agent states
-    for (const state of this.agentStates.values()) {
-      if (state.keyPoints.length > this.retentionLimits.maxKeyPoints) {
-        state.keyPoints = state.keyPoints.slice(-this.retentionLimits.maxKeyPoints);
-      }
-      if (state.positions.length > this.retentionLimits.maxPositions) {
-        state.positions = state.positions.slice(-this.retentionLimits.maxPositions);
-      }
-      if (state.agreements.length > this.retentionLimits.maxAgreements) {
-        state.agreements = state.agreements.slice(-this.retentionLimits.maxAgreements);
-      }
-      if (state.disagreements.length > this.retentionLimits.maxDisagreements) {
-        state.disagreements = state.disagreements.slice(-this.retentionLimits.maxDisagreements);
-      }
-    }
+    this.pruneIfNeeded(true);
   }
 
   /**
-   * Get current memory usage statistics
+   * Get memory usage statistics
    */
   getMemoryUsage(): {
-    summaries: number;
-    decisions: number;
-    proposals: number;
-    agentStates: number;
-    totalEntries: number;
-    limits: Required<RetentionLimits>;
+    summaries: { count: number; max: number; usage: number };
+    decisions: { count: number; max: number; usage: number };
+    proposals: { count: number; max: number; usage: number };
+    agents: { count: number; avgKeyPoints: number; avgPositions: number };
   } {
-    let agentStateEntries = 0;
+    let totalKeyPoints = 0;
+    let totalPositions = 0;
     for (const state of this.agentStates.values()) {
-      agentStateEntries += state.keyPoints.length + state.positions.length +
-                          state.agreements.length + state.disagreements.length;
+      totalKeyPoints += state.keyPoints.length;
+      totalPositions += state.positions.length + state.agreements.length + state.disagreements.length;
     }
+    const agentCount = this.agentStates.size || 1;
 
     return {
-      summaries: this.summaries.length,
-      decisions: this.decisions.length,
-      proposals: this.proposals.length,
-      agentStates: agentStateEntries,
-      totalEntries: this.summaries.length + this.decisions.length + 
-                   this.proposals.length + agentStateEntries,
-      limits: this.retentionLimits,
+      summaries: {
+        count: this.summaries.length,
+        max: this.config.maxSummaries,
+        usage: this.summaries.length / this.config.maxSummaries,
+      },
+      decisions: {
+        count: this.decisions.length,
+        max: this.config.maxDecisions,
+        usage: this.decisions.length / this.config.maxDecisions,
+      },
+      proposals: {
+        count: this.proposals.length,
+        max: this.config.maxProposals,
+        usage: this.proposals.length / this.config.maxProposals,
+      },
+      agents: {
+        count: this.agentStates.size,
+        avgKeyPoints: totalKeyPoints / agentCount,
+        avgPositions: totalPositions / agentCount,
+      },
     };
   }
 
@@ -294,6 +376,18 @@ export class ConversationMemory {
   }
 
   /**
+   * Clear all inactive agents (no recent messages)
+   * @param activeAgentIds - Set of currently active agent IDs to keep
+   */
+  clearInactiveAgents(activeAgentIds: Set<string>): void {
+    for (const agentId of this.agentStates.keys()) {
+      if (!activeAgentIds.has(agentId)) {
+        this.agentStates.delete(agentId);
+      }
+    }
+  }
+
+  /**
    * Process a new message and update memory
    */
   async processMessage(message: Message, allMessages: Message[]): Promise<void> {
@@ -306,6 +400,9 @@ export class ConversationMemory {
     if (this.shouldSummarize()) {
       await this.summarizeConversation(allMessages);
     }
+
+    // Prune if memory usage is high
+    this.pruneIfNeeded();
   }
 
   /**
@@ -383,8 +480,8 @@ export class ConversationMemory {
       state.disagreements.push(this.extractFirstSentence(content));
     }
 
-    // Enforce retention limits after adding new entries (#24)
-    this.enforceRetentionLimits();
+    // Prune if needed after adding new entries
+    this.pruneIfNeeded();
   }
 
   /**
@@ -570,7 +667,7 @@ Summary:`,
       agentStates: Object.fromEntries(this.agentStates),
       lastSummarizedIndex: this.lastSummarizedIndex,
       totalMessages: this.totalMessages,
-      retentionLimits: this.retentionLimits,
+      config: this.config,
     };
   }
 
@@ -580,11 +677,22 @@ Summary:`,
   static fromJSON(
     data: Partial<ConversationMemoryState>,
     runner?: IAgentRunner,
-    retentionLimits?: RetentionLimits
+    configOrLimits?: Partial<MemoryConfig> | RetentionLimits
   ): ConversationMemory {
-    // Merge saved retention limits with provided ones (provided takes precedence)
-    const effectiveLimits = { ...data.retentionLimits, ...retentionLimits };
-    const memory = new ConversationMemory(runner, effectiveLimits);
+    // Handle both MemoryConfig and legacy RetentionLimits
+    let effectiveConfig: Partial<MemoryConfig> | undefined;
+    if (configOrLimits) {
+      if ('maxKeyPoints' in configOrLimits || 'maxAgreements' in configOrLimits) {
+        // Legacy RetentionLimits format
+        effectiveConfig = retentionLimitsToConfig(configOrLimits as RetentionLimits);
+      } else {
+        effectiveConfig = configOrLimits as Partial<MemoryConfig>;
+      }
+    }
+    
+    // Merge saved config with provided config (provided takes precedence)
+    const finalConfig = { ...data.config, ...effectiveConfig };
+    const memory = new ConversationMemory(runner, finalConfig);
 
     if (data.summaries) memory.summaries = data.summaries;
     if (data.decisions) memory.decisions = data.decisions;
@@ -602,8 +710,8 @@ Summary:`,
     if (data.lastSummarizedIndex) memory.lastSummarizedIndex = data.lastSummarizedIndex;
     if (data.totalMessages) memory.totalMessages = data.totalMessages;
 
-    // Apply retention limits to restored data (#24)
-    memory.enforceRetentionLimits();
+    // Prune in case restored data exceeds current config limits
+    memory.pruneIfNeeded(true);
 
     return memory;
   }
@@ -618,6 +726,25 @@ Summary:`,
     this.agentStates.clear();
     this.lastSummarizedIndex = 0;
     this.totalMessages = 0;
+  }
+
+  /**
+   * Compact memory by aggressively pruning to 50% of limits
+   * Use when memory pressure is high
+   */
+  compact(): void {
+    const halfLimits: Partial<MemoryConfig> = {
+      maxSummaries: Math.ceil(this.config.maxSummaries / 2),
+      maxDecisions: Math.ceil(this.config.maxDecisions / 2),
+      maxProposals: Math.ceil(this.config.maxProposals / 2),
+      maxAgentKeyPoints: Math.ceil(this.config.maxAgentKeyPoints / 2),
+      maxAgentPositions: Math.ceil(this.config.maxAgentPositions / 2),
+    };
+
+    const originalConfig = this.config;
+    this.config = { ...this.config, ...halfLimits };
+    this.pruneIfNeeded(true);
+    this.config = originalConfig;
   }
 
   /**
