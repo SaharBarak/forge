@@ -26,3 +26,21 @@ export {
   getPersonaManager,
   resetPersonaManager,
 } from './PersonaManager';
+
+// Industry Personas
+export {
+  INDUSTRY_PERSONAS,
+  HEALTHCARE_PERSONA,
+  FINANCE_PERSONA,
+  EDUCATION_PERSONA,
+  RETAIL_PERSONA,
+  TECH_PERSONA,
+  LEGAL_PERSONA,
+  REAL_ESTATE_PERSONA,
+  HOSPITALITY_PERSONA,
+  NONPROFIT_PERSONA,
+  GOVERNMENT_PERSONA,
+  getIndustryPersona,
+  getIndustryPersonaById,
+  getAvailableIndustries,
+} from './industry-personas';
