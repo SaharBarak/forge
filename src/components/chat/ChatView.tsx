@@ -1,8 +1,8 @@
-import { useRef, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useOrchestrator } from '../../hooks/useOrchestrator';
-import { MessageBubble } from './MessageBubble';
+import { VirtualMessageList } from './VirtualMessageList';
 import { ChatInput } from './ChatInput';
 import { PhaseIndicator } from './PhaseIndicator';
 import { TypingIndicator } from './TypingIndicator';
@@ -11,7 +11,6 @@ import { ExportModal } from './ExportModal';
 export function ChatView() {
   const { session, typingAgents } = useSessionStore();
   const { hebrewMode } = useUIStore();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const {
     start,
@@ -22,11 +21,6 @@ export function ChatView() {
     waitingForHuman,
     error,
   } = useOrchestrator();
-
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [session?.messages.length, typingAgents]);
 
   if (!session) return null;
 
@@ -100,34 +94,31 @@ export function ChatView() {
         onClose={() => setShowExportModal(false)}
       />
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {session.messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-dark-500">{t.noMessages}</p>
-          </div>
-        ) : (
-          <>
-            {session.messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))}
+      {/* Messages - Virtual scrolling for 50+ messages */}
+      <VirtualMessageList
+        messages={session.messages}
+        typingAgents={typingAgents}
+        waitingForHuman={waitingForHuman}
+        hebrewMode={hebrewMode}
+      />
 
-            {/* Waiting for human indicator */}
-            {waitingForHuman && (
-              <div className="flex justify-center py-4">
-                <span className="text-orange-400 animate-pulse">{t.waitingForYou}</span>
-              </div>
-            )}
+      {/* Typing indicators (rendered outside virtual list for visibility) */}
+      {session.messages.length >= 50 && typingAgents.length > 0 && (
+        <div className="px-4 py-2 border-t border-dark-800">
+          {typingAgents.map((agentId) => (
+            <TypingIndicator key={agentId} agentId={agentId} />
+          ))}
+        </div>
+      )}
 
-            {/* Typing indicators */}
-            {typingAgents.map((agentId) => (
-              <TypingIndicator key={agentId} agentId={agentId} />
-            ))}
-
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
+      {/* Typing indicators for non-virtualized mode */}
+      {session.messages.length < 50 && typingAgents.length > 0 && (
+        <div className="px-4 pb-2">
+          {typingAgents.map((agentId) => (
+            <TypingIndicator key={agentId} agentId={agentId} />
+          ))}
+        </div>
+      )}
 
       {/* Input */}
       <ChatInput
