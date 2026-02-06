@@ -121,6 +121,14 @@ export class AgentListener {
     this.unsubscribers.push(
       this.bus.subscribe('session:resume', () => {
         console.log(`[AgentListener:${this.id}] Resumed`);
+        // Re-evaluate after resume if there are messages we haven't responded to
+        // This fixes the bug where agents don't react after session resume (#31)
+        if (this.messagesSinceSpoke > 0 && this.state === 'listening') {
+          // Schedule evaluation with debounce to allow other agents to also resume
+          this.pendingEvaluation = setTimeout(() => {
+            this.evaluateAndReact();
+          }, this.config.evaluationDebounce + Math.random() * 500);
+        }
       }, this.id)
     );
 
