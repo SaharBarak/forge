@@ -67,7 +67,8 @@ describe('PersonaManager', () => {
   beforeEach(async () => {
     await cleanup();
     resetPersonaManager();
-    manager = new PersonaManager(TEST_PERSONAS_DIR, TEST_SETS_DIR);
+    // Skip built-in industry personas in tests to isolate custom persona testing
+    manager = new PersonaManager(TEST_PERSONAS_DIR, TEST_SETS_DIR, true);
   });
 
   afterEach(async () => {

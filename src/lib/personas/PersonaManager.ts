@@ -25,6 +25,7 @@ import type {
   PersonaSet,
 } from './types';
 import { AGENT_PERSONAS, registerCustomPersonas, clearCustomPersonas } from '../../agents/personas';
+import { INDUSTRY_PERSONAS } from './industry-personas';
 
 // ============================================================================
 // CONSTANTS
@@ -100,11 +101,19 @@ export class PersonaManager extends EventEmitter {
   private personas: Map<string, CustomPersona> = new Map();
   private sets: Map<string, PersonaSet> = new Map();
   private initialized: boolean = false;
+  private skipBuiltIns: boolean = false;
 
-  constructor(personasDir?: string, setsDir?: string) {
+  /**
+   * Create a new PersonaManager
+   * @param personasDir - Directory for custom persona storage
+   * @param setsDir - Directory for persona sets storage
+   * @param skipBuiltIns - If true, skip loading built-in industry personas (for testing)
+   */
+  constructor(personasDir?: string, setsDir?: string, skipBuiltIns: boolean = false) {
     super();
     this.personasDir = personasDir || DEFAULT_PERSONAS_DIR;
     this.setsDir = setsDir || PERSONA_SETS_DIR;
+    this.skipBuiltIns = skipBuiltIns;
   }
 
   // ==========================================================================
@@ -148,6 +157,14 @@ export class PersonaManager extends EventEmitter {
   private async loadAllPersonas(): Promise<void> {
     this.personas.clear();
 
+    // Load built-in industry personas first (unless skipped for testing)
+    if (!this.skipBuiltIns) {
+      for (const persona of INDUSTRY_PERSONAS) {
+        this.personas.set(persona.id, persona);
+      }
+    }
+
+    // Load custom personas from disk (can override built-ins if same ID)
     try {
       const files = await fs.promises.readdir(this.personasDir);
       const jsonFiles = files.filter((f) => f.endsWith('.json'));
