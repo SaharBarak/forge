@@ -11,6 +11,7 @@ import {
   extractTopic,
   extractOutcome,
   generateMemoryId,
+  DEFAULT_MEMORY_CONFIG,
 } from './ConversationMemory';
 import type { Message, ProposalReaction } from '../../types';
 import type { IAgentRunner, QueryResult } from '../interfaces/IAgentRunner';
@@ -596,9 +597,9 @@ describe('ConversationMemory', () => {
       await limitedMemory.processMessage(msg, [msg]);
 
       const usage = limitedMemory.getMemoryUsage();
-      expect(usage.decisions).toBe(1);
-      expect(usage.limits.maxDecisions).toBe(5);
-      expect(usage.totalEntries).toBeGreaterThan(0);
+      expect(usage.decisions.count).toBe(1);
+      expect(usage.decisions.max).toBe(5);
+      expect(usage.decisions.usage).toBe(0.2); // 1/5 = 0.2
     });
 
     it('cleanupInactiveAgents removes old agent states', async () => {
@@ -706,6 +707,223 @@ describe('ConversationMemory', () => {
       const latest = memory.getLatestProposal();
       const reaction = latest?.reactions?.find(r => r.agentId === 'agent-test');
       expect(reaction?.reaction).toBe('oppose');
+    });
+  });
+
+  // ===========================================================================
+  // MEMORY CONFIGURATION AND PRUNING (#24)
+  // ===========================================================================
+
+  describe('memory configuration', () => {
+    it('uses default config when none provided', () => {
+      const config = memory.getConfig();
+
+      expect(config.maxSummaries).toBe(DEFAULT_MEMORY_CONFIG.maxSummaries);
+      expect(config.maxDecisions).toBe(DEFAULT_MEMORY_CONFIG.maxDecisions);
+      expect(config.maxProposals).toBe(DEFAULT_MEMORY_CONFIG.maxProposals);
+    });
+
+    it('accepts partial config in constructor', () => {
+      const customMemory = new ConversationMemory(undefined, { maxSummaries: 5 });
+      const config = customMemory.getConfig();
+
+      expect(config.maxSummaries).toBe(5);
+      expect(config.maxDecisions).toBe(DEFAULT_MEMORY_CONFIG.maxDecisions);
+    });
+
+    it('setConfig updates limits', () => {
+      memory.setConfig({ maxDecisions: 10 });
+      const config = memory.getConfig();
+
+      expect(config.maxDecisions).toBe(10);
+    });
+
+    it('setConfig triggers pruning if limits lowered', async () => {
+      // Add many proposals
+      for (let i = 0; i < 20; i++) {
+        const msg = createMessage({ type: 'proposal', content: `Proposal ${i}.` });
+        await memory.processMessage(msg, [msg]);
+      }
+
+      expect(memory.getStats().proposalCount).toBe(20);
+
+      // Lower the limit
+      memory.setConfig({ maxProposals: 5 });
+
+      expect(memory.getStats().proposalCount).toBeLessThanOrEqual(5);
+    });
+  });
+
+  describe('memory pruning', () => {
+    it('prunes proposals when exceeding limit', async () => {
+      const limitedMemory = new ConversationMemory(undefined, { maxProposals: 5, pruneThreshold: 1.0 });
+
+      for (let i = 0; i < 10; i++) {
+        const msg = createMessage({ type: 'proposal', content: `Proposal ${i}.` });
+        await limitedMemory.processMessage(msg, [msg]);
+      }
+
+      expect(limitedMemory.getStats().proposalCount).toBeLessThanOrEqual(5);
+    });
+
+    it('prunes decisions when exceeding limit', async () => {
+      const limitedMemory = new ConversationMemory(undefined, { maxDecisions: 3, pruneThreshold: 1.0 });
+
+      for (let i = 0; i < 10; i++) {
+        const msg = createMessage({ content: `We've decided on option ${i}.` });
+        await limitedMemory.processMessage(msg, [msg]);
+      }
+
+      expect(limitedMemory.getStats().decisionCount).toBeLessThanOrEqual(3);
+    });
+
+    it('prioritizes active proposals over resolved when pruning', async () => {
+      const limitedMemory = new ConversationMemory(undefined, { maxProposals: 3, pruneThreshold: 1.0 });
+
+      // Add proposals and mark some as resolved
+      for (let i = 0; i < 5; i++) {
+        const msg = createMessage({ type: 'proposal', content: `Proposal ${i}.` });
+        await limitedMemory.processMessage(msg, [msg]);
+      }
+
+      // Mark first 3 as accepted
+      const proposals = limitedMemory.getActiveProposals();
+      proposals.slice(0, 3).forEach(p => limitedMemory.updateProposalStatus(p.id, 'accepted'));
+
+      // Add 2 more to trigger pruning
+      for (let i = 5; i < 7; i++) {
+        const msg = createMessage({ type: 'proposal', content: `Proposal ${i}.` });
+        await limitedMemory.processMessage(msg, [msg]);
+      }
+
+      // Active proposals should be preserved
+      const activeCount = limitedMemory.getActiveProposals().length;
+      expect(activeCount).toBeGreaterThan(0);
+    });
+
+    it('prunes agent key points when exceeding limit', async () => {
+      const limitedMemory = new ConversationMemory(undefined, { maxAgentKeyPoints: 3, pruneThreshold: 1.0 });
+
+      for (let i = 0; i < 10; i++) {
+        const msg = createMessage({
+          type: 'proposal',
+          agentId: 'agent-1',
+          content: `Key point ${i}.`,
+        });
+        await limitedMemory.processMessage(msg, [msg]);
+      }
+
+      // Agent should have pruned key points
+      const usage = limitedMemory.getMemoryUsage();
+      expect(usage.agents.avgKeyPoints).toBeLessThanOrEqual(3);
+    });
+  });
+
+  describe('memory compact', () => {
+    it('aggressively reduces memory to 50%', async () => {
+      const limitedMemory = new ConversationMemory(undefined, { maxProposals: 20 });
+
+      for (let i = 0; i < 20; i++) {
+        const msg = createMessage({ type: 'proposal', content: `Proposal ${i}.` });
+        await limitedMemory.processMessage(msg, [msg]);
+      }
+
+      expect(limitedMemory.getStats().proposalCount).toBe(20);
+
+      limitedMemory.compact();
+
+      expect(limitedMemory.getStats().proposalCount).toBeLessThanOrEqual(10);
+    });
+  });
+
+  describe('memory usage stats', () => {
+    it('reports accurate usage percentages', async () => {
+      const limitedMemory = new ConversationMemory(undefined, { maxProposals: 10 });
+
+      for (let i = 0; i < 5; i++) {
+        const msg = createMessage({ type: 'proposal', content: `Proposal ${i}.` });
+        await limitedMemory.processMessage(msg, [msg]);
+      }
+
+      const usage = limitedMemory.getMemoryUsage();
+
+      expect(usage.proposals.count).toBe(5);
+      expect(usage.proposals.max).toBe(10);
+      expect(usage.proposals.usage).toBeCloseTo(0.5);
+    });
+
+    it('tracks agent statistics', async () => {
+      for (let i = 0; i < 5; i++) {
+        const msg = createMessage({
+          type: 'proposal',
+          agentId: `agent-${i % 2}`,
+          content: `Proposal ${i}.`,
+        });
+        await memory.processMessage(msg, [msg]);
+      }
+
+      const usage = memory.getMemoryUsage();
+
+      expect(usage.agents.count).toBe(2);
+      expect(usage.agents.avgKeyPoints).toBeGreaterThan(0);
+    });
+  });
+
+  describe('clearInactiveAgents', () => {
+    it('removes agents not in active set', async () => {
+      // Add messages from multiple agents
+      for (const agentId of ['agent-1', 'agent-2', 'agent-3']) {
+        const msg = createMessage({ agentId, content: 'Hello.' });
+        await memory.processMessage(msg, [msg]);
+      }
+
+      expect(memory.getStats().agentCount).toBe(3);
+
+      // Clear inactive (keep only agent-1)
+      memory.clearInactiveAgents(new Set(['agent-1']));
+
+      expect(memory.getStats().agentCount).toBe(1);
+    });
+
+    it('preserves agents in active set', async () => {
+      const msg1 = createMessage({ agentId: 'agent-1', type: 'proposal', content: 'My proposal.' });
+      await memory.processMessage(msg1, [msg1]);
+
+      memory.clearInactiveAgents(new Set(['agent-1']));
+
+      const context = memory.getMemoryContext('agent-1');
+      expect(context).toContain('Your Previous Contributions');
+    });
+  });
+
+  describe('serialization with config', () => {
+    it('preserves config through serialization', () => {
+      const customMemory = new ConversationMemory(undefined, { maxSummaries: 5 });
+      const json = customMemory.toJSON();
+
+      const restored = ConversationMemory.fromJSON(json as any);
+      const config = restored.getConfig();
+
+      expect(config.maxSummaries).toBe(5);
+    });
+
+    it('prunes on restore if data exceeds limits', async () => {
+      // Create memory with high limits
+      const bigMemory = new ConversationMemory(undefined, { maxProposals: 100 });
+
+      for (let i = 0; i < 50; i++) {
+        const msg = createMessage({ type: 'proposal', content: `Proposal ${i}.` });
+        await bigMemory.processMessage(msg, [msg]);
+      }
+
+      const json = bigMemory.toJSON();
+
+      // Restore with lower limits
+      const restored = ConversationMemory.fromJSON(
+        { ...(json as any), config: { maxProposals: 10 } }
+      );
+
+      expect(restored.getStats().proposalCount).toBeLessThanOrEqual(10);
     });
   });
 });
