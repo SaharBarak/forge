@@ -597,9 +597,9 @@ describe('ConversationMemory', () => {
       await limitedMemory.processMessage(msg, [msg]);
 
       const usage = limitedMemory.getMemoryUsage();
-      expect(usage.decisions).toBe(1);
-      expect(usage.limits.maxDecisions).toBe(5);
-      expect(usage.totalEntries).toBeGreaterThan(0);
+      expect(usage.decisions.count).toBe(1);
+      expect(usage.decisions.max).toBe(5);
+      expect(usage.decisions.usage).toBe(0.2); // 1/5 = 0.2
     });
 
     it('cleanupInactiveAgents removes old agent states', async () => {
