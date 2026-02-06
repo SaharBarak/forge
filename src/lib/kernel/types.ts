@@ -20,6 +20,7 @@ export type KernelState =
 export interface KernelConfig {
   projectName?: string;
   goal?: string;
+  initialCopy?: string;  // Optional existing copy for agents to critique/improve
   agents?: string[];
   language?: string;
   mode?: string;
@@ -61,7 +62,10 @@ export type KernelCommand =
   | { type: 'token'; key?: string }
   | { type: 'test' }
   | { type: 'help' }
-  | { type: 'mode_info' };
+  | { type: 'mode_info' }
+  | { type: 'templates' }
+  | { type: 'template'; templateId: string }
+  | { type: 'from_template'; templateId: string };
 
 // =============================================================================
 // KERNEL RESPONSES

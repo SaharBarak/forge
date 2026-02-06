@@ -33,6 +33,7 @@ import { EDAOrchestrator } from '../eda/EDAOrchestrator';
 // ModeController is created and managed by EDAOrchestrator
 import { getModeById, getAllModes } from '../modes';
 import { getDefaultMethodology } from '../../methodologies';
+import { getTemplateManager } from '../templates';
 import {
   AGENT_PERSONAS,
   registerCustomPersonas,
@@ -44,13 +45,16 @@ import {
 
 // Configuration wizard steps are built dynamically via getConfigSteps()
 
+// Memory limits
+const MAX_EVENT_CALLBACKS = 20;
+
 export class SessionKernel {
   // State
   private state: KernelState = 'idle';
   private config: KernelConfig = {};
   private configStep = 0;
   private selectedAgentIds: Set<string> = new Set();
-  private currentPersonas: AgentPersona[] = AGENT_PERSONAS;
+  private currentPersonas: AgentPersona[] = []; // No defaults - must generate
   private domainSkills?: string;
 
   // Session
@@ -158,6 +162,15 @@ export class SessionKernel {
       case 'mode_info':
         return this.getModeInfo();
 
+      case 'templates':
+        return this.listTemplates();
+
+      case 'template':
+        return this.showTemplate(command.templateId);
+
+      case 'from_template':
+        return this.createFromTemplate(command.templateId);
+
       default:
         return [{ type: 'error', content: `Unknown command: ${(command as any).type}` }];
     }
@@ -167,6 +180,11 @@ export class SessionKernel {
    * Subscribe to kernel events
    */
   on(callback: KernelEventCallback): () => void {
+    // Enforce callback limit to prevent memory leaks
+    if (this.eventCallbacks.length >= MAX_EVENT_CALLBACKS) {
+      console.warn('[SessionKernel] Max event callbacks reached, removing oldest');
+      this.eventCallbacks.shift();
+    }
     this.eventCallbacks.push(callback);
     return () => {
       this.eventCallbacks = this.eventCallbacks.filter(cb => cb !== callback);
@@ -231,8 +249,12 @@ export class SessionKernel {
     this.config = { language: 'hebrew', mode: 'copywrite' };
     this.configStep = 0;
     this.selectedAgentIds.clear();
-    this.currentPersonas = AGENT_PERSONAS;
+    this.currentPersonas = []; // Must generate personas
     this.domainSkills = undefined;
+
+    // Clear any previous session data from the message bus - full reset for clean slate
+    messageBus.fullReset();
+    clearCustomPersonas();
 
     return [
       { type: 'info', content: '═══════════════════════════════════════' },
@@ -275,6 +297,7 @@ export class SessionKernel {
     return [
       { id: 'projectName', prompt: 'Enter project name:' },
       { id: 'goal', prompt: 'Enter project goal:' },
+      { id: 'initialCopy', prompt: 'Paste existing copy to critique (or press Enter to skip):' },
       {
         id: 'agents',
         prompt: 'Select agents:',
@@ -319,6 +342,17 @@ export class SessionKernel {
       case 'goal':
         this.config.goal = value || 'Create effective content';
         responses.push({ type: 'success', content: `Goal: ${this.config.goal}` });
+        this.configStep++;
+        break;
+
+      case 'initialCopy':
+        if (value) {
+          this.config.initialCopy = value;
+          const preview = value.length > 100 ? value.slice(0, 100) + '...' : value;
+          responses.push({ type: 'success', content: `Initial copy loaded (${value.length} chars): ${preview}` });
+        } else {
+          responses.push({ type: 'info', content: 'No initial copy - agents will create from scratch' });
+        }
         this.configStep++;
         break;
 
@@ -390,12 +424,9 @@ export class SessionKernel {
       }
     }
 
-    // Use defaults
+    // Defaults not available - must generate
     if (lower === 'd' || lower === 'defaults') {
-      this.currentPersonas = AGENT_PERSONAS;
-      clearCustomPersonas();
-      this.selectedAgentIds = new Set(AGENT_PERSONAS.map(p => p.id));
-      return [{ type: 'success', content: 'Using default personas' }];
+      return [{ type: 'error', content: 'No default personas. Use "g" to generate personas for your project.' }];
     }
 
     // Done selecting
@@ -510,9 +541,11 @@ export class SessionKernel {
       return [{ type: 'error', content: "Not configured. Run 'new' first." }];
     }
 
-    // Register personas
-    if (this.currentPersonas !== AGENT_PERSONAS) {
+    // Register personas (always required - no defaults)
+    if (this.currentPersonas.length > 0) {
       registerCustomPersonas(this.currentPersonas);
+    } else {
+      return [{ type: 'error', content: 'No personas configured. Generate personas first.' }];
     }
 
     // Create session config
@@ -520,6 +553,7 @@ export class SessionKernel {
       id: uuid(),
       projectName: this.config.projectName!,
       goal: this.config.goal || 'Reach consensus',
+      initialCopy: this.config.initialCopy,  // Optional existing copy to critique
       enabledAgents: this.config.agents!,
       humanParticipation: true,
       maxRounds: 10,
@@ -969,6 +1003,149 @@ export class SessionKernel {
   }
 
   // ===========================================================================
+  // TEMPLATES
+  // ===========================================================================
+
+  /**
+   * List available templates
+   */
+  private listTemplates(): KernelResponse[] {
+    const manager = getTemplateManager();
+    const templates = manager.listTemplates();
+
+    if (templates.length === 0) {
+      return [{ type: 'info', content: 'No templates available' }];
+    }
+
+    // Group by category
+    const byCategory: Record<string, typeof templates> = {};
+    for (const t of templates) {
+      if (!byCategory[t.category]) {
+        byCategory[t.category] = [];
+      }
+      byCategory[t.category].push(t);
+    }
+
+    const responses: KernelResponse[] = [
+      { type: 'info', content: '═══════════════════════════════════════' },
+      { type: 'info', content: '  SESSION TEMPLATES' },
+      { type: 'info', content: '═══════════════════════════════════════' },
+    ];
+
+    for (const [category, categoryTemplates] of Object.entries(byCategory)) {
+      responses.push({
+        type: 'list',
+        content: category.charAt(0).toUpperCase() + category.slice(1),
+        data: {
+          title: category.charAt(0).toUpperCase() + category.slice(1),
+          items: categoryTemplates.map(t => ({
+            label: `${t.name}${t.builtIn ? ' ⭐' : ''}`,
+            description: t.description.slice(0, 60) + (t.description.length > 60 ? '...' : ''),
+          })),
+        },
+      });
+    }
+
+    responses.push({ type: 'info', content: "Use 'template <id>' to view details or 'from-template <id>' to start" });
+
+    return responses;
+  }
+
+  /**
+   * Show template details
+   */
+  private showTemplate(templateId?: string): KernelResponse[] {
+    if (!templateId) {
+      return [{ type: 'error', content: 'Template ID required. Use: template <id>' }];
+    }
+
+    const manager = getTemplateManager();
+    const template = manager.getTemplate(templateId);
+
+    if (!template) {
+      return [{ type: 'error', content: `Template not found: ${templateId}` }];
+    }
+
+    const mode = getModeById(template.mode);
+
+    return [
+      { type: 'info', content: '═══════════════════════════════════════' },
+      { type: 'info', content: `  ${template.name}${template.builtIn ? ' ⭐' : ''}` },
+      { type: 'info', content: '═══════════════════════════════════════' },
+      { type: 'info', content: '' },
+      { type: 'info', content: template.description },
+      { type: 'info', content: '' },
+      { type: 'info', content: `📂 Category: ${template.category}` },
+      { type: 'info', content: `🎯 Mode: ${mode?.icon || ''} ${mode?.name || template.mode}` },
+      { type: 'info', content: `💬 Methodology: ${template.methodology}` },
+      { type: 'info', content: `🤝 Consensus: ${template.consensusMethod}` },
+      { type: 'info', content: '' },
+      { type: 'info', content: '📝 Goal Prompt:' },
+      { type: 'info', content: `   "${template.prompts?.goal || template.defaultGoal || 'Define your goal'}"` },
+      { type: 'info', content: '' },
+      { type: 'info', content: `📋 Required Context: ${template.prompts?.context?.join(', ') || 'none'}` },
+      { type: 'info', content: `📤 Suggested Exports: ${template.suggestedExports?.join(', ') || 'md'}` },
+      { type: 'info', content: '' },
+      { type: 'info', content: `Use 'from-template ${template.id}' to start a session with this template` },
+    ];
+  }
+
+  /**
+   * Create a new session from a template
+   */
+  private createFromTemplate(templateId?: string): KernelResponse[] {
+    if (!templateId) {
+      return [{ type: 'error', content: 'Template ID required. Use: from-template <id>' }];
+    }
+
+    const manager = getTemplateManager();
+    const template = manager.getTemplate(templateId);
+
+    if (!template) {
+      return [{ type: 'error', content: `Template not found: ${templateId}` }];
+    }
+
+    // Start configuration with template defaults
+    this.updateState('configuring');
+    this.config = {
+      language: 'hebrew',
+      mode: template.mode,
+    };
+    this.configStep = 0;
+    this.selectedAgentIds.clear();
+    this.currentPersonas = [];
+    this.domainSkills = undefined;
+
+    // Clear previous session data
+    messageBus.fullReset();
+    clearCustomPersonas();
+
+    // Store template for reference during config
+    (this.config as any)._template = template;
+
+    const mode = getModeById(template.mode);
+
+    const goalSuggestion = template.prompts?.goal || template.defaultGoal || 'Define your goal';
+    const requiredContext = template.prompts?.context?.join(', ') || 'none';
+
+    return [
+      { type: 'success', content: `Using template: ${template.name}` },
+      { type: 'info', content: '' },
+      { type: 'info', content: `🎯 Mode: ${mode?.icon || ''} ${mode?.name || template.mode}` },
+      { type: 'info', content: `💬 Methodology: ${template.methodology || 'collaborative'}` },
+      { type: 'info', content: `📋 Required context: ${requiredContext}` },
+      { type: 'info', content: '' },
+      { type: 'info', content: '💡 Goal suggestion:' },
+      { type: 'info', content: `   "${goalSuggestion}"` },
+      { type: 'info', content: '' },
+      { type: 'info', content: '═══════════════════════════════════════' },
+      { type: 'info', content: '  CONFIGURE SESSION' },
+      { type: 'info', content: '═══════════════════════════════════════' },
+      this.getCurrentConfigStep(),
+    ];
+  }
+
+  // ===========================================================================
   // PHASE TRANSITIONS
   // ===========================================================================
 
@@ -1063,6 +1240,9 @@ export class SessionKernel {
             title: 'Setup',
             commands: [
               { command: 'new', description: 'Start new session configuration' },
+              { command: 'templates', description: 'List available templates' },
+              { command: 'template <id>', description: 'View template details' },
+              { command: 'from-template <id>', description: 'Start session from template' },
               { command: 'start', description: 'Start configured session' },
               { command: 'token [key]', description: 'Set/show API key' },
               { command: 'test', description: 'Test API connection' },
