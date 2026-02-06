@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, Suspense } from 'react';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useOrchestrator } from '../../hooks/useOrchestrator';
@@ -6,7 +6,7 @@ import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { PhaseIndicator } from './PhaseIndicator';
 import { TypingIndicator } from './TypingIndicator';
-import { ExportModal } from './ExportModal';
+import { LazyExportModal, ModalSkeleton, prefetchHints } from '../lazy';
 
 export function ChatView() {
   const { session, typingAgents } = useSessionStore();
@@ -83,9 +83,12 @@ export function ChatView() {
           )}
 
           {/* Export button - always visible when there are messages */}
+          {/* Prefetches ExportModal on hover for instant opening */}
           {session.messages.length > 0 && (
             <button
               onClick={() => setShowExportModal(true)}
+              onMouseEnter={prefetchHints.exportModal}
+              onFocus={prefetchHints.exportModal}
               className="px-4 py-1.5 bg-dark-700 hover:bg-dark-600 text-dark-200 text-sm font-medium rounded-lg transition-colors"
             >
               📤 {t.exportSession}
@@ -94,11 +97,15 @@ export function ChatView() {
         </div>
       </div>
 
-      {/* Export Modal */}
-      <ExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-      />
+      {/* Export Modal - Lazy loaded with Suspense */}
+      {showExportModal && (
+        <Suspense fallback={<ModalSkeleton />}>
+          <LazyExportModal
+            isOpen={showExportModal}
+            onClose={() => setShowExportModal(false)}
+          />
+        </Suspense>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">

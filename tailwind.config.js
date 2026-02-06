@@ -32,6 +32,20 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
         hebrew: ['Heebo', 'sans-serif'],
       },
+      animation: {
+        shimmer: 'shimmer 2s linear infinite',
+        blink: 'blink 1s step-end infinite',
+      },
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '200% 0' },
+          '100%': { backgroundPosition: '-200% 0' },
+        },
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
+      },
     },
   },
   plugins: [],

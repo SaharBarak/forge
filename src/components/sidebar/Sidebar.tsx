@@ -2,6 +2,7 @@ import { useSessionStore } from '../../stores/sessionStore';
 import { useUIStore } from '../../stores/uiStore';
 import { getActivePersonas } from '../../agents/personas';
 import { AgentCard } from './AgentCard';
+import { prefetchHints } from '../lazy';
 
 export function Sidebar() {
   const { session, isRunning, pauseSession, resumeSession, endSession } = useSessionStore();
@@ -100,10 +101,12 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Settings Button */}
+      {/* Settings Button - Prefetches SettingsModal on hover */}
       <div className="p-4 border-t border-dark-800">
         <button
           onClick={() => setSettingsOpen(true)}
+          onMouseEnter={prefetchHints.settingsModal}
+          onFocus={prefetchHints.settingsModal}
           className="w-full px-3 py-2 bg-dark-800 hover:bg-dark-700 text-dark-300 text-sm rounded-lg transition-colors flex items-center gap-2 justify-center"
         >
           <SettingsIcon />
