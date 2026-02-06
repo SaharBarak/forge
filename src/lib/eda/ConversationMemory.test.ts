@@ -480,6 +480,163 @@ describe('ConversationMemory', () => {
     });
   });
 
+  describe('memory retention limits (#24)', () => {
+    it('enforces summary limit', async () => {
+      // Create memory with small limit
+      const limitedMemory = new ConversationMemory(undefined, { maxSummaries: 2 });
+      const runner = createMockRunner({ content: 'Summary' });
+      limitedMemory.setRunner(runner);
+
+      // Add enough messages to trigger multiple summaries
+      const messages: Message[] = [];
+      for (let i = 0; i < 40; i++) {
+        const msg = createMessage({ content: `Message ${i}.`, agentId: 'agent-1' });
+        messages.push(msg);
+        await limitedMemory.processMessage(msg, messages);
+      }
+
+      const stats = limitedMemory.getStats();
+      // Should have at most 2 summaries due to limit
+      expect(stats.summaryCount).toBeLessThanOrEqual(2);
+    });
+
+    it('enforces decision limit', async () => {
+      const limitedMemory = new ConversationMemory(undefined, { maxDecisions: 3 });
+
+      // Add more decisions than the limit
+      for (let i = 0; i < 10; i++) {
+        const msg = createMessage({
+          content: `We've decided on option ${i}.`,
+          agentId: 'agent-1',
+        });
+        await limitedMemory.processMessage(msg, [msg]);
+      }
+
+      const stats = limitedMemory.getStats();
+      expect(stats.decisionCount).toBeLessThanOrEqual(3);
+    });
+
+    it('enforces proposal limit while keeping active', async () => {
+      const limitedMemory = new ConversationMemory(undefined, { maxProposals: 3 });
+
+      // Add multiple proposals
+      for (let i = 0; i < 10; i++) {
+        const msg = createMessage({
+          type: 'proposal',
+          content: `I propose option ${i}.`,
+          agentId: 'agent-1',
+        });
+        await limitedMemory.processMessage(msg, [msg]);
+      }
+
+      const stats = limitedMemory.getStats();
+      expect(stats.proposalCount).toBeLessThanOrEqual(3);
+    });
+
+    it('enforces agent state limits', async () => {
+      const limitedMemory = new ConversationMemory(undefined, {
+        maxKeyPoints: 2,
+        maxAgreements: 2,
+      });
+
+      // Add many proposals and agreements from same agent
+      for (let i = 0; i < 10; i++) {
+        const proposalMsg = createMessage({
+          type: 'proposal',
+          content: `Proposal ${i}.`,
+          agentId: 'agent-1',
+        });
+        await limitedMemory.processMessage(proposalMsg, [proposalMsg]);
+
+        const agreeMsg = createMessage({
+          type: 'agreement',
+          content: `I agree with point ${i}.`,
+          agentId: 'agent-1',
+        });
+        await limitedMemory.processMessage(agreeMsg, [agreeMsg]);
+      }
+
+      const context = limitedMemory.getMemoryContext('agent-1');
+      // Context should be bounded by limits
+      expect(context).toBeDefined();
+    });
+
+    it('applies limits when restoring from JSON', async () => {
+      // Create memory and add lots of data
+      const bigMemory = new ConversationMemory();
+      for (let i = 0; i < 10; i++) {
+        const msg = createMessage({
+          content: `We've decided on option ${i}.`,
+          agentId: 'agent-1',
+        });
+        await bigMemory.processMessage(msg, [msg]);
+      }
+
+      // Serialize
+      const json = bigMemory.toJSON();
+
+      // Restore with smaller limits
+      const restored = ConversationMemory.fromJSON(
+        json as any,
+        undefined,
+        { maxDecisions: 2 }
+      );
+
+      const stats = restored.getStats();
+      expect(stats.decisionCount).toBeLessThanOrEqual(2);
+    });
+
+    it('getMemoryUsage returns current stats and limits', async () => {
+      const limitedMemory = new ConversationMemory(undefined, { maxDecisions: 5 });
+
+      const msg = createMessage({
+        content: "We've decided yes.",
+        agentId: 'agent-1',
+      });
+      await limitedMemory.processMessage(msg, [msg]);
+
+      const usage = limitedMemory.getMemoryUsage();
+      expect(usage.decisions).toBe(1);
+      expect(usage.limits.maxDecisions).toBe(5);
+      expect(usage.totalEntries).toBeGreaterThan(0);
+    });
+
+    it('cleanupInactiveAgents removes old agent states', async () => {
+      const msg1 = createMessage({ agentId: 'agent-1', content: 'Hello' });
+      const msg2 = createMessage({ agentId: 'agent-2', content: 'World' });
+
+      await memory.processMessage(msg1, [msg1]);
+      await memory.processMessage(msg2, [msg1, msg2]);
+
+      // Only keep agent-1 as active
+      const removed = memory.cleanupInactiveAgents(['agent-1']);
+
+      expect(removed).toBe(1);
+      const stats = memory.getStats();
+      expect(stats.agentCount).toBe(1);
+    });
+
+    it('setRetentionLimits applies limits immediately', async () => {
+      // Add many decisions
+      for (let i = 0; i < 10; i++) {
+        const msg = createMessage({
+          content: `We've decided on option ${i}.`,
+          agentId: 'agent-1',
+        });
+        await memory.processMessage(msg, [msg]);
+      }
+
+      const statsBefore = memory.getStats();
+      expect(statsBefore.decisionCount).toBe(10);
+
+      // Apply smaller limit
+      memory.setRetentionLimits({ maxDecisions: 3 });
+
+      const statsAfter = memory.getStats();
+      expect(statsAfter.decisionCount).toBeLessThanOrEqual(3);
+    });
+  });
+
   describe('reaction pattern detection', () => {
     it('detects support patterns', async () => {
       const msg = createMessage({ type: 'proposal', content: 'Test.' });

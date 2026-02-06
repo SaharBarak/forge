@@ -525,6 +525,44 @@ describe('AgentListener', () => {
       // Should evaluate after resume
       expect(mockRunner.evaluate).toHaveBeenCalled();
     });
+
+    it('re-evaluates pending messages after resume (#31)', async () => {
+      // Add messages before pause
+      bus.addMessage(createMessage(), 'other-agent');
+      bus.addMessage(createMessage(), 'other-agent');
+
+      // Pause immediately (before evaluation debounce completes)
+      bus.pause('research in progress');
+
+      await new Promise(resolve => setTimeout(resolve, 20));
+
+      // Evaluation should have been cancelled
+      expect(mockRunner.evaluate).not.toHaveBeenCalled();
+
+      // Resume - should trigger re-evaluation of pending messages
+      bus.resume();
+
+      // Wait long enough for debounce (50ms) + random component (up to 500ms) + buffer
+      await new Promise(resolve => setTimeout(resolve, 700));
+
+      // Should have evaluated after resume
+      expect(mockRunner.evaluate).toHaveBeenCalled();
+    });
+
+    it('does not re-evaluate if no pending messages after resume', async () => {
+      // Pause without any messages
+      bus.pause('user paused');
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Resume
+      bus.resume();
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Should NOT have evaluated (no messages were pending)
+      expect(mockRunner.evaluate).not.toHaveBeenCalled();
+    });
   });
 
   describe('minimum silence requirement', () => {
