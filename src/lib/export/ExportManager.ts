@@ -17,6 +17,8 @@ import type {
 import { ContentSelector } from './ContentSelector';
 import { MarkdownExporter } from './MarkdownExporter';
 import { JSONExporter } from './JSONExporter';
+import { PDFExporter } from './PDFExporter';
+import { DOCXExporter } from './DOCXExporter';
 
 /**
  * ExportManager - Central export orchestration
@@ -31,6 +33,8 @@ export class ExportManager {
     // Register built-in exporters
     this.registerExporter(new MarkdownExporter());
     this.registerExporter(new JSONExporter());
+    this.registerExporter(new PDFExporter());
+    this.registerExporter(new DOCXExporter());
   }
 
   /**

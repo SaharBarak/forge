@@ -42,3 +42,5 @@ export { ExportManager, exportManager } from './ExportManager';
 // Built-in exporters
 export { MarkdownExporter, markdownExporter } from './MarkdownExporter';
 export { JSONExporter, jsonExporter } from './JSONExporter';
+export { PDFExporter, pdfExporter } from './PDFExporter';
+export { DOCXExporter, docxExporter } from './DOCXExporter';

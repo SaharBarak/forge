@@ -81,12 +81,14 @@ describe('ExportManager', () => {
     it('should register built-in exporters', () => {
       expect(manager.supportsFormat('md')).toBe(true);
       expect(manager.supportsFormat('json')).toBe(true);
+      expect(manager.supportsFormat('pdf')).toBe(true);
     });
 
     it('should return supported formats', () => {
       const formats = manager.getSupportedFormats();
       expect(formats).toContain('md');
       expect(formats).toContain('json');
+      expect(formats).toContain('pdf');
     });
   });
 
@@ -273,7 +275,8 @@ describe('ExportManager', () => {
         summary: 'Test',
       };
       
-      const result = await manager.exportContent(content, { format: 'pdf' });
+      // Use 'html' as unsupported format (docx is now supported)
+      const result = await manager.exportContent(content, { format: 'html' });
       
       expect(result.success).toBe(false);
       expect(result.error).toContain('Unsupported');
