@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, Suspense, lazy } from 'react';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useOrchestrator } from '../../hooks/useOrchestrator';
@@ -6,13 +6,23 @@ import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { PhaseIndicator } from './PhaseIndicator';
 import { TypingIndicator } from './TypingIndicator';
-import { ExportModal } from './ExportModal';
+import { VirtualMessageList, VIRTUAL_SCROLL_THRESHOLD } from './VirtualMessageList';
+import { LoadingFallback } from '../lazy';
+
+// Lazy load ExportModal - Issue #23
+const LazyExportModal = lazy(() =>
+  import('./ExportModal').then(module => ({
+    default: module.ExportModal,
+  }))
+);
 
 export function ChatView() {
   const { session, typingAgents } = useSessionStore();
   const { hebrewMode } = useUIStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const {
     start,
     pause,
@@ -23,10 +33,31 @@ export function ChatView() {
     error,
   } = useOrchestrator();
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages (only for non-virtual list)
   useEffect(() => {
+    // Skip if using virtual scrolling - VirtualMessageList handles its own scrolling
+    if (session && session.messages.length >= VIRTUAL_SCROLL_THRESHOLD) return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [session?.messages.length, typingAgents]);
+
+  // Track container size for virtual scrolling
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+
+    resizeObserver.observe(container);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   if (!session) return null;
 
@@ -94,19 +125,38 @@ export function ChatView() {
         </div>
       </div>
 
-      {/* Export Modal */}
-      <ExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-      />
+      {/* Export Modal - Lazy loaded */}
+      {showExportModal && (
+        <Suspense fallback={<LoadingFallback />}>
+          <LazyExportModal
+            isOpen={showExportModal}
+            onClose={() => setShowExportModal(false)}
+          />
+        </Suspense>
+      )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      {/* Messages - Uses virtual scrolling for large lists (Issue #25) */}
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+      >
         {session.messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-dark-500">{t.noMessages}</p>
           </div>
+        ) : session.messages.length >= VIRTUAL_SCROLL_THRESHOLD && containerSize.height > 0 ? (
+          /* Virtual scrolling for large message lists */
+          <VirtualMessageList
+            messages={session.messages}
+            height={containerSize.height}
+            width={containerSize.width}
+            waitingForHuman={waitingForHuman}
+            waitingText={t.waitingForYou}
+            typingAgents={typingAgents}
+            TypingIndicator={TypingIndicator}
+          />
         ) : (
+          /* Standard rendering for smaller lists */
           <>
             {session.messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
