@@ -275,8 +275,8 @@ describe('ExportManager', () => {
         summary: 'Test',
       };
       
-      // Use 'docx' as unsupported format (pdf is now supported)
-      const result = await manager.exportContent(content, { format: 'docx' });
+      // Use 'html' as unsupported format (docx is now supported)
+      const result = await manager.exportContent(content, { format: 'html' });
       
       expect(result.success).toBe(false);
       expect(result.error).toContain('Unsupported');
