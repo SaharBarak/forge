@@ -246,7 +246,7 @@ export class SessionKernel {
 
   private startConfiguration(): KernelResponse[] {
     this.updateState('configuring');
-    this.config = { language: 'hebrew', mode: 'copywrite' };
+    this.config = { language: 'english', mode: 'copywrite' };
     this.configStep = 0;
     this.selectedAgentIds.clear();
     this.currentPersonas = []; // Must generate personas
@@ -309,8 +309,8 @@ export class SessionKernel {
         id: 'language',
         prompt: 'Select language:',
         options: [
-          { value: 'hebrew', label: 'Hebrew (עברית)', default: true },
-          { value: 'english', label: 'English' },
+          { value: 'english', label: 'English', default: true },
+          { value: 'hebrew', label: 'Hebrew (עברית)' },
           { value: 'mixed', label: 'Mixed' },
         ],
       },
@@ -483,10 +483,10 @@ export class SessionKernel {
 
   private parseLanguage(input: string): string {
     const lower = input.toLowerCase();
-    if (lower === '1' || lower === 'hebrew' || lower === 'he' || !lower) return 'hebrew';
-    if (lower === '2' || lower === 'english' || lower === 'en') return 'english';
+    if (lower === '1' || lower === 'english' || lower === 'en' || !lower) return 'english';
+    if (lower === '2' || lower === 'hebrew' || lower === 'he') return 'hebrew';
     if (lower === '3' || lower === 'mixed') return 'mixed';
-    return 'hebrew';
+    return 'english';
   }
 
   private parseMode(input: string): string {
@@ -1108,7 +1108,7 @@ export class SessionKernel {
     // Start configuration with template defaults
     this.updateState('configuring');
     this.config = {
-      language: 'hebrew',
+      language: 'english',
       mode: template.mode,
     };
     this.configStep = 0;

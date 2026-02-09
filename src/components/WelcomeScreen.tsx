@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSessionStore } from '../stores/sessionStore';
 import { useUIStore } from '../stores/uiStore';
-import { AGENT_PERSONAS, registerCustomPersonas, clearCustomPersonas } from '../agents/personas';
+import { AGENT_PERSONAS, getActivePersonas, registerCustomPersonas, clearCustomPersonas } from '../agents/personas';
 import type { AgentPersona, PersonaSetInfo } from '../types';
 
 interface EditableAgent {
@@ -36,7 +36,7 @@ export function WelcomeScreen() {
 
   // Editable agents
   const [agents, setAgents] = useState<EditableAgent[]>(
-    AGENT_PERSONAS.map((a) => ({
+    getActivePersonas().map((a) => ({
       id: a.id,
       name: a.name,
       nameHe: a.nameHe,

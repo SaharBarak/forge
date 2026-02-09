@@ -29,7 +29,7 @@ export const useUIStore = create<UIStore>((set) => ({
   sidebarOpen: true,
   settingsOpen: false,
   darkMode: true,
-  hebrewMode: true,
+  hebrewMode: false,
 
   setView: (view) => set({ currentView: view }),
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),

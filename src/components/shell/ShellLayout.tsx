@@ -273,7 +273,7 @@ export function ShellLayout() {
       contextDir: config.contextDir,
       outputDir: 'output',
       apiKey: config.apiKey,
-      language: config.language || 'hebrew',
+      language: config.language || 'english',
     };
 
     const session: Session = {
@@ -598,7 +598,7 @@ export function ShellLayout() {
           {sessionRunning ? '● RUNNING' : '○ IDLE'}
         </span>
         <span style={{ margin: '0 12px' }}>│</span>
-        <span>COPYWRITE THINK TANK</span>
+        <span>FORGE</span>
         <span style={{ margin: '0 12px' }}>│</span>
         <span>Agents: {activeAgents.length || currentPersonas.length}</span>
         <div style={{ flex: 1 }} />

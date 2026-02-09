@@ -1,31 +1,31 @@
-# Copywrite Think Tank
+# Forge
 
-A multi-agent copywriting orchestrator with an instant messaging interface. Watch AI agents debate, argue, and collaborate to create compelling copy.
+A multi-agent deliberation engine. Watch AI agents debate, argue, and collaborate to reach consensus through structured debate.
 
-**[View Documentation Site](https://yourusername.github.io/copywrite-think-tank/)**
+**[View Documentation Site](https://yourusername.github.io/forge/)**
 
-![Think Tank Screenshot](docs/screenshot.png)
+![Forge Screenshot](docs/screenshot.png)
 
 ## Features
 
-- **5 Distinct Agent Personas**: Each with unique perspectives, biases, and communication styles
-- **5 Researcher Agents**: Specialized agents for data, competitors, audience, examples, and local context
+- **Dynamic Agent Personas**: Generate domain-specific personas for any topic, or use built-in defaults. Save and reuse persona sets across sessions.
+- **Researcher Agents**: Specialized agents for data, competitors, audience, examples, and local context
 - **Human Participation**: Join the discussion, guide the debate, or just observe
 - **Methodology Framework**: Structured argumentation and consensus-building methods
 - **Visual & Structure Decision Guides**: Built-in rules for when to use graphs, text, bullets, etc.
-- **Hebrew/English Support**: Full RTL support for Hebrew-first projects
+- **Multi-language Support**: English, Hebrew (RTL), and mixed-language sessions
 - **Context Scanning**: Load brand, audience, and research context from files
 - **Session Export**: Save discussions, decisions, and drafts
 
-## Agent Personas
+## Persona System
 
-| Agent | Role | Perspective |
-|-------|------|-------------|
-| **Ronit** (רונית) | The Busy Parent | Time-conscious, practical, cuts through BS |
-| **Yossi** (יוסי) | The Burned Veteran | Historical perspective, skeptical, values authenticity |
-| **Noa** (נועה) | The Data Skeptic | Evidence-based, logical, needs proof |
-| **Avi** (אבי) | The Practical Businessman | Results-oriented, direct, ROI-focused |
-| **Michal** (מיכל) | The Burned Activist | Empathetic, protective, values vulnerability |
+Forge uses a flexible persona system instead of hardcoded agents:
+
+- **Generate**: AI-powered persona generation tailored to your project topic and domain
+- **Built-in**: A set of default personas available out of the box
+- **Saved Sets**: Previously generated persona sets stored in `personas/` for reuse
+
+During Quick Start and New Session flows, you choose which personas should debate. Generated personas include domain expertise and specialized skills.
 
 ## Argumentation Methodologies
 
@@ -44,40 +44,56 @@ A multi-agent copywriting orchestrator with an instant messaging interface. Watc
 
 ## Quick Start
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/copywrite-think-tank.git
-cd copywrite-think-tank
+### CLI (Interactive Mode)
 
+```bash
 # Install dependencies
 npm install
 
+# Build the CLI
+npm run cli:build
+
+# Run interactive mode
+npx tsx cli/index.ts
+```
+
+The interactive menu offers:
+- **Quick Start** — enter a goal, pick language and persona source, jump into a session
+- **New Session** — full configuration wizard (project, personas, agents, language, mode)
+- **Preferences** — set default language (persisted to `~/.forge/preferences.json`)
+- **Saved Sessions** — browse and resume previous debates
+
+### CLI (Direct Start)
+
+```bash
+# Start with explicit options
+npx tsx cli/index.ts start --project "My App" --goal "Design the landing page" -l english
+
+# Start with a brief file
+npx tsx cli/index.ts start --brief landing-page
+```
+
+## CLI Flags
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--project` | Project name | "New Project" |
+| `--goal` | Discussion goal | prompted |
+| `--agents` | Comma-separated agent IDs | prompted |
+| `--personas` | Persona set name (from `personas/`) | prompted |
+| `-l, --language` | english, hebrew, mixed | from preferences or prompted |
+| `--human` / `--no-human` | Human participation | true |
+| `-o, --output` | Output directory | output/sessions |
+
+### Electron App
+
+```bash
 # Run in development mode
 npm run electron:dev
 
 # Build for production
 npm run electron:build
 ```
-
-## CLI Flags
-
-When running in development, you can use flags:
-
-```bash
-# Run with specific options
-npm run electron:dev -- --project "My Landing Page" --human --methodology dialectic
-```
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--project` | Project name | "New Project" |
-| `--goal` | Discussion goal | Required |
-| `--agents` | Comma-separated agent IDs | All agents |
-| `--human` | Enable human participation | true |
-| `--methodology` | Argumentation style | mixed |
-| `--consensus` | Consensus method | consent |
-| `--context-dir` | Context files directory | ./context |
-| `--output-dir` | Output files directory | ./output |
 
 ## Context Directory Structure
 
@@ -112,32 +128,6 @@ output/
     └── landing-page-copy.md
 ```
 
-## Methodology Guides
-
-### When to Use Visuals
-
-| Condition | Recommended Visual |
-|-----------|-------------------|
-| Showing change over time | Chart (line/area) |
-| Comparing quantities | Graph (bar) |
-| Before/after states | Comparison |
-| Abstract concepts | Illustration |
-| Building trust | Photo |
-| Multiple statistics | Infographic |
-| Narrative/emotional | None (text only) |
-
-### When to Use Which Structure
-
-| Condition | Recommended Structure |
-|-----------|----------------------|
-| Explaining a sequence | Numbered list |
-| Listing features/benefits | Bullets |
-| Us vs them comparison | Table/columns |
-| Telling a story | Prose |
-| Showing history | Timeline |
-| Key metrics | Stats display |
-| Multiple equal items | Grid |
-
 ## Development
 
 ```bash
@@ -149,9 +139,6 @@ npm run electron:dev
 
 # Type checking
 npm run typecheck
-
-# Linting
-npm run lint
 
 # Build
 npm run build
@@ -166,6 +153,8 @@ npm run build
 - **Tailwind CSS**: Styling
 - **Zustand**: State management
 - **Anthropic SDK**: AI agent communication
+- **@clack/prompts**: CLI interactive prompts
+- **Ink**: CLI React-based rendering
 
 ## License
 
@@ -173,4 +162,4 @@ MIT
 
 ---
 
-Built with ❤️ for better copywriting through structured debate.
+Built with ❤️ for better decisions through structured debate.

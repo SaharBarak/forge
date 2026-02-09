@@ -133,7 +133,7 @@ export class MainShell {
       if (language) {
         this.config.language = language;
       } else {
-        this.config.language = 'hebrew'; // Default to Hebrew
+        this.config.language = 'english'; // Default to English
       }
     } catch {
       // Settings not available
@@ -518,10 +518,10 @@ export class MainShell {
 
       case 3: // Language selection
         const lang = input.toLowerCase().trim();
-        if (lang === '1' || lang === 'hebrew' || lang === 'he' || !lang) {
-          this.config.language = 'hebrew';
-        } else if (lang === '2' || lang === 'english' || lang === 'en') {
+        if (lang === '1' || lang === 'english' || lang === 'en' || !lang) {
           this.config.language = 'english';
+        } else if (lang === '2' || lang === 'hebrew' || lang === 'he') {
+          this.config.language = 'hebrew';
         } else if (lang === '3' || lang === 'mixed') {
           this.config.language = 'mixed';
         } else {
@@ -581,8 +581,8 @@ export class MainShell {
   private showLanguageSelection(): void {
     this.writeLine('');
     this.writeLine(`${CYAN}Select discussion language:${RESET}`);
-    this.writeLine(`  ${BOLD}1${RESET} - Hebrew (עברית) - default`);
-    this.writeLine(`  ${BOLD}2${RESET} - English`);
+    this.writeLine(`  ${BOLD}1${RESET} - English - default`);
+    this.writeLine(`  ${BOLD}2${RESET} - Hebrew (עברית)`);
     this.writeLine(`  ${BOLD}3${RESET} - Mixed (Hebrew + English)`);
     this.writeLine('');
     this.writeLine(`${DIM}Enter number or language name:${RESET}`);
