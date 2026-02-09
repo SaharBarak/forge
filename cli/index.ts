@@ -21,6 +21,11 @@ import { getDefaultMethodology } from '../src/methodologies';
 import { AGENT_PERSONAS, registerCustomPersonas, clearCustomPersonas, getActivePersonas, generatePersonas } from '../src/agents/personas';
 import { createPersonasCommand } from './commands/personas';
 import { createExportCommand } from './commands/export';
+import { createBatchCommand } from './commands/batch';
+import { createSessionsCommand } from './commands/sessions';
+import { createWatchCommand } from './commands/watch';
+import { createCompletionsCommand } from './commands/completions';
+import { createConfigCommand } from './commands/config';
 import type { Session, SessionConfig, AgentPersona, Message } from '../src/types';
 
 // ANSI color codes
@@ -569,6 +574,21 @@ program.addCommand(createPersonasCommand());
 
 // Add enhanced export command
 program.addCommand(createExportCommand());
+
+// Add batch processing command
+program.addCommand(createBatchCommand());
+
+// Add sessions management command
+program.addCommand(createSessionsCommand());
+
+// Add watch mode command
+program.addCommand(createWatchCommand());
+
+// Add shell completions command
+program.addCommand(createCompletionsCommand());
+
+// Add config command
+program.addCommand(createConfigCommand());
 
 // Default action - interactive mode when no command given
 program.action(async () => {
