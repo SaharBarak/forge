@@ -54,7 +54,7 @@ export class SessionKernel {
   private config: KernelConfig = {};
   private configStep = 0;
   private selectedAgentIds: Set<string> = new Set();
-  private currentPersonas: AgentPersona[] = []; // No defaults - must generate
+  private currentPersonas: AgentPersona[] = [...AGENT_PERSONAS];
   private domainSkills?: string;
 
   // Session
@@ -249,7 +249,7 @@ export class SessionKernel {
     this.config = { language: 'hebrew', mode: 'copywrite' };
     this.configStep = 0;
     this.selectedAgentIds.clear();
-    this.currentPersonas = []; // Must generate personas
+    this.currentPersonas = [...AGENT_PERSONAS]; // Load defaults, user can generate custom ones
     this.domainSkills = undefined;
 
     // Clear any previous session data from the message bus - full reset for clean slate
@@ -424,9 +424,14 @@ export class SessionKernel {
       }
     }
 
-    // Defaults not available - must generate
+    // Select default personas
     if (lower === 'd' || lower === 'defaults') {
-      return [{ type: 'error', content: 'No default personas. Use "g" to generate personas for your project.' }];
+      if (this.currentPersonas.length === 0) {
+        return [{ type: 'error', content: 'No default personas. Use "g" to generate personas for your project.' }];
+      }
+      this.selectedAgentIds = new Set(this.currentPersonas.map(p => p.id));
+      this.config.agents = Array.from(this.selectedAgentIds);
+      return [{ type: 'success', content: `Selected ${this.config.agents.length} default agents` }];
     }
 
     // Done selecting

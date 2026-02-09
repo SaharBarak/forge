@@ -367,6 +367,17 @@ export class MessageBus {
   }
 
   /**
+   * Full reset - clears all state for a clean slate without emitting events
+   */
+  fullReset(): void {
+    this.isActive = false;
+    this.messageHistory = [];
+    this.prunedMessageCount = 0;
+    this.memory.reset();
+    this.subscriptions = [];
+  }
+
+  /**
    * Stop the bus
    */
   stop(reason: string): void {

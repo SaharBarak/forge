@@ -4,7 +4,7 @@
  * Tests the unified core engine for all UIs:
  * - State machine transitions (idle → configuring → ready → running → paused)
  * - Command execution (22+ commands)
- * - Configuration wizard (5-step flow)
+ * - Configuration wizard (6-step flow)
  * - Event emission (state_change, agent_message, etc.)
  * - Dependency injection (IAgentRunner, IFileSystem)
  *
@@ -128,6 +128,7 @@ describe('SessionKernel', () => {
       await kernel.execute({ type: 'new' });
       await kernel.execute({ type: 'config_input', value: 'Test Project' }); // projectName
       await kernel.execute({ type: 'config_input', value: 'Test Goal' });    // goal
+      await kernel.execute({ type: 'config_input', value: '' });             // initialCopy (skip)
       await kernel.execute({ type: 'config_input', value: 'done' });         // agents
       await kernel.execute({ type: 'config_input', value: '1' });            // language
       await kernel.execute({ type: 'config_input', value: '1' });            // mode
@@ -140,6 +141,7 @@ describe('SessionKernel', () => {
       await kernel.execute({ type: 'new' });
       await kernel.execute({ type: 'config_input', value: 'Test Project' });
       await kernel.execute({ type: 'config_input', value: 'Test Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '1' });
       await kernel.execute({ type: 'config_input', value: '1' });
@@ -153,6 +155,7 @@ describe('SessionKernel', () => {
       await kernel.execute({ type: 'new' });
       await kernel.execute({ type: 'config_input', value: 'Test' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '1' });
       await kernel.execute({ type: 'config_input', value: '1' });
@@ -167,6 +170,7 @@ describe('SessionKernel', () => {
       await kernel.execute({ type: 'new' });
       await kernel.execute({ type: 'config_input', value: 'Test' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '1' });
       await kernel.execute({ type: 'config_input', value: '1' });
@@ -182,6 +186,7 @@ describe('SessionKernel', () => {
       await kernel.execute({ type: 'new' });
       await kernel.execute({ type: 'config_input', value: 'Test' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '1' });
       await kernel.execute({ type: 'config_input', value: '1' });
@@ -232,9 +237,10 @@ describe('SessionKernel', () => {
       expect(kernel.getConfig().goal).toBe('Create amazing copy');
     });
 
-    it('step 3: accepts "done" to use all agents', async () => {
+    it('step 4: accepts "done" to use all agents', async () => {
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       const responses = await kernel.execute({ type: 'config_input', value: 'done' });
 
       expect(responses.some(r => r.type === 'success')).toBe(true);
@@ -242,17 +248,19 @@ describe('SessionKernel', () => {
       expect(kernel.getConfig().agents!.length).toBeGreaterThan(0);
     });
 
-    it('step 3: accepts "d" for defaults', async () => {
+    it('step 4: accepts "d" for defaults', async () => {
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       const responses = await kernel.execute({ type: 'config_input', value: 'd' });
 
       expect(responses.some(r => r.type === 'success' && r.content.includes('default'))).toBe(true);
     });
 
-    it('step 3: accepts agent number to toggle selection', async () => {
+    it('step 4: accepts agent number to toggle selection', async () => {
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       const responses = await kernel.execute({ type: 'config_input', value: '1' });
 
       // Should show info about added/removed agent and show config step again
@@ -260,52 +268,58 @@ describe('SessionKernel', () => {
       expect(responses.some(r => r.type === 'config_step')).toBe(true);
     });
 
-    it('step 3: accepts "a" to select all', async () => {
+    it('step 4: accepts "a" to select all', async () => {
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       const responses = await kernel.execute({ type: 'config_input', value: 'a' });
 
       expect(responses.some(r => r.type === 'info' && r.content.includes('all'))).toBe(true);
     });
 
-    it('step 3: accepts "n" to select none', async () => {
+    it('step 4: accepts "n" to select none', async () => {
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       const responses = await kernel.execute({ type: 'config_input', value: 'n' });
 
       expect(responses.some(r => r.type === 'info' && r.content.includes('Clear'))).toBe(true);
     });
 
-    it('step 4: accepts language by number', async () => {
+    it('step 5: accepts language by number', async () => {
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '2' }); // English
 
       expect(kernel.getConfig().language).toBe('english');
     });
 
-    it('step 4: accepts language by name', async () => {
+    it('step 5: accepts language by name', async () => {
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: 'mixed' });
 
       expect(kernel.getConfig().language).toBe('mixed');
     });
 
-    it('step 4: defaults to hebrew', async () => {
+    it('step 5: defaults to hebrew', async () => {
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '' });
 
       expect(kernel.getConfig().language).toBe('hebrew');
     });
 
-    it('step 5: accepts mode by number', async () => {
+    it('step 6: accepts mode by number', async () => {
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '1' });
       await kernel.execute({ type: 'config_input', value: '1' }); // First mode
@@ -317,6 +331,7 @@ describe('SessionKernel', () => {
     it('completes configuration after all steps', async () => {
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '1' });
       const responses = await kernel.execute({ type: 'config_input', value: '1' });
@@ -330,6 +345,7 @@ describe('SessionKernel', () => {
       // First complete configuration
       await kernel.execute({ type: 'config_input', value: 'Project' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '1' });
       await kernel.execute({ type: 'config_input', value: '1' });
@@ -380,6 +396,7 @@ describe('SessionKernel', () => {
         await kernel.execute({ type: 'new' });
         await kernel.execute({ type: 'config_input', value: 'Test' });
         await kernel.execute({ type: 'config_input', value: 'Goal' });
+        await kernel.execute({ type: 'config_input', value: '' });
         await kernel.execute({ type: 'config_input', value: 'done' });
         await kernel.execute({ type: 'config_input', value: '1' });
         await kernel.execute({ type: 'config_input', value: '1' });
@@ -403,6 +420,7 @@ describe('SessionKernel', () => {
         await kernel.execute({ type: 'new' });
         await kernel.execute({ type: 'config_input', value: 'Test' });
         await kernel.execute({ type: 'config_input', value: 'Goal' });
+        await kernel.execute({ type: 'config_input', value: '' });
         await kernel.execute({ type: 'config_input', value: 'done' });
         await kernel.execute({ type: 'config_input', value: '1' });
         await kernel.execute({ type: 'config_input', value: '1' });
@@ -427,6 +445,7 @@ describe('SessionKernel', () => {
         await kernel.execute({ type: 'new' });
         await kernel.execute({ type: 'config_input', value: 'Test' });
         await kernel.execute({ type: 'config_input', value: 'Goal' });
+        await kernel.execute({ type: 'config_input', value: '' });
         await kernel.execute({ type: 'config_input', value: 'done' });
         await kernel.execute({ type: 'config_input', value: '1' });
         await kernel.execute({ type: 'config_input', value: '1' });
@@ -450,6 +469,7 @@ describe('SessionKernel', () => {
         await kernel.execute({ type: 'new' });
         await kernel.execute({ type: 'config_input', value: 'Test' });
         await kernel.execute({ type: 'config_input', value: 'Goal' });
+        await kernel.execute({ type: 'config_input', value: '' });
         await kernel.execute({ type: 'config_input', value: 'done' });
         await kernel.execute({ type: 'config_input', value: '1' });
         await kernel.execute({ type: 'config_input', value: '1' });
@@ -477,6 +497,7 @@ describe('SessionKernel', () => {
         await kernel.execute({ type: 'new' });
         await kernel.execute({ type: 'config_input', value: 'Test Project' });
         await kernel.execute({ type: 'config_input', value: 'Test Goal' });
+        await kernel.execute({ type: 'config_input', value: '' });
         await kernel.execute({ type: 'config_input', value: 'done' });
         await kernel.execute({ type: 'config_input', value: '1' });
         await kernel.execute({ type: 'config_input', value: '1' });
@@ -595,6 +616,7 @@ describe('SessionKernel', () => {
         await kernel.execute({ type: 'new' });
         await kernel.execute({ type: 'config_input', value: 'Test' });
         await kernel.execute({ type: 'config_input', value: 'Goal' });
+        await kernel.execute({ type: 'config_input', value: '' });
         await kernel.execute({ type: 'config_input', value: 'done' });
         await kernel.execute({ type: 'config_input', value: '1' });
         await kernel.execute({ type: 'config_input', value: '1' });
@@ -761,6 +783,7 @@ describe('SessionKernel', () => {
       await k.execute({ type: 'new' });
       await k.execute({ type: 'config_input', value: 'Test' });
       await k.execute({ type: 'config_input', value: 'Goal' });
+      await k.execute({ type: 'config_input', value: '' });
       await k.execute({ type: 'config_input', value: 'done' });
       await k.execute({ type: 'config_input', value: '1' });
       await k.execute({ type: 'config_input', value: '1' });
@@ -782,6 +805,7 @@ describe('SessionKernel', () => {
       await kernel.execute({ type: 'new' });
       await kernel.execute({ type: 'config_input', value: 'Test' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '1' });
       await kernel.execute({ type: 'config_input', value: '1' });
@@ -799,6 +823,7 @@ describe('SessionKernel', () => {
       await kernel.execute({ type: 'new' });
       await kernel.execute({ type: 'config_input', value: 'Test' });
       await kernel.execute({ type: 'config_input', value: 'Goal' });
+      await kernel.execute({ type: 'config_input', value: '' });
       await kernel.execute({ type: 'config_input', value: 'done' });
       await kernel.execute({ type: 'config_input', value: '1' });
       await kernel.execute({ type: 'config_input', value: '1' });
