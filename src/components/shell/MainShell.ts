@@ -371,6 +371,13 @@ export class MainShell {
         this.writeLine(`${DIM}Goodbye.${RESET}`);
         break;
 
+      case 'personas':
+      case 'marketplace':
+        this.writeLine(`${CYAN}Opening Persona Marketplace...${RESET}`);
+        // Dispatch event to open marketplace overlay
+        window.dispatchEvent(new CustomEvent('forge:open-marketplace'));
+        break;
+
       case '':
         // Empty command
         break;
@@ -1186,6 +1193,7 @@ export class MainShell {
     this.writeLine(`  ${GREEN}recall [id]${RESET}   - Test what agent remembers`);
     this.writeLine(`  ${GREEN}agents${RESET}        - List available agents`);
     this.writeLine(`  ${GREEN}clear${RESET}         - Clear screen`);
+    this.writeLine(`  ${GREEN}personas${RESET}      - Open Persona Marketplace`);
     this.writeLine(`  ${GREEN}help${RESET}          - Show this help`);
     this.writeLine('');
     this.writeLine(`${YELLOW}${BOLD}SESSION MANAGEMENT${RESET}`);

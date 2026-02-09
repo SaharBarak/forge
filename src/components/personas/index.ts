@@ -11,3 +11,5 @@ export { PersonaCreatorWizard } from './PersonaCreatorWizard';
 export { default as PersonaCreatorWizardDefault } from './PersonaCreatorWizard';
 export { PersonaLibrary } from './PersonaLibrary';
 export { PersonaSandbox } from './PersonaSandbox';
+export { PersonaMarketplace } from './PersonaMarketplace';
+export { default as PersonaMarketplaceDefault } from './PersonaMarketplace';
