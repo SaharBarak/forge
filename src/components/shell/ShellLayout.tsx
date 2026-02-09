@@ -12,6 +12,14 @@ import { AgentShell } from './AgentShell';
 import { FloorManagerShell } from './FloorManagerShell';
 import { EventBusShell } from './EventBusShell';
 import { AGENT_PERSONAS, getActivePersonas } from '../../agents/personas';
+import { useUIStore } from '../../stores/uiStore';
+import { Suspense, lazy } from 'react';
+
+const LazyPersonaMarketplace = lazy(() =>
+  import('../personas/PersonaMarketplace').then(module => ({
+    default: module.PersonaMarketplace,
+  }))
+);
 import { EDAOrchestrator } from '../../lib/eda';
 import { messageBus } from '../../lib/eda/MessageBus';
 import { initializeClient, setLoadedSkills } from '../../lib/claude';
@@ -42,6 +50,7 @@ export function ShellLayout() {
   const eventBusContainerRef = useRef<HTMLDivElement>(null);
   const terminalsRef = useRef<Map<string, TerminalInstance>>(new Map());
   const orchestratorRef = useRef<EDAOrchestrator | null>(null);
+  const { currentView, setView } = useUIStore();
   const [activeAgents, setActiveAgents] = useState<string[]>([]);
   const [sessionRunning, setSessionRunning] = useState(false);
   const [currentPersonas, setCurrentPersonas] = useState<typeof AGENT_PERSONAS>([]); // Empty until session configured
@@ -460,6 +469,25 @@ export function ShellLayout() {
   }, [currentPersonas, createAgentTerminal]);
 
   // Subscribe to message bus events for session management
+  // Listen for marketplace open command from terminal
+  useEffect(() => {
+    const handler = () => setView('marketplace');
+    window.addEventListener('forge:open-marketplace', handler);
+    return () => window.removeEventListener('forge:open-marketplace', handler);
+  }, [setView]);
+
+  // Keyboard shortcut: Ctrl+Shift+P to toggle marketplace
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+        e.preventDefault();
+        setView(currentView === 'marketplace' ? 'chat' : 'marketplace');
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [currentView, setView]);
+
   useEffect(() => {
     const unsubscribers: (() => void)[] = [];
 
@@ -708,8 +736,31 @@ export function ShellLayout() {
       }}>
         <span>Type 'help' for commands</span>
         <div style={{ flex: 1 }} />
+        <button
+          onClick={() => setView(currentView === 'marketplace' ? 'chat' : 'marketplace')}
+          style={{
+            background: currentView === 'marketplace' ? '#238636' : 'transparent',
+            border: 'none',
+            color: currentView === 'marketplace' ? '#fff' : '#8b949e',
+            cursor: 'pointer',
+            fontSize: '11px',
+            fontFamily: 'monospace',
+            padding: '0 8px',
+            marginRight: '8px',
+          }}
+          title="Persona Marketplace (Ctrl+Shift+P)"
+        >
+          🎭 Personas
+        </button>
         <span>Ctrl+C: Cancel │ Enter: Execute</span>
       </div>
+
+      {/* Persona Marketplace Overlay */}
+      {currentView === 'marketplace' && (
+        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: '#0d1117', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b949e' }}>Loading Marketplace...</div>}>
+          <LazyPersonaMarketplace onClose={() => setView('chat')} />
+        </Suspense>
+      )}
     </div>
   );
 }
