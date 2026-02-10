@@ -88,7 +88,6 @@ export interface SessionConfig {
   apiKey?: string;
   language?: 'hebrew' | 'english' | 'mixed' | string;
   mode?: string; // Mode ID: copywrite, idea-validation, ideation, will-it-work, custom
-  initialCopy?: string; // Optional initial copy text to critique
   enabledTools?: string[]; // e.g. ['gemini-image', 'gemini-graph']
   geminiApiKey?: string;
 }

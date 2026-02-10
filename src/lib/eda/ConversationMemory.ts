@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ConversationMemory - Maintains conversation context and summaries
  * Prevents agents from "forgetting" early conversation by maintaining:

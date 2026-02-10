@@ -15,8 +15,6 @@ import { readFileSync, existsSync, appendFileSync } from 'fs';
 import { resolve } from 'path';
 import { CanvasElement, CanvasStatus, CanvasStatusElement } from './types';
 
-const STATUS_ORDER: CanvasStatus[] = ['proposed', 'discussed', 'agreed'];
-
 /**
  * Valid transitions — forward by one or more steps, backward by one step.
  */

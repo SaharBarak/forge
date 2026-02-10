@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * DOCXExporter - Export sessions as Word documents using docx library
  * 

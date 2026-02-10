@@ -56,7 +56,7 @@ function formatStats(stats: SessionStats): string {
  * Generates a session_end feedback entry with a summary.
  */
 export function onCanvasSessionEnd(
-  canvasPath: string,
+  _canvasPath: string,
   feedbackPath: string,
   agentId: string,
   stats?: SessionStats,

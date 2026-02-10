@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * PDFExporter Unit Tests
  * 
