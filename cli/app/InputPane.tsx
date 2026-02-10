@@ -11,6 +11,7 @@ interface InputPaneProps {
   onCommand: (command: string, args: string[]) => void;
   placeholder?: string;
   disabled?: boolean;
+  onInputChange?: (value: string) => void;
 }
 
 export function InputPane({
@@ -18,8 +19,14 @@ export function InputPane({
   onCommand,
   placeholder = 'Type a message or /command...',
   disabled = false,
+  onInputChange,
 }: InputPaneProps): React.ReactElement {
   const [value, setValue] = useState('');
+
+  const handleChange = (newValue: string) => {
+    setValue(newValue);
+    onInputChange?.(newValue);
+  };
 
   const handleSubmit = (text: string) => {
     const trimmed = text.trim();
@@ -60,7 +67,7 @@ export function InputPane({
       ) : (
         <TextInput
           value={value}
-          onChange={setValue}
+          onChange={handleChange}
           onSubmit={handleSubmit}
           placeholder={placeholder}
         />

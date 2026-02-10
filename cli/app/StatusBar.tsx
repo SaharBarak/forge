@@ -15,7 +15,7 @@ interface StatusBarProps {
   conflictPoints: number;
 }
 
-const PHASE_EMOJI: Record<SessionPhase, string> = {
+export const PHASE_EMOJI: Record<SessionPhase, string> = {
   initialization: '🚀',
   context_loading: '📂',
   research: '🔍',
@@ -28,7 +28,7 @@ const PHASE_EMOJI: Record<SessionPhase, string> = {
   finalization: '🎉',
 };
 
-const PHASE_COLORS: Record<SessionPhase, string> = {
+export const PHASE_COLORS: Record<SessionPhase, string> = {
   initialization: 'gray',
   context_loading: 'blue',
   research: 'cyan',

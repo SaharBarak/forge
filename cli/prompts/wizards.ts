@@ -8,6 +8,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import chalk from 'chalk';
 import { AGENT_PERSONAS, registerCustomPersonas, clearCustomPersonas, generatePersonas } from '../../src/agents/personas';
+import { menuBreadcrumbs } from '../lib/menuBreadcrumbs';
 import type { AgentPersona } from '../../src/types';
 
 export interface WizardResult {
@@ -18,6 +19,7 @@ export interface WizardResult {
   personas: AgentPersona[];
   domainSkills?: string;
   personaSetName: string | null;
+  enabledTools?: string[];
 }
 
 /**
@@ -194,6 +196,7 @@ export async function selectAgentsFlow(
 export async function runConfigWizard(cwd: string): Promise<WizardResult | null> {
   p.intro(chalk.magenta.bold('NEW SESSION'));
 
+  menuBreadcrumbs.push('Project Details');
   const basics = await p.group(
     {
       projectName: () =>
@@ -217,6 +220,8 @@ export async function runConfigWizard(cwd: string): Promise<WizardResult | null>
     }
   );
 
+  menuBreadcrumbs.pop();
+
   if (!basics || p.isCancel(basics)) return null;
 
   const projectName = basics.projectName as string;
@@ -227,7 +232,9 @@ export async function runConfigWizard(cwd: string): Promise<WizardResult | null>
   let personaSetName: string | null = null;
   let domainSkills: string | undefined;
 
+  menuBreadcrumbs.push('Persona Selection');
   const personaResult = await selectPersonasFlow(cwd, goal, projectName);
+  menuBreadcrumbs.pop();
   personas = personaResult.personas;
   personaSetName = personaResult.personaSetName;
   domainSkills = personaResult.domainSkills;
@@ -239,6 +246,7 @@ export async function runConfigWizard(cwd: string): Promise<WizardResult | null>
   }
 
   // Agent selection with loop for generate/defaults
+  menuBreadcrumbs.push('Agent Selection');
   let agents: string[] = [];
   let selecting = true;
   while (selecting) {
@@ -262,8 +270,10 @@ export async function runConfigWizard(cwd: string): Promise<WizardResult | null>
       selecting = false;
     }
   }
+  menuBreadcrumbs.pop();
 
   // Language
+  menuBreadcrumbs.push('Language');
   const language = await p.select({
     message: 'Debate language',
     options: [
@@ -273,7 +283,22 @@ export async function runConfigWizard(cwd: string): Promise<WizardResult | null>
     ],
   });
 
+  menuBreadcrumbs.pop();
   if (p.isCancel(language)) return null;
+
+  // Tools selection
+  menuBreadcrumbs.push('Tools');
+  const tools = await p.multiselect({
+    message: 'Enable tools for this session?',
+    options: [
+      { value: 'gemini-image', label: 'Image Generation (Gemini)', hint: 'agents can create images' },
+      { value: 'gemini-graph', label: 'Graph Generation (Gemini)', hint: 'agents can create charts' },
+    ],
+    required: false,
+  });
+
+  menuBreadcrumbs.pop();
+  const enabledTools = p.isCancel(tools) ? undefined : (tools as string[]);
 
   p.outro(chalk.green('Configuration complete!'));
 
@@ -285,5 +310,6 @@ export async function runConfigWizard(cwd: string): Promise<WizardResult | null>
     personas,
     domainSkills,
     personaSetName,
+    enabledTools,
   };
 }
