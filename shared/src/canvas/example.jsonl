@@ -1,0 +1,11 @@
+{"id":"hero","type":"section","label":"Hero Section","status":"agreed","order":1}
+{"id":"hero-headline","type":"text","role":"headline","content":"Ship faster with AI","parent":"hero","order":1}
+{"id":"hero-sub","type":"text","role":"subtext","content":"The collaborative forge for your team","parent":"hero","order":2}
+{"id":"hero-cta","type":"wireframe","parent":"hero","order":3,"columns":[{"label":"Get Started"},{"label":"Learn More"}]}
+{"id":"div1","type":"divider","order":2}
+{"id":"features","type":"section","label":"Features","status":"in progress","order":3}
+{"id":"feat-cols","type":"wireframe","parent":"features","order":1,"columns":[{"label":"Speed"},{"label":"Safety"},{"label":"Scale"}]}
+{"id":"feat-body","type":"text","role":"body","content":"Each feature gets its own card component","parent":"features","order":2}
+{"id":"div2","type":"divider","order":4}
+{"id":"footer","type":"section","label":"Footer","status":"proposed","order":5}
+{"id":"foot-note","type":"note","content":"Design TBD — waiting on brand guidelines","parent":"footer","order":1}

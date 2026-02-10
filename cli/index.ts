@@ -20,6 +20,11 @@ import { EDAOrchestrator } from '../src/lib/eda/EDAOrchestrator';
 import { AGENT_PERSONAS, registerCustomPersonas, clearCustomPersonas, getActivePersonas } from '../src/agents/personas';
 import { createPersonasCommand } from './commands/personas';
 import { createExportCommand } from './commands/export';
+import { createBatchCommand } from './commands/batch';
+import { createSessionsCommand } from './commands/sessions';
+import { createWatchCommand } from './commands/watch';
+import { createCompletionsCommand } from './commands/completions';
+import { createConfigCommand } from './commands/config';
 import { selectPersonasFlow, selectAgentsFlow } from './prompts/wizards';
 import { runIdleMode } from './prompts/idle';
 import { loadPreferences } from './preferences';
@@ -300,6 +305,13 @@ program.addCommand(createPersonasCommand());
 
 // Add enhanced export command
 program.addCommand(createExportCommand());
+
+// Add batch, sessions, watch, completions, config commands
+program.addCommand(createBatchCommand());
+program.addCommand(createSessionsCommand());
+program.addCommand(createWatchCommand());
+program.addCommand(createCompletionsCommand());
+program.addCommand(createConfigCommand());
 
 // Default action - interactive mode when no command given
 program.action(async () => {

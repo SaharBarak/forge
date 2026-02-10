@@ -1,0 +1,14 @@
+{"type":"section","id":"header","label":"App Header","width":80,"status":"agreed","ts":"2026-02-10T10:00:00.000Z"}
+{"type":"text","content":"Top navigation bar with logo, search, and user menu","role":"description","parent":"header","ts":"2026-02-10T10:00:01.000Z"}
+{"type":"wireframe","id":"wf-header","layout":"horizontal","elements":["[Logo]","[___Search___]","[Avatar ▾]"],"parent":"header","status":"agreed","ts":"2026-02-10T10:00:02.000Z"}
+{"type":"divider","style":"double","ts":"2026-02-10T10:01:00.000Z"}
+{"type":"section","id":"sidebar","label":"Sidebar Navigation","width":24,"status":"discussed","parent":"header","ts":"2026-02-10T10:02:00.000Z"}
+{"type":"wireframe","id":"wf-sidebar","layout":"vertical","elements":["[Dashboard]","[Projects]","[Settings]","[---]","[Help]"],"parent":"sidebar","status":"proposed","ts":"2026-02-10T10:02:01.000Z"}
+{"type":"note","author":"forge-architect","text":"Sidebar should collapse to icons on mobile viewports","parent":"sidebar","ts":"2026-02-10T10:03:00.000Z"}
+{"type":"divider","ts":"2026-02-10T10:04:00.000Z"}
+{"type":"section","id":"main-content","label":"Main Content Area","width":56,"status":"proposed","ts":"2026-02-10T10:05:00.000Z"}
+{"type":"text","content":"Card grid layout for dashboard, list view for projects","role":"specification","parent":"main-content","style":"italic","ts":"2026-02-10T10:05:01.000Z"}
+{"type":"wireframe","id":"wf-dashboard","layout":"grid-2x2","elements":["[Stats Card]","[Chart Card]","[Recent Activity]","[Quick Actions]"],"parent":"main-content","status":"proposed","ts":"2026-02-10T10:05:02.000Z"}
+{"type":"note","author":"forge-fe","text":"Should we use CSS Grid or Flexbox for the card layout? Grid gives us better control.","parent":"main-content","ts":"2026-02-10T10:06:00.000Z"}
+{"type":"note","author":"forge-architect","text":"CSS Grid — agreed. Let's use auto-fill with minmax for responsiveness.","parent":"main-content","ts":"2026-02-10T10:06:30.000Z"}
+{"type":"section","id":"sidebar","label":"Sidebar Navigation","width":24,"status":"agreed","parent":"header","ts":"2026-02-10T10:07:00.000Z"}
