@@ -12,6 +12,8 @@ import { AgentShell } from './AgentShell';
 import { FloorManagerShell } from './FloorManagerShell';
 import { EventBusShell } from './EventBusShell';
 import { AGENT_PERSONAS, getActivePersonas } from '../../agents/personas';
+import { useUIStore } from '../../stores/uiStore';
+import { DrawingBoard } from '../canvas/DrawingBoard';
 import { EDAOrchestrator } from '../../lib/eda';
 import { messageBus } from '../../lib/eda/MessageBus';
 import { initializeClient, setLoadedSkills } from '../../lib/claude';
@@ -42,6 +44,7 @@ export function ShellLayout() {
   const eventBusContainerRef = useRef<HTMLDivElement>(null);
   const terminalsRef = useRef<Map<string, TerminalInstance>>(new Map());
   const orchestratorRef = useRef<EDAOrchestrator | null>(null);
+  const { currentView } = useUIStore();
   const [activeAgents, setActiveAgents] = useState<string[]>([]);
   const [sessionRunning, setSessionRunning] = useState(false);
   const [currentPersonas, setCurrentPersonas] = useState<typeof AGENT_PERSONAS>([]); // Empty until session configured
@@ -624,11 +627,16 @@ export function ShellLayout() {
             fontFamily: 'monospace',
             color: '#8be9fd',
           }}>
-            AGENT TERMINALS
+            {currentView === 'canvas' ? 'DRAWING BOARD' : 'AGENT TERMINALS'}
           </div>
+          {currentView === 'canvas' ? (
+            <div style={{ flex: 1, overflow: 'hidden', backgroundColor: '#0d1117' }}>
+              <DrawingBoard />
+            </div>
+          ) : null}
           <div style={{
             flex: 1,
-            display: 'grid',
+            display: currentView === 'canvas' ? 'none' : 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)',
             gridTemplateRows: 'repeat(4, 1fr)',
             gap: '1px',
