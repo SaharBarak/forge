@@ -19,6 +19,7 @@ import {
   CanvasDivider,
   CanvasNote,
 } from './types';
+import { isValidConsensusTransition } from './consensus';
 import { validateElement } from './validate';
 
 const DEFAULT_CANVAS_PATH = 'shared/canvas.jsonl';
@@ -136,7 +137,7 @@ export function updateStatus(
     throw new Error(`Element "${id}" does not support status`);
   }
   const currentStatus = (existing as any).status as CanvasStatus;
-  if (!isValidStatusTransition(currentStatus, status)) {
+  if (!isValidConsensusTransition(currentStatus, status)) {
     throw new Error(
       `Invalid status transition for "${id}": ${currentStatus} → ${status}`,
     );
