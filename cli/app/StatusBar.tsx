@@ -2,9 +2,10 @@
  * StatusBar - Shows phase, floor status, and consensus info
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import type { SessionPhase } from '../../src/types';
+import { getRandomQuote, formatQuote } from '../../src/lib/quotes';
 
 interface StatusBarProps {
   phase: SessionPhase;
@@ -52,14 +53,21 @@ export function StatusBar({
   const phaseColor = PHASE_COLORS[phase] || 'white';
   const phaseEmoji = PHASE_EMOJI[phase] || '📍';
 
+  // Rotate quote every 60 seconds
+  const [quote, setQuote] = useState(() => formatQuote(getRandomQuote()));
+  useEffect(() => {
+    const timer = setInterval(() => setQuote(formatQuote(getRandomQuote())), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <Box
-      flexDirection="row"
+      flexDirection="column"
       borderStyle="single"
       borderColor="gray"
       paddingX={1}
-      justifyContent="space-between"
     >
+    <Box flexDirection="row" justifyContent="space-between">
       {/* Phase */}
       <Box>
         <Text color={phaseColor} bold>
@@ -89,6 +97,10 @@ export function StatusBar({
         <Text dimColor> / </Text>
         <Text color="red">✗{conflictPoints}</Text>
       </Box>
+    </Box>
+    <Box justifyContent="center">
+      <Text dimColor italic>{quote}</Text>
+    </Box>
     </Box>
   );
 }

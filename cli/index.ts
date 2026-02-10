@@ -27,6 +27,7 @@ import { createWatchCommand } from './commands/watch';
 import { createCompletionsCommand } from './commands/completions';
 import { createConfigCommand } from './commands/config';
 import type { Session, SessionConfig, AgentPersona, Message } from '../src/types';
+import { getRandomQuote, formatQuote } from '../src/lib/quotes';
 
 // ANSI color codes
 const RESET = '\x1b[0m';
@@ -604,6 +605,7 @@ program.action(async () => {
   console.log('\x1b[36m\x1b[1m║\x1b[0m  \x1b[2mMulti-Agent Deliberation Engine\x1b[0m                      \x1b[36m\x1b[1m║\x1b[0m');
   console.log('\x1b[36m\x1b[1m║\x1b[0m  \x1b[2mReach consensus through structured debate\x1b[0m            \x1b[36m\x1b[1m║\x1b[0m');
   console.log('\x1b[36m\x1b[1m╚══════════════════════════════════════════════════════╝\x1b[0m');
+  console.log(`  \x1b[2m\x1b[3m${formatQuote(getRandomQuote())}\x1b[0m`);
   console.log('');
 
   // Check for saved sessions
