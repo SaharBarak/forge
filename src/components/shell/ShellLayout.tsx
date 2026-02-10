@@ -14,6 +14,7 @@ import { EventBusShell } from './EventBusShell';
 import { AGENT_PERSONAS, getActivePersonas } from '../../agents/personas';
 import { EDAOrchestrator } from '../../lib/eda';
 import { messageBus } from '../../lib/eda/MessageBus';
+import { DrawingBoardPanel } from '../drawingboard';
 import { initializeClient, setLoadedSkills } from '../../lib/claude';
 import type { Session, SessionConfig, Message } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -46,6 +47,7 @@ export function ShellLayout() {
   const [sessionRunning, setSessionRunning] = useState(false);
   const [currentPersonas, setCurrentPersonas] = useState<typeof AGENT_PERSONAS>([]); // Empty until session configured
   const [, setLoadedMessages] = useState<Message[]>([]); // Stored for potential replay
+  const [drawingBoardVisible, setDrawingBoardVisible] = useState(false);
 
   // Create terminal for main shell
   const createMainTerminal = useCallback(() => {
@@ -401,8 +403,18 @@ export function ShellLayout() {
     };
     window.addEventListener('resize', handleResize);
 
+    // Handle Ctrl+D for drawing board toggle
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        setDrawingBoardVisible(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', handleKeyDown);
       // Cleanup
       for (const instance of terminalsRef.current.values()) {
         instance.terminal.dispose();
@@ -610,7 +622,8 @@ export function ShellLayout() {
 
         {/* Agent & System Panes (right side) */}
         <div style={{
-          width: '50%',
+          width: drawingBoardVisible ? '35%' : '50%',
+          transition: 'width 0.2s ease',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -692,6 +705,13 @@ export function ShellLayout() {
             <div style={{ backgroundColor: '#0a0a0a' }} />
           </div>
         </div>
+
+        {/* Drawing Board Panel (right side, toggled with Ctrl+D) */}
+        <DrawingBoardPanel
+          canvasPath="shared/canvas.jsonl"
+          panelWidth={40}
+          visible={drawingBoardVisible}
+        />
       </div>
 
       {/* Bottom Status */}
@@ -708,7 +728,7 @@ export function ShellLayout() {
       }}>
         <span>Type 'help' for commands</span>
         <div style={{ flex: 1 }} />
-        <span>Ctrl+C: Cancel │ Enter: Execute</span>
+        <span>Ctrl+C: Cancel │ Ctrl+D: Canvas │ Enter: Execute</span>
       </div>
     </div>
   );

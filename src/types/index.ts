@@ -442,6 +442,9 @@ export interface ElectronAPI {
   glob: (pattern: string, options?: object) => Promise<string[]>;
   exists: (filePath: string) => Promise<boolean>;
 
+  // File watching
+  watchFile: (filePath: string, callback: () => void) => Promise<(() => void) | null>;
+
   // Context
   loadContext: (contextDir: string) => Promise<LoadedContext>;
 
