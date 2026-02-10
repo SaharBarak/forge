@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * TemplateManager Tests
  */

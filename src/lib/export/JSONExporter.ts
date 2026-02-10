@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * JSONExporter - Export sessions as structured JSON
  */

@@ -6,13 +6,12 @@
  * Agents should never hand-craft JSONL directly — use these functions.
  */
 
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { mkdirSync } from 'fs';
 import {
   CanvasElement,
   CanvasStatus,
-  isValidStatusTransition,
   CanvasSection,
   CanvasText,
   CanvasWireframe,

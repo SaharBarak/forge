@@ -3,7 +3,7 @@
  * Validates elements against the schema rules from issue #56.
  */
 
-import { CanvasElement, STATUS_ORDER, CanvasStatus } from './types';
+import { CanvasElement, STATUS_ORDER } from './types';
 
 /** Returns an array of error messages. Empty = valid. */
 export function validateElement(element: CanvasElement): string[] {

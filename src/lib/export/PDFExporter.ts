@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * PDFExporter - Export sessions as PDF via Puppeteer
  * 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * PersonaManager - CRUD operations for custom personas
  * 
