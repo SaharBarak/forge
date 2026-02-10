@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Canvas Element",
+  "description": "A single JSONL entry in the shared canvas (shared/canvas.jsonl). Each line must validate against this schema.",
+  "oneOf": [
+    { "$ref": "#/definitions/section" },
+    { "$ref": "#/definitions/text" },
+    { "$ref": "#/definitions/wireframe" },
+    { "$ref": "#/definitions/divider" },
+    { "$ref": "#/definitions/note" }
+  ],
+  "definitions": {
+    "status": {
+      "type": "string",
+      "enum": ["proposed", "discussed", "agreed"],
+      "description": "Consensus status. Transitions: proposed → discussed → agreed"
+    },
+    "section": {
+      "type": "object",
+      "required": ["type", "id", "label", "width"],
+      "properties": {
+        "type": { "const": "section" },
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "width": { "type": "number" },
+        "status": { "$ref": "#/definitions/status" },
+        "parent": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "text": {
+      "type": "object",
+      "required": ["type", "content", "role"],
+      "properties": {
+        "type": { "const": "text" },
+        "content": { "type": "string" },
+        "role": { "type": "string" },
+        "parent": { "type": "string" },
+        "style": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "wireframe": {
+      "type": "object",
+      "required": ["type", "id", "layout", "elements"],
+      "properties": {
+        "type": { "const": "wireframe" },
+        "id": { "type": "string" },
+        "layout": { "type": "string" },
+        "elements": { "type": "array", "items": { "type": "string" } },
+        "parent": { "type": "string" },
+        "status": { "$ref": "#/definitions/status" },
+        "ts": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "divider": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "divider" },
+        "style": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "note": {
+      "type": "object",
+      "required": ["type", "author", "text"],
+      "properties": {
+        "type": { "const": "note" },
+        "author": { "type": "string" },
+        "text": { "type": "string" },
+        "parent": { "type": "string" },
+        "ts": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
