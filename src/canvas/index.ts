@@ -2,3 +2,4 @@ export * from './types';
 export * from './api';
 export * from './validate';
 export * from './consensus';
+export * from './feedback';

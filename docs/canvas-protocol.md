@@ -57,6 +57,53 @@ updateStatus('header', 'discussed');
 updateStatus('header', 'agreed');
 ```
 
+## Feedback
+
+Agents can report feedback about the canvas system — missing features, usability issues, bugs, suggestions, or capability gaps. Feedback is stored in a separate JSONL file.
+
+### Feedback Schema
+
+Each feedback entry contains:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `"feedback"` | ✅ | Always `"feedback"` |
+| `agentId` | `string` | ✅ | The reporting agent's identifier |
+| `timestamp` | `string` | ✅ | ISO 8601 timestamp (auto-set by API) |
+| `category` | `string` | ✅ | One of: `missing_feature`, `usability`, `bug`, `suggestion`, `capability_gap` |
+| `description` | `string` | ✅ | Human-readable description of the feedback |
+| `severity` | `string` | ✅ | One of: `low`, `medium`, `high`, `blocking` |
+| `context` | `string` | — | Additional context about when/where the issue occurred |
+| `relatedElements` | `string[]` | — | Canvas element ids related to the feedback |
+
+### Usage
+
+```typescript
+import { reportFeedback, getFeedback, getFeedbackSummary } from '../canvas';
+
+// Report feedback
+reportFeedback('shared/feedback.jsonl', {
+  agentId: 'forge-architect',
+  category: 'missing_feature',
+  description: 'No support for responsive breakpoints in wireframes',
+  severity: 'medium',
+  relatedElements: ['wf-header'],
+});
+
+// Read all feedback
+const entries = getFeedback('shared/feedback.jsonl');
+
+// Get summary (counts by category, severity, top descriptions)
+const summary = getFeedbackSummary('shared/feedback.jsonl');
+```
+
+### Query Functions
+
+- `getFeedback(path)` — all entries
+- `getFeedbackByAgent(path, agentId)` — filter by agent
+- `getFeedbackByCategory(path, category)` — filter by category
+- `getFeedbackSummary(path)` — aggregate counts and top descriptions
+
 ## Schema Validation
 
 JSON Schema: `schemas/canvas.schema.json`
