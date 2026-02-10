@@ -18,6 +18,8 @@ export const FEEDBACK_CATEGORIES = [
   'bug',
   'suggestion',
   'capability_gap',
+  'session_end',
+  'inline',
 ] as const;
 
 export type FeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];

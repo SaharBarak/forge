@@ -21,12 +21,39 @@ import {
 } from './types';
 import { isValidConsensusTransition } from './consensus';
 import { validateElement } from './validate';
+import { reportFeedback } from './feedback';
 
 const DEFAULT_CANVAS_PATH = 'shared/canvas.jsonl';
 
-export interface CanvasWriterOptions {
+export interface InlineFeedbackOptions {
+  /** Optional inline feedback about this API call — captured automatically */
+  feedback?: string;
+  /** Agent id for inline feedback attribution */
+  feedbackAgentId?: string;
+  /** Path to the feedback JSONL file (default: shared/feedback.jsonl) */
+  feedbackPath?: string;
+}
+
+export interface CanvasWriterOptions extends InlineFeedbackOptions {
   /** Path to the canvas JSONL file (default: shared/canvas.jsonl) */
   canvasPath?: string;
+}
+
+const DEFAULT_FEEDBACK_PATH = 'shared/feedback.jsonl';
+
+/** If inline feedback is present, auto-report it */
+function maybeReportInlineFeedback(
+  elementType: string,
+  opts?: InlineFeedbackOptions,
+): void {
+  if (!opts?.feedback) return;
+  reportFeedback(opts.feedbackPath ?? DEFAULT_FEEDBACK_PATH, {
+    agentId: opts.feedbackAgentId ?? 'unknown',
+    category: 'inline',
+    description: opts.feedback,
+    severity: 'low',
+    context: `While writing ${elementType} element`,
+  });
 }
 
 /**
@@ -77,9 +104,10 @@ export function addSection(
   label: string,
   opts?: { width?: number; status?: CanvasStatus; parent?: string } & CanvasWriterOptions,
 ): void {
-  const { width = 80, status = 'proposed', parent, ...writerOpts } = opts ?? {};
+  const { width = 80, status = 'proposed', parent, feedback, feedbackAgentId, feedbackPath, ...writerOpts } = opts ?? {};
   const element: CanvasSection = { type: 'section', id, label, width, status, parent };
   appendElement(element, writerOpts);
+  maybeReportInlineFeedback('section', { feedback, feedbackAgentId, feedbackPath });
 }
 
 export function addText(
@@ -87,9 +115,10 @@ export function addText(
   role: string,
   opts?: { parent?: string; style?: string } & CanvasWriterOptions,
 ): void {
-  const { parent, style, ...writerOpts } = opts ?? {};
+  const { parent, style, feedback, feedbackAgentId, feedbackPath, ...writerOpts } = opts ?? {};
   const element: CanvasText = { type: 'text', content, role, parent, style };
   appendElement(element, writerOpts);
+  maybeReportInlineFeedback('text', { feedback, feedbackAgentId, feedbackPath });
 }
 
 export function addWireframe(
@@ -98,9 +127,10 @@ export function addWireframe(
   opts?: { parent?: string; status?: CanvasStatus } & CanvasWriterOptions,
 ): void {
   const id = `wf-${Date.now()}`;
-  const { parent, status = 'proposed', ...writerOpts } = opts ?? {};
+  const { parent, status = 'proposed', feedback, feedbackAgentId, feedbackPath, ...writerOpts } = opts ?? {};
   const element: CanvasWireframe = { type: 'wireframe', id, layout, elements, parent, status };
   appendElement(element, writerOpts);
+  maybeReportInlineFeedback('wireframe', { feedback, feedbackAgentId, feedbackPath });
 }
 
 export function addNote(
@@ -108,15 +138,17 @@ export function addNote(
   text: string,
   opts?: { parent?: string } & CanvasWriterOptions,
 ): void {
-  const { parent, ...writerOpts } = opts ?? {};
+  const { parent, feedback, feedbackAgentId, feedbackPath, ...writerOpts } = opts ?? {};
   const element: CanvasNote = { type: 'note', author, text, parent };
   appendElement(element, writerOpts);
+  maybeReportInlineFeedback('note', { feedback, feedbackAgentId, feedbackPath });
 }
 
 export function addDivider(opts?: { style?: string } & CanvasWriterOptions): void {
-  const { style, ...writerOpts } = opts ?? {};
+  const { style, feedback, feedbackAgentId, feedbackPath, ...writerOpts } = opts ?? {};
   const element: CanvasDivider = { type: 'divider', style };
   appendElement(element, writerOpts);
+  maybeReportInlineFeedback('divider', { feedback, feedbackAgentId, feedbackPath });
 }
 
 /**
