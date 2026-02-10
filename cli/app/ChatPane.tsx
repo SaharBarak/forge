@@ -1,25 +1,18 @@
 /**
- * ChatPane - Scrollable message list
+ * ChatPane - Scrollable message list with dynamic agent colors and typing indicator
  */
 
 import React from 'react';
 import { Box, Text } from 'ink';
+import Spinner from 'ink-spinner';
 import type { Message } from '../../src/types';
+import { getAgentById, getAgentColor, getAgentDisplayName } from '../../src/agents/personas';
 
 interface ChatPaneProps {
   messages: Message[];
   maxHeight?: number;
+  currentSpeaker?: string | null;
 }
-
-const AGENT_COLORS: Record<string, string> = {
-  ronit: 'magenta',
-  avi: 'blue',
-  dana: 'red',
-  yossi: 'green',
-  michal: 'yellow',
-  system: 'gray',
-  human: 'white',
-};
 
 const TYPE_BADGES: Record<string, string> = {
   argument: '[ARG]',
@@ -31,6 +24,7 @@ const TYPE_BADGES: Record<string, string> = {
   system: '',
   human_input: '[YOU]',
   research_result: '[🔍]',
+  tool_result: '[IMG]',
 };
 
 function formatTime(date: Date): string {
@@ -48,10 +42,11 @@ function truncateContent(content: string, maxLines = 8): string {
 }
 
 function MessageItem({ message }: { message: Message }): React.ReactElement {
-  const color = AGENT_COLORS[message.agentId] || 'white';
+  const color = getAgentColor(message.agentId);
   const badge = TYPE_BADGES[message.type] || '';
   const time = formatTime(message.timestamp);
   const content = truncateContent(message.content);
+  const displayName = getAgentDisplayName(message.agentId);
 
   // System messages are styled differently
   if (message.agentId === 'system') {
@@ -67,7 +62,7 @@ function MessageItem({ message }: { message: Message }): React.ReactElement {
       <Box>
         <Text dimColor>{time} </Text>
         <Text color={color} bold>
-          {message.agentId}
+          {displayName}
         </Text>
         {badge && (
           <Text dimColor> {badge}</Text>
@@ -80,7 +75,7 @@ function MessageItem({ message }: { message: Message }): React.ReactElement {
   );
 }
 
-export function ChatPane({ messages, maxHeight = 20 }: ChatPaneProps): React.ReactElement {
+export function ChatPane({ messages, maxHeight = 20, currentSpeaker }: ChatPaneProps): React.ReactElement {
   // Show only recent messages that fit
   const visibleMessages = messages.slice(-maxHeight);
 
@@ -99,6 +94,14 @@ export function ChatPane({ messages, maxHeight = 20 }: ChatPaneProps): React.Rea
         visibleMessages.map((msg) => (
           <MessageItem key={msg.id} message={msg} />
         ))
+      )}
+      {currentSpeaker && (
+        <Box>
+          <Text color={getAgentColor(currentSpeaker)}>
+            <Spinner type="dots" />{' '}
+            {getAgentDisplayName(currentSpeaker)} is thinking...
+          </Text>
+        </Box>
       )}
     </Box>
   );

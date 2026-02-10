@@ -8,6 +8,7 @@ import * as os from 'os';
 
 export interface Preferences {
   language?: string;
+  geminiApiKey?: string;
 }
 
 const PREFS_DIR = path.join(os.homedir(), '.forge');
