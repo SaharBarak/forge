@@ -104,6 +104,53 @@ const summary = getFeedbackSummary('shared/feedback.jsonl');
 - `getFeedbackByCategory(path, category)` — filter by category
 - `getFeedbackSummary(path)` — aggregate counts and top descriptions
 
+## Session Hooks & Automatic Feedback
+
+### Inline Feedback
+
+All write functions (`addSection`, `addText`, `addWireframe`, `addNote`, `addDivider`) accept optional inline feedback fields:
+
+```typescript
+addSection('header', 'App Header', {
+  width: 80,
+  feedback: 'width param is ambiguous — pixels or percentage?',
+  feedbackAgentId: 'forge-architect',
+  feedbackPath: 'shared/feedback.jsonl',  // optional, defaults to shared/feedback.jsonl
+});
+```
+
+When `feedback` is present, a feedback entry with category `inline` is automatically appended to the feedback JSONL alongside the canvas write.
+
+### Post-Session Hook
+
+Call `onCanvasSessionEnd` when an agent finishes working with the canvas:
+
+```typescript
+import { onCanvasSessionEnd } from '../canvas';
+
+onCanvasSessionEnd('shared/canvas.jsonl', 'shared/feedback.jsonl', 'forge-architect');
+```
+
+This generates a `session_end` feedback entry with a summary prompt.
+
+### Session Wrapper
+
+`withCanvasSession` wraps a work function, automatically tracking elements added and generating the post-session feedback:
+
+```typescript
+import { withCanvasSession } from '../canvas';
+
+await withCanvasSession('shared/canvas.jsonl', 'shared/feedback.jsonl', 'forge-architect', async () => {
+  addSection('footer', 'Footer', { width: 80 });
+  addText('Copyright', 'legal', { parent: 'footer' });
+});
+// Auto-generates: "Session complete. Added/modified: 1 section, 1 text (2 total)."
+```
+
+### Agent Prompt Template
+
+See [`canvas-agent-prompt.md`](canvas-agent-prompt.md) for a ready-to-use system prompt snippet that teaches agents how to use the canvas and report feedback.
+
 ## Schema Validation
 
 JSON Schema: `schemas/canvas.schema.json`
