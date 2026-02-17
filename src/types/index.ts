@@ -116,7 +116,9 @@ export type SessionPhase =
   | 'drafting'
   | 'review'
   | 'consensus'
-  | 'finalization';
+  | 'finalization'
+  | 'building'
+  | 'picking';
 
 // ============================================================================
 // DECISION TYPES

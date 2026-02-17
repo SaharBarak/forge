@@ -341,6 +341,16 @@ export const PHASE_METHODOLOGY_MAP: Record<SessionPhase, PhaseMethodology> = {
     consensusMethod: 'consent',
     rationale: 'Wrap-up phase - no objections needed to proceed',
   },
+  building: {
+    argumentationStyle: 'collaborative',
+    consensusMethod: 'consent',
+    rationale: 'Build phase - engineering agents work independently',
+  },
+  picking: {
+    argumentationStyle: 'collaborative',
+    consensusMethod: 'consent',
+    rationale: 'Pick phase - user selects winning variant',
+  },
 };
 
 /**

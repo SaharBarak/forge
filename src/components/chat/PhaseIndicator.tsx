@@ -13,6 +13,8 @@ const PHASE_INFO: Record<SessionPhase, { en: string; he: string; icon: string }>
   review: { en: 'Review', he: 'סקירה', icon: '👁️' },
   consensus: { en: 'Consensus', he: 'קונצנזוס', icon: '🤝' },
   finalization: { en: 'Finalization', he: 'סיום', icon: '✅' },
+  building: { en: 'Building', he: 'בנייה', icon: '🔨' },
+  picking: { en: 'Picking', he: 'בחירה', icon: '🏆' },
 };
 
 export function PhaseIndicator() {

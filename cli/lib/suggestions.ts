@@ -70,9 +70,19 @@ const PHASE_SUGGESTIONS: Record<SessionPhase, PhaseSuggestion> = {
     hint: 'Building consensus',
   },
   finalization: {
-    commands: ['/export', '/quit'],
-    prompts: ['Finalize', 'One more revision'],
-    hint: 'Wrapping up',
+    commands: ['/export', '/build', '/quit'],
+    prompts: ['Finalize', 'Build websites'],
+    hint: 'Type /build to generate 3 website variants',
+  },
+  building: {
+    commands: ['/urls', '/quit'],
+    prompts: [],
+    hint: 'Building 3 website variants...',
+  },
+  picking: {
+    commands: ['/pick mika', '/pick dani', '/pick shai', '/urls', '/quit'],
+    prompts: ['Pick a winner'],
+    hint: 'Review sites and /pick a winner',
   },
 };
 
