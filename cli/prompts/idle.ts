@@ -6,11 +6,9 @@
 import * as p from '@clack/prompts';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import * as os from 'os';
 import chalk from 'chalk';
-import React from 'react';
-import { render } from 'ink';
 import { v4 as uuid } from 'uuid';
-import { App } from '../app/App';
 import { CLIAgentRunner } from '../adapters/CLIAgentRunner';
 import { FileSystemAdapter } from '../adapters/FileSystemAdapter';
 import { SessionPersistence } from '../adapters/SessionPersistence';
@@ -22,6 +20,7 @@ import { runConfigWizard, generatePersonasForGoal, type WizardResult } from './w
 import { showBanner } from './banner';
 import { loadPreferences, savePreferences } from '../preferences';
 import { menuBreadcrumbs } from '../lib/menuBreadcrumbs';
+import { multilineText } from '../lib/multilineText';
 import { ToolRunner } from '../tools/ToolRunner';
 import type { Session, SessionConfig, AgentPersona, Message } from '../../src/types';
 
@@ -42,7 +41,7 @@ interface IdleState {
  */
 async function handleQuickStart(state: IdleState) {
   menuBreadcrumbs.push('Goal');
-  const goal = await p.text({
+  const goal = await multilineText({
     message: `${menuBreadcrumbs.toString()}\nWhat should we debate?`,
     placeholder: 'e.g. Design a new landing page for our product',
     validate: (val) => {
@@ -51,7 +50,7 @@ async function handleQuickStart(state: IdleState) {
   });
   menuBreadcrumbs.pop();
 
-  if (p.isCancel(goal)) return;
+  if (typeof goal === 'symbol') return;
 
   const goalStr = (goal as string).trim();
   const projectName = goalStr.slice(0, 40).replace(/[^a-zA-Z0-9\u0590-\u05FF\s-]/g, '').trim() || 'Quick Session';
@@ -142,12 +141,28 @@ export async function runIdleMode() {
   // Load Gemini key from preferences or env
   const initPrefs = await loadPreferences();
 
+  let apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+
+  // Load setup token from ~/.claude/credentials.json and set env var
+  // The Agent SDK passes process.env to child Claude Code processes
+  // CLAUDE_CODE_OAUTH_TOKEN is how the child process authenticates
+  let hasSetupToken = false;
+  try {
+    const credPath = path.join(os.homedir(), '.claude', 'credentials.json');
+    const credData = JSON.parse(await fs.readFile(credPath, 'utf-8'));
+    const token = credData?.claudeAiOauth?.accessToken;
+    if (token) {
+      process.env.CLAUDE_CODE_OAUTH_TOKEN = token;
+      hasSetupToken = true;
+    }
+  } catch { /* no credentials */ }
+
   const state: IdleState = {
     cwd,
     fsAdapter,
     agentRunner,
     sessionsDir,
-    apiKey: process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY,
+    apiKey,
     geminiApiKey: initPrefs.geminiApiKey || process.env.GEMINI_API_KEY,
     config: null,
   };
@@ -176,8 +191,8 @@ export async function runIdleMode() {
         ...(state.config ? [{ value: 'start', label: 'Start session', hint: state.config.projectName }] : []),
         { value: 'sessions', label: 'Saved sessions', hint: `${savedCount} available` },
         { value: 'agents', label: 'List agents' },
-        { value: 'test', label: 'Test API connection' },
-        { value: 'token', label: 'Set Claude API key', hint: 'Anthropic key for agents' },
+        { value: 'test', label: 'Test Claude connection' },
+        { value: 'setup-token', label: 'Set setup token', hint: hasSetupToken ? 'configured' : 'not set' },
         { value: 'gemini-key', label: 'Set Gemini API key', hint: state.geminiApiKey ? 'configured' : 'not set' },
         { value: 'prefs', label: 'Preferences', hint: 'set default language' },
         { value: 'help', label: 'Help' },
@@ -223,9 +238,8 @@ export async function runIdleMode() {
         await handleApiTest();
         break;
 
-      case 'token':
-        menuBreadcrumbs.push('Claude API Key');
-        try { await handleTokenFlow(state); } finally { menuBreadcrumbs.pop(); }
+      case 'setup-token':
+        hasSetupToken = await handleSetupToken();
         break;
 
       case 'gemini-key':
@@ -283,6 +297,7 @@ async function handleSessionsMenu(state: IdleState) {
       }
     }
 
+    options.push({ value: '__delete', label: 'Delete a session', hint: 'remove saved sessions' });
     options.push({ value: '__back', label: 'Back to menu' });
 
     const choice = await p.select({
@@ -292,10 +307,43 @@ async function handleSessionsMenu(state: IdleState) {
 
     if (p.isCancel(choice) || choice === '__back') return;
 
+    if (choice === '__delete') {
+      await handleDeleteSession(state, sessions);
+      return;
+    }
+
     await loadSession(state, choice as string);
   } catch {
     p.log.info('No sessions directory found.');
   }
+}
+
+/**
+ * Delete saved sessions
+ */
+async function handleDeleteSession(state: IdleState, sessions: string[]) {
+  const options = sessions.map(name => ({ value: name, label: name }));
+  options.push({ value: '__back', label: 'Cancel' });
+
+  const toDelete = await p.select({
+    message: 'Which session do you want to delete?',
+    options,
+  });
+
+  if (p.isCancel(toDelete) || toDelete === '__back') return;
+
+  const confirm = await p.confirm({
+    message: `Delete session "${toDelete}"? This cannot be undone.`,
+  });
+
+  if (p.isCancel(confirm) || !confirm) {
+    p.log.info('Cancelled.');
+    return;
+  }
+
+  const sessionDir = path.join(state.sessionsDir, toDelete as string);
+  await fs.rm(sessionDir, { recursive: true, force: true });
+  p.log.success(`Deleted session: ${toDelete}`);
 }
 
 /**
@@ -333,22 +381,48 @@ async function loadSession(state: IdleState, sessionName: string) {
       hasMemory = true;
     } catch { /* no memory file */ }
 
-    // Try to load custom personas
+    // Try to load custom personas from multiple locations
     let personas = AGENT_PERSONAS;
     let domainSkills: string | undefined;
     let personaSetName: string | null = null;
 
     if (metadata.enabledAgents) {
-      try {
-        const personasContent = await fs.readFile(path.join(state.cwd, 'personas', `${sessionName}.json`), 'utf-8');
-        personas = JSON.parse(personasContent);
-        personaSetName = sessionName;
-        registerCustomPersonas(personas);
-        try {
-          domainSkills = await fs.readFile(path.join(state.cwd, 'personas', `${sessionName}.skills.md`), 'utf-8');
-        } catch { /* no skills */ }
-      } catch {
-        personas = AGENT_PERSONAS;
+      // Check if agents are custom (not in default set)
+      const defaultIds = AGENT_PERSONAS.map(a => a.id);
+      const isCustom = metadata.enabledAgents.some((id: string) => !defaultIds.includes(id));
+
+      if (isCustom) {
+        // Try loading personas from multiple locations:
+        // 1. Session directory (self-contained, most reliable)
+        // 2. personas/${sessionName}.json
+        // 3. personas/${projectName}.json (how they were originally saved)
+        const projectSlug = (metadata.projectName || '').replace(/\s+/g, '-').toLowerCase();
+        const candidatePaths = [
+          path.join(sessionDir, 'personas.json'),
+          path.join(state.cwd, 'personas', `${sessionName}.json`),
+          path.join(state.cwd, 'personas', `${projectSlug}.json`),
+          path.join(state.cwd, 'personas', `${metadata.projectName || ''}.json`),
+        ];
+
+        for (const candidatePath of candidatePaths) {
+          try {
+            const personasContent = await fs.readFile(candidatePath, 'utf-8');
+            personas = JSON.parse(personasContent);
+            personaSetName = sessionName;
+            registerCustomPersonas(personas);
+            // Try loading skills from same directory
+            const skillsPath = candidatePath.replace(/\.json$/, '.skills.md')
+              .replace('personas.skills.md', 'skills.md');
+            try {
+              domainSkills = await fs.readFile(skillsPath, 'utf-8');
+            } catch { /* no skills */ }
+            break;
+          } catch { /* try next location */ }
+        }
+
+        if (!personaSetName) {
+          p.log.warn('Custom personas not found for this session. Agents may not load correctly.');
+        }
       }
     }
 
@@ -363,6 +437,13 @@ async function loadSession(state: IdleState, sessionName: string) {
     ].join('\n');
     p.note(info, 'Loaded Session');
 
+    // Load previous messages
+    let resumeMessages: any[] = [];
+    try {
+      const content = await fs.readFile(path.join(sessionDir, 'messages.jsonl'), 'utf-8');
+      resumeMessages = content.trim().split('\n').filter(l => l.trim()).map(l => JSON.parse(l));
+    } catch { /* no messages to resume */ }
+
     // Set state config
     state.config = {
       projectName: metadata.projectName || sessionName,
@@ -372,9 +453,12 @@ async function loadSession(state: IdleState, sessionName: string) {
       personas,
       domainSkills,
       personaSetName,
+      resumeSessionDir: sessionDir,
+      resumeMessages,
+      resumePhase: metadata.currentPhase,
     };
 
-    p.log.success('Type "Start session" from the menu to continue this session.');
+    p.log.success(`Loaded ${resumeMessages.length} messages. Type "Start session" to continue.`);
   } catch (error) {
     s.stop('Failed to load session');
     p.log.error(`${error}`);
@@ -382,49 +466,107 @@ async function loadSession(state: IdleState, sessionName: string) {
 }
 
 /**
- * Test the Anthropic API connection
+ * Set or update Claude setup token.
+ * Writes to ~/.claude/credentials.json and sets CLAUDE_CODE_OAUTH_TOKEN env var
+ * so child Claude Code processes (via Agent SDK) authenticate properly.
  */
-async function handleApiTest() {
-  const s = p.spinner();
-  s.start('Testing API connection...');
+async function handleSetupToken(): Promise<boolean> {
+  const credPath = path.join(os.homedir(), '.claude', 'credentials.json');
+
+  // Show current status
+  let current: string | null = null;
+  try {
+    const credData = JSON.parse(await fs.readFile(credPath, 'utf-8'));
+    current = credData?.claudeAiOauth?.accessToken;
+  } catch { /* no credentials */ }
+
+  if (current) {
+    p.log.info(`Current token: ${current.slice(0, 20)}...`);
+  }
+
+  const token = await p.text({
+    message: 'Paste your Claude setup token (from claude.ai/settings)',
+    placeholder: 'sk-ant-oat01-...',
+    validate: (val) => {
+      if (!val || !val.trim()) return 'Token is required';
+    },
+  });
+
+  if (p.isCancel(token)) return !!current;
+
+  const tokenStr = (token as string).trim();
 
   try {
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const client = new Anthropic();
-    const response = await client.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 10,
-      messages: [{ role: 'user', content: 'Say "OK"' }],
-    });
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    s.stop(chalk.green(`API connection successful: ${text}`));
+    // Ensure ~/.claude directory exists
+    const claudeDir = path.join(os.homedir(), '.claude');
+    await fs.mkdir(claudeDir, { recursive: true });
+
+    // Read existing credentials or create new
+    let credData: any = {};
+    try {
+      credData = JSON.parse(await fs.readFile(credPath, 'utf-8'));
+    } catch { /* new file */ }
+
+    // Update the token in credentials.json
+    credData.claudeAiOauth = { accessToken: tokenStr };
+    await fs.writeFile(credPath, JSON.stringify(credData, null, 2));
+
+    // Set env var so Agent SDK child processes pick it up
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = tokenStr;
+
+    p.log.success('Setup token saved and activated.');
+    return true;
   } catch (error: any) {
-    s.stop(chalk.red(`API connection failed: ${error.message}`));
-    p.log.info('Make sure ANTHROPIC_API_KEY is set or use "Set Claude API key".');
+    p.log.error(`Failed to save token: ${error.message}`);
+    return !!current;
   }
 }
 
 /**
- * Set or display API key
+ * Test the Claude connection via Claude Agent SDK (uses setup token)
  */
-async function handleTokenFlow(state: IdleState) {
-  if (state.apiKey) {
-    p.log.info(`Current Claude API key: ${state.apiKey.slice(0, 10)}...`);
+async function handleApiTest() {
+  const s = p.spinner();
+  s.start('Testing Claude connection...');
+
+  let content = '';
+  try {
+    const { query: claudeQuery } = await import('@anthropic-ai/claude-agent-sdk');
+    const CLAUDE_CODE_PATH = path.join(os.homedir(), '.local', 'bin', 'claude');
+
+    const q = claudeQuery({
+      prompt: 'Say "OK"',
+      options: {
+        model: 'claude-3-5-haiku-20241022',
+        tools: [],
+        permissionMode: 'dontAsk',
+        persistSession: false,
+        maxTurns: 1,
+        pathToClaudeCodeExecutable: CLAUDE_CODE_PATH,
+        stderr: () => {},
+      },
+    });
+
+    for await (const message of q) {
+      if (message.type === 'assistant' && message.message?.content) {
+        for (const block of message.message.content) {
+          if (block.type === 'text') {
+            content += block.text;
+          }
+        }
+      }
+    }
+
+    s.stop(chalk.green(`Claude connection successful: ${content.trim()}`));
+  } catch (error: any) {
+    // SDK may throw on cleanup even if query succeeded - check for content
+    if (content) {
+      s.stop(chalk.green(`Claude connection successful: ${content.trim()}`));
+    } else {
+      s.stop(chalk.red(`Claude connection failed: ${error.message}`));
+      p.log.info('Make sure Claude Code is set up: run "claude" and complete setup.');
+    }
   }
-
-  const key = await p.text({
-    message: 'Enter your Claude API key (Anthropic)',
-    placeholder: 'sk-ant-...',
-    validate: (val) => {
-      if (!val) return 'Claude API key is required';
-    },
-  });
-
-  if (p.isCancel(key)) return;
-
-  state.apiKey = key as string;
-  process.env.ANTHROPIC_API_KEY = key as string;
-  p.log.success('Claude API key set.');
 }
 
 /**
@@ -481,8 +623,8 @@ function showHelpNote() {
     `${chalk.green('Start session')}   - Launch the configured debate`,
     `${chalk.green('Saved sessions')}  - Browse and load previous sessions`,
     `${chalk.green('List agents')}     - Show available agent personas`,
-    `${chalk.green('Test API')}        - Verify Claude API connection`,
-    `${chalk.green('Set Claude API key')} - Configure your Anthropic API key`,
+    `${chalk.green('Test connection')}  - Verify Claude setup token works`,
+    `${chalk.green('Set setup token')} - Update your Claude setup token`,
     '',
     `${chalk.yellow('During a session:')}`,
     `  Type messages to join the debate`,
@@ -526,8 +668,10 @@ async function startSessionFromConfig(state: IdleState) {
 
   // Create session config
   const geminiKey = state.geminiApiKey || process.env.GEMINI_API_KEY;
+  const isResume = !!(cfg.resumeSessionDir && cfg.resumeMessages?.length);
+
   const config: SessionConfig = {
-    id: uuid(),
+    id: isResume ? path.basename(cfg.resumeSessionDir!) : uuid(),
     projectName: cfg.projectName,
     goal: cfg.goal || 'Reach consensus',
     enabledAgents: cfg.agents,
@@ -549,24 +693,55 @@ async function startSessionFromConfig(state: IdleState) {
     toolRunner.enableGemini(geminiKey);
   }
 
-  // Create session
+  // Restore messages with Date objects (JSON parse gives strings)
+  const resumedMessages: Message[] = isResume
+    ? cfg.resumeMessages!.map((m: any) => ({
+        ...m,
+        timestamp: new Date(m.timestamp),
+      }))
+    : [];
+
+  // Create session (reuse data if resuming)
   const session: Session = {
     id: config.id,
     config,
-    messages: [],
-    currentPhase: 'initialization',
+    messages: resumedMessages,
+    currentPhase: (isResume && cfg.resumePhase as any) || 'initialization',
     currentRound: 0,
     decisions: [],
     drafts: [],
-    startedAt: new Date(),
+    startedAt: isResume ? new Date(resumedMessages[0]?.timestamp || new Date()) : new Date(),
     status: 'running',
   };
 
-  // Create persistence
+  // Create persistence — resume into existing dir or init new
   const persistence = new SessionPersistence(state.fsAdapter, {
     outputDir: config.outputDir,
   });
-  await persistence.initSession(session);
+
+  if (isResume) {
+    await persistence.resumeSession(session, cfg.resumeSessionDir!);
+    p.log.info(chalk.dim(`Resuming session with ${resumedMessages.length} messages`));
+  } else {
+    await persistence.initSession(session);
+
+    // Save custom personas to session directory so saved sessions are self-contained
+    if (cfg.personaSetName && cfg.personas) {
+      const sessionDir = persistence.getSessionDir();
+      if (sessionDir) {
+        await state.fsAdapter.writeFile(
+          path.join(sessionDir, 'personas.json'),
+          JSON.stringify(cfg.personas, null, 2)
+        );
+        if (cfg.domainSkills) {
+          await state.fsAdapter.writeFile(
+            path.join(sessionDir, 'skills.md'),
+            cfg.domainSkills
+          );
+        }
+      }
+    }
+  }
 
   // Set runner on message bus for memory summarization
   messageBus.setAgentRunner(state.agentRunner);
@@ -582,6 +757,16 @@ async function startSessionFromConfig(state: IdleState) {
     }
   );
 
+  // Preload resumed messages into the bus after orchestrator starts
+  // (bus.start() clears history, so we feed messages back in silently)
+  if (isResume && resumedMessages.length > 0) {
+    const origStart = orchestrator.start.bind(orchestrator);
+    orchestrator.start = async () => {
+      await origStart();
+      messageBus.preloadMessages(resumedMessages);
+    };
+  }
+
   // Update persistence on events
   orchestrator.on((event) => {
     if (event.type === 'agent_message') {
@@ -594,23 +779,18 @@ async function startSessionFromConfig(state: IdleState) {
   p.log.info(chalk.dim(`Agents: ${cfg.agents.join(', ')}`));
   p.log.info(chalk.dim(`Output: ${persistence.getSessionDir()}`));
 
-  // Hand off to Ink — clack prompts are done, Ink takes the terminal
-  const { waitUntilExit } = render(
-    React.createElement(App, {
-      orchestrator,
-      persistence,
-      session,
-      toolRunner,
-      onExit: async () => {
-        await persistence.saveFull();
-        clearCustomPersonas();
-        console.log(`\nSession saved to ${persistence.getSessionDir()}`);
-      },
-    })
-  );
-
-  // Block until Ink exits (user pressed Ctrl+C or typed quit)
-  await waitUntilExit();
+  // Hand off to blessed dashboard — clack prompts are done, blessed takes the terminal
+  const { createDashboard } = await import('../dashboard/index');
+  await createDashboard({
+    orchestrator,
+    persistence,
+    session,
+    toolRunner,
+    onExit: async () => {
+      await persistence.saveFull();
+      clearCustomPersonas();
+    },
+  });
 
   // Back to idle — show banner again
   p.log.success('Session ended. Returning to menu.');

@@ -4,7 +4,6 @@
 
 import React from 'react';
 import { Box, Text } from 'ink';
-import Spinner from 'ink-spinner';
 
 interface AgentInfo {
   id: string;
@@ -17,6 +16,8 @@ interface AgentInfo {
 interface AgentListProps {
   agents: AgentInfo[];
   currentSpeaker: string | null;
+  width?: number;
+  height?: number;
 }
 
 const STATE_ICONS: Record<string, string> = {
@@ -34,14 +35,15 @@ const AGENT_COLORS: Record<string, string> = {
   michal: 'yellow',
 };
 
-export function AgentList({ agents, currentSpeaker }: AgentListProps): React.ReactElement {
+export function AgentList({ agents, currentSpeaker, width = 24, height }: AgentListProps): React.ReactElement {
   return (
     <Box
       flexDirection="column"
       borderStyle="single"
       borderColor="gray"
       paddingX={1}
-      width={24}
+      width={width}
+      height={height}
     >
       <Text bold underline>
         Agents
@@ -55,13 +57,7 @@ export function AgentList({ agents, currentSpeaker }: AgentListProps): React.Rea
 
         return (
           <Box key={agent.id} flexDirection="row">
-            {isSpeaking ? (
-              <Text color="green">
-                <Spinner type="dots" />
-              </Text>
-            ) : (
-              <Text>{stateIcon}</Text>
-            )}
+            <Text>{isSpeaking ? '💬' : stateIcon}</Text>
             <Text> </Text>
             <Text color={color} bold={isSpeaking}>
               {agent.name}

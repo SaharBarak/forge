@@ -283,8 +283,16 @@ async function main() {
     onEvent: handleEvent,
   });
 
-  // Load API key from environment
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+  // Load API key from Claude Code setup token
+  let apiKey: string | undefined;
+  try {
+    const os = await import('os');
+    const fs = await import('fs');
+    const credPath = `${os.default.homedir()}/.claude/credentials.json`;
+    const credData = JSON.parse(fs.default.readFileSync(credPath, 'utf-8'));
+    apiKey = credData?.claudeAiOauth?.accessToken;
+    if (apiKey) process.env.ANTHROPIC_API_KEY = apiKey;
+  } catch { /* no credentials */ }
   if (apiKey) {
     kernel.setApiKey(apiKey);
   }

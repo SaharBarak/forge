@@ -9,6 +9,7 @@ import * as fs from 'fs/promises';
 import chalk from 'chalk';
 import { AGENT_PERSONAS, registerCustomPersonas, clearCustomPersonas, generatePersonas } from '../../src/agents/personas';
 import { menuBreadcrumbs } from '../lib/menuBreadcrumbs';
+import { multilineText } from '../lib/multilineText';
 import type { AgentPersona } from '../../src/types';
 
 export interface WizardResult {
@@ -20,6 +21,10 @@ export interface WizardResult {
   domainSkills?: string;
   personaSetName: string | null;
   enabledTools?: string[];
+  // Set when resuming an existing session
+  resumeSessionDir?: string;  // full path to existing session directory
+  resumeMessages?: any[];     // previously saved messages
+  resumePhase?: string;       // last known phase
 }
 
 /**
@@ -197,35 +202,24 @@ export async function runConfigWizard(cwd: string): Promise<WizardResult | null>
   p.intro(chalk.magenta.bold('NEW SESSION'));
 
   menuBreadcrumbs.push('Project Details');
-  const basics = await p.group(
-    {
-      projectName: () =>
-        p.text({
-          message: 'Project name',
-          placeholder: 'My Project',
-          defaultValue: 'Untitled Project',
-        }),
-      goal: () =>
-        p.text({
-          message: 'Project goal',
-          placeholder: 'Create effective content for...',
-          defaultValue: 'Create effective content',
-        }),
-    },
-    {
-      onCancel: () => {
-        p.cancel('Configuration cancelled');
-        return;
-      },
-    }
-  );
+
+  const projectNameResult = await p.text({
+    message: 'Project name',
+    placeholder: 'My Project',
+    defaultValue: 'Untitled Project',
+  });
+  if (p.isCancel(projectNameResult)) { p.cancel('Configuration cancelled'); menuBreadcrumbs.pop(); return null; }
+  const projectName = projectNameResult as string;
+
+  const goalResult = await multilineText({
+    message: 'Project goal & description',
+    placeholder: 'Describe your project goal in detail...',
+    defaultValue: 'Create effective content',
+  });
+  if (typeof goalResult === 'symbol') { p.cancel('Configuration cancelled'); menuBreadcrumbs.pop(); return null; }
+  const goal = goalResult as string;
 
   menuBreadcrumbs.pop();
-
-  if (!basics || p.isCancel(basics)) return null;
-
-  const projectName = basics.projectName as string;
-  const goal = basics.goal as string;
 
   // Persona selection with loop for generate/defaults
   let personas = AGENT_PERSONAS;

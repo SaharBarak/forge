@@ -72,7 +72,6 @@ export class FloorManager {
     // Insert based on urgency (high urgency goes to front)
     this.insertIntoQueue(queuedRequest);
 
-    console.log(`[FloorManager] Queued request from ${request.agentId} (urgency: ${request.urgency}). Queue size: ${this.requestQueue.length}`);
 
     // Process queue if no one is speaking
     if (!this.currentSpeaker && !this.isProcessing) {
@@ -129,7 +128,6 @@ export class FloorManager {
     this.currentSpeaker = nextRequest.agentId;
     this.isProcessing = false;
 
-    console.log(`[FloorManager] Granting floor to ${nextRequest.agentId}`);
 
     this.bus.emit('floor:granted', {
       agentId: nextRequest.agentId,
@@ -139,7 +137,6 @@ export class FloorManager {
     // Set timeout for floor
     this.floorTimeoutId = setTimeout(() => {
       if (this.currentSpeaker === nextRequest.agentId) {
-        console.log(`[FloorManager] Floor timeout for ${nextRequest.agentId}`);
         this.forceRelease(nextRequest.agentId);
       }
     }, this.floorTimeout);
@@ -167,7 +164,6 @@ export class FloorManager {
 
     this.currentSpeaker = null;
 
-    console.log(`[FloorManager] Floor released by ${agentId}. Queue size: ${this.requestQueue.length}`);
 
     // Small delay before processing next
     setTimeout(() => this.processQueue(), 100);

@@ -1,10 +1,21 @@
 /**
- * InputPane - Human input area with command support
+ * InputPane - Human input area with command support and tab completion
  */
 
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
+
+const COMMANDS = [
+  { name: 'pause', description: 'Pause debate' },
+  { name: 'resume', description: 'Resume debate' },
+  { name: 'status', description: 'Show status' },
+  { name: 'synthesize', description: 'Move to synthesis' },
+  { name: 'synthesize force', description: 'Force synthesis' },
+  { name: 'export', description: 'Export transcript' },
+  { name: 'help', description: 'Toggle help' },
+  { name: 'quit', description: 'Save and exit' },
+];
 
 interface InputPaneProps {
   onSubmit: (text: string) => void;
@@ -22,10 +33,20 @@ export function InputPane({
   onInputChange,
 }: InputPaneProps): React.ReactElement {
   const [value, setValue] = useState('');
+  const [hint, setHint] = useState('');
 
   const handleChange = (newValue: string) => {
     setValue(newValue);
     onInputChange?.(newValue);
+
+    // Show autocomplete hint for commands
+    if (newValue.startsWith('/') && newValue.length > 1) {
+      const partial = newValue.slice(1).toLowerCase();
+      const match = COMMANDS.find(c => c.name.startsWith(partial) && c.name !== partial);
+      setHint(match ? `/${match.name} — ${match.description}` : '');
+    } else {
+      setHint('');
+    }
   };
 
   const handleSubmit = (text: string) => {
@@ -43,9 +64,10 @@ export function InputPane({
     }
 
     setValue('');
+    setHint('');
   };
 
-  // Handle Ctrl+C, Ctrl+S shortcuts
+  // Handle Ctrl shortcuts and Tab completion
   useInput((input, key) => {
     if (key.ctrl && input === 's') {
       onCommand('synthesize', []);
@@ -53,25 +75,43 @@ export function InputPane({
     if (key.ctrl && input === 'e') {
       onCommand('export', []);
     }
+    // Tab: autocomplete command
+    if (key.tab && value.startsWith('/') && value.length > 1) {
+      const partial = value.slice(1).toLowerCase();
+      const match = COMMANDS.find(c => c.name.startsWith(partial));
+      if (match) {
+        const completed = `/${match.name}`;
+        setValue(completed);
+        setHint('');
+        onInputChange?.(completed);
+      }
+    }
   });
 
   return (
-    <Box
-      borderStyle="single"
-      borderColor="cyan"
-      paddingX={1}
-    >
-      <Text color="cyan">{'> '}</Text>
-      {disabled ? (
-        <Text dimColor>Waiting for agents...</Text>
-      ) : (
-        <TextInput
-          value={value}
-          onChange={handleChange}
-          onSubmit={handleSubmit}
-          placeholder={placeholder}
-        />
+    <Box flexDirection="column">
+      {hint && (
+        <Box paddingX={2}>
+          <Text dimColor>  Tab: {hint}</Text>
+        </Box>
       )}
+      <Box
+        borderStyle="single"
+        borderColor="cyan"
+        paddingX={1}
+      >
+        <Text color="cyan">{'> '}</Text>
+        {disabled ? (
+          <Text dimColor>Waiting for agents...</Text>
+        ) : (
+          <TextInput
+            value={value}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            placeholder={placeholder}
+          />
+        )}
+      </Box>
     </Box>
   );
 }

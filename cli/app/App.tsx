@@ -4,9 +4,12 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
-import { StatusBar, PHASE_COLORS } from './StatusBar';
+import { StatusBar, PHASE_COLORS, PHASE_EMOJI } from './StatusBar';
 import { AgentList } from './AgentList';
 import { ChatPane } from './ChatPane';
+import { CanvasPane } from './CanvasPane';
+import { getDefaultWireframe, extractWireframe } from '../lib/wireframe';
+import type { WireframeNode } from '../lib/wireframe';
 import { InputPane, CommandHelp } from './InputPane';
 import { Breadcrumbs } from './Breadcrumbs';
 import { QuickReplies } from './QuickReplies';
@@ -39,6 +42,14 @@ interface AgentInfo {
 export function App({ orchestrator, persistence, session, toolRunner, onExit }: AppProps): React.ReactElement {
   const { exit } = useApp();
 
+  // Terminal height — needed because Ink root has no intrinsic height
+  const [termRows, setTermRows] = useState(process.stdout.rows || 24);
+  useEffect(() => {
+    const onResize = () => setTermRows(process.stdout.rows || 24);
+    process.stdout.on('resize', onResize);
+    return () => { process.stdout.off('resize', onResize); };
+  }, []);
+
   // State
   const [messages, setMessages] = useState<Message[]>([]);
   const [phase, setPhase] = useState<SessionPhase>('initialization');
@@ -52,6 +63,8 @@ export function App({ orchestrator, persistence, session, toolRunner, onExit }: 
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [agentSuggestion, setAgentSuggestion] = useState<AgentSuggestionData | null>(null);
   const [inputEmpty, setInputEmpty] = useState(true);
+  const [scrollOffset, setScrollOffset] = useState(0); // 0 = bottom (latest), higher = scrolled up
+  const [wireframe, setWireframe] = useState<WireframeNode>(getDefaultWireframe());
   const prevMessageCount = useRef(0);
 
   // Build agent list
@@ -109,6 +122,15 @@ export function App({ orchestrator, persistence, session, toolRunner, onExit }: 
               }
             }
           }
+          // Check for wireframe proposals in agent messages
+          const lastMsg = allMessages[allMessages.length - 1];
+          if (lastMsg && lastMsg.agentId !== 'system') {
+            const proposed = extractWireframe(lastMsg.content);
+            if (proposed) {
+              setWireframe(proposed);
+            }
+          }
+
           // Detect agent suggestions
           const suggestionData = detectAgentSuggestion(
             allMessages, phase, status.consensusPoints, status.conflictPoints, prevMessageCount.current
@@ -171,33 +193,38 @@ export function App({ orchestrator, persistence, session, toolRunner, onExit }: 
     switch (command.toLowerCase()) {
       case 'pause':
         orchestrator.pause();
-        setStatusMessage('Debate paused');
+        setStatusMessage('⏸ Debate paused');
         break;
 
       case 'resume':
         orchestrator.resume();
-        setStatusMessage('Debate resumed');
+        setStatusMessage('▶ Debate resumed');
         break;
 
-      case 'status':
+      case 'status': {
         const status = orchestrator.getConsensusStatus();
-        setStatusMessage(status.recommendation);
+        setStatusMessage(`📊 ${status.recommendation}`);
         break;
+      }
 
-      case 'synthesize':
+      case 'synthesize': {
         const force = args.includes('force');
+        setStatusMessage('⏳ Transitioning to synthesis...');
         const result = await orchestrator.transitionToSynthesis(force);
-        setStatusMessage(result.message);
+        setStatusMessage(result.success ? `✅ ${result.message}` : `⚠ ${result.message}`);
         break;
+      }
 
-      case 'export':
+      case 'export': {
+        setStatusMessage('⏳ Exporting...');
         await persistence.saveFull();
         const dir = persistence.getSessionDir();
-        setStatusMessage(`Exported to ${dir}`);
+        setStatusMessage(`✅ Exported to ${dir}`);
         break;
+      }
 
       case 'help':
-        setShowHelp(!showHelp);
+        setShowHelp(prev => !prev);
         break;
 
       case 'quit':
@@ -209,11 +236,11 @@ export function App({ orchestrator, persistence, session, toolRunner, onExit }: 
         break;
 
       default:
-        setStatusMessage(`Unknown command: ${command}`);
+        setStatusMessage(`❌ Unknown command: /${command}. Type /help for available commands.`);
     }
 
-    setTimeout(() => setStatusMessage(null), 5000);
-  }, [orchestrator, persistence, onExit, exit, showHelp]);
+    setTimeout(() => setStatusMessage(null), 8000);
+  }, [orchestrator, persistence, onExit, exit]);
 
   // Quick replies
   const quickReplies = useMemo(
@@ -235,28 +262,57 @@ export function App({ orchestrator, persistence, session, toolRunner, onExit }: 
     }
   }, [handleCommand, handleSubmit]);
 
-  // Handle Ctrl+C and number keys
-  useInput((input, key) => {
-    if (key.ctrl && input === 'c') {
+  // Auto-scroll to bottom on new messages (unless user scrolled up)
+  useEffect(() => {
+    if (scrollOffset === 0) return; // Already at bottom
+    // Don't auto-scroll if user manually scrolled up
+  }, [messages.length]);
+
+  // Reset scroll to bottom on new messages when at or near bottom
+  useEffect(() => {
+    if (scrollOffset <= 1) {
+      setScrollOffset(0);
+    }
+  }, [messages.length]);
+
+  // Handle Ctrl+C and scroll (NO character keys — they leak into TextInput)
+  useInput((_input, key) => {
+    if (key.ctrl && _input === 'c') {
       handleCommand('quit', []);
     }
-    if (input === '?') {
-      setShowHelp(!showHelp);
+    // Scroll: Arrow Up/Down (arrows don't type into TextInput)
+    if (key.upArrow && !key.shift) {
+      setScrollOffset((prev) => Math.min(prev + 1, Math.max(0, messages.length - 5)));
     }
-    // Number keys 1-4 for quick replies when input is empty
-    if (inputEmpty && !key.ctrl && !key.meta) {
-      const num = parseInt(input, 10);
-      if (num >= 1 && num <= 4 && num <= quickReplies.length) {
-        handleQuickReply(quickReplies[num - 1]);
-      }
+    if (key.downArrow && !key.shift) {
+      setScrollOffset((prev) => Math.max(0, prev - 1));
+    }
+    // Scroll: Page Up/Down (shift+arrow)
+    if (key.upArrow && key.shift) {
+      setScrollOffset((prev) => Math.min(prev + 10, Math.max(0, messages.length - 5)));
+    }
+    if (key.downArrow && key.shift) {
+      setScrollOffset((prev) => Math.max(0, prev - 10));
     }
   });
 
+  // Calculate explicit heights — Ink's flexGrow is unreliable for fullscreen layouts
+  const termCols = process.stdout.columns || 80;
+  // Fixed chrome: breadcrumbs(2 w/ margin) + statusBar(4 w/ border) + input(3 w/ border) + footer(1) + quickReplies(1) = 11
+  let chromeRows = 11;
+  if (statusMessage) chromeRows += 1;
+  if (showHelp) chromeRows += 10;
+  if (agentSuggestion) chromeRows += 3;
+  const mainContentHeight = Math.max(8, termRows - chromeRows);
+  // 3-column layout: Chat (60%) | Agents (20%) | Canvas (20%)
+  const sidebarWidth = Math.max(16, Math.floor(termCols * 0.2));
+  const canvasWidth = Math.max(20, Math.floor(termCols * 0.35));
+
   return (
-    <Box flexDirection="column" height="100%">
-      {/* Header Breadcrumbs */}
+    <Box flexDirection="column" height={termRows}>
+      {/* Header Breadcrumbs — phase segment updates reactively */}
       <Breadcrumbs
-        segments={['\uD83D\uDD25 Forge', session.config.projectName, phase.toUpperCase()]}
+        segments={['\uD83D\uDD25 Forge', session.config.projectName, `${PHASE_EMOJI[phase] || ''} ${phase.replace(/_/g, ' ').toUpperCase()}`]}
         phaseColor={PHASE_COLORS[phase]}
       />
 
@@ -270,13 +326,20 @@ export function App({ orchestrator, persistence, session, toolRunner, onExit }: 
         conflictPoints={conflictPoints}
       />
 
-      {/* Main Content */}
-      <Box flexDirection="row" flexGrow={1}>
-        {/* Chat Pane */}
-        <ChatPane messages={messages} currentSpeaker={currentSpeaker} />
+      {/* Main Content — explicit height, 3-column layout: Chat | Canvas | Agents */}
+      <Box flexDirection="row" height={mainContentHeight} width="100%">
+        {/* Chat Pane (fills remaining ~45%) */}
+        <ChatPane messages={messages} maxHeight={mainContentHeight - 2} currentSpeaker={currentSpeaker} scrollOffset={scrollOffset} height={mainContentHeight} />
 
-        {/* Agent Sidebar */}
-        <AgentList agents={agents} currentSpeaker={currentSpeaker} />
+        {/* Canvas — live wireframe (35%) */}
+        <CanvasPane
+          wireframe={wireframe}
+          height={mainContentHeight}
+          width={canvasWidth}
+        />
+
+        {/* Agent Sidebar (20%) */}
+        <AgentList agents={agents} currentSpeaker={currentSpeaker} width={sidebarWidth} height={mainContentHeight} />
       </Box>
 
       {/* Status Message */}
@@ -313,7 +376,7 @@ export function App({ orchestrator, persistence, session, toolRunner, onExit }: 
       {/* Footer */}
       <Box paddingX={1}>
         <Text dimColor>
-          Press ? for help | 1-{quickReplies.length || 4} quick reply | Ctrl+C to quit
+          {termCols}x{termRows} | /help | Arrows scroll | Ctrl+C quit
         </Text>
       </Box>
     </Box>

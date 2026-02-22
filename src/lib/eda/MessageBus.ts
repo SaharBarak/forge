@@ -5,7 +5,7 @@
 
 import type { Message } from '../../types';
 import type { IAgentRunner } from '../interfaces';
-import { ConversationMemory, type MemoryConfig } from './ConversationMemory';
+import { ConversationMemory, type MemoryConfig, type MemoryEntry, type AgentMemoryState } from './ConversationMemory';
 
 /**
  * Configuration for MessageBus limits
@@ -160,17 +160,14 @@ export class MessageBus {
   emit<T extends MessageBusEvent>(event: T, payload: MessageBusPayload[T]): void {
     if (!this.isActive && !event.startsWith('session:')) return;
 
-    // Log event for debugging
-    console.log(`[MessageBus] ${event}`, payload);
-
     // Notify all subscribers of this event
     const relevantSubs = this.subscriptions.filter((s) => s.event === event);
     for (const sub of relevantSubs) {
       try {
         // Async dispatch so subscribers don't block each other
         setTimeout(() => sub.callback(payload), 0);
-      } catch (error) {
-        console.error(`[MessageBus] Error in subscriber ${sub.subscriberId}:`, error);
+      } catch {
+        // subscriber error silenced to prevent Ink flicker
       }
     }
   }
@@ -191,7 +188,7 @@ export class MessageBus {
 
     // Process message for memory tracking
     this.memory.processMessage(message, this.messageHistory).catch(err => {
-      console.error('[MessageBus] Memory processing error:', err);
+      // memory processing error silenced
     });
 
     // Prune if needed
@@ -233,6 +230,38 @@ export class MessageBus {
    */
   restoreMemory(state: object): void {
     this.memory = ConversationMemory.fromJSON(state, this.agentRunner);
+  }
+
+  /**
+   * Get active proposals (for phase handoff briefs)
+   */
+  getActiveProposals(): MemoryEntry[] {
+    return this.memory.getActiveProposals();
+  }
+
+  /**
+   * Get summaries since a message index (for phase handoff briefs)
+   */
+  getSummariesSince(messageIndex: number): MemoryEntry[] {
+    return this.memory.getSummariesSince(messageIndex);
+  }
+
+  /**
+   * Get decisions since a message index (for phase handoff briefs)
+   */
+  getDecisionsSince(messageIndex: number): MemoryEntry[] {
+    return this.memory.getDecisionsSince(messageIndex);
+  }
+
+  /**
+   * Get all agent memory states (for phase handoff briefs)
+   */
+  getAllAgentStates(): Map<string, AgentMemoryState> {
+    return this.memory.getAllAgentStates();
+  }
+
+  getAgentMemoryState(agentId: string): import('./ConversationMemory').AgentMemoryState | undefined {
+    return this.memory.getAgentState(agentId);
   }
 
   /**
@@ -350,6 +379,14 @@ export class MessageBus {
     this.prunedMessageCount = 0;
     this.memory.reset();
     this.emit('session:start', { sessionId, goal });
+  }
+
+  /**
+   * Preload messages from a previous session (no events emitted).
+   * Must be called after start() to seed history for resumed sessions.
+   */
+  preloadMessages(messages: Message[]): void {
+    this.messageHistory.push(...messages);
   }
 
   /**

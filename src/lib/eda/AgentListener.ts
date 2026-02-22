@@ -114,13 +114,11 @@ export class AgentListener {
           this.pendingEvaluation = null;
         }
         this.state = 'listening'; // Reset state when paused
-        console.log(`[AgentListener:${this.id}] Paused (research/halt)`);
       }, this.id)
     );
 
     this.unsubscribers.push(
       this.bus.subscribe('session:resume', () => {
-        console.log(`[AgentListener:${this.id}] Resumed`);
         // Re-evaluate after resume if there are messages we haven't responded to
         // This fixes the bug where agents don't react after session resume (#31)
         if (this.messagesSinceSpoke > 0 && this.state === 'listening') {
@@ -132,7 +130,6 @@ export class AgentListener {
       }, this.id)
     );
 
-    console.log(`[AgentListener:${this.id}] Started with ${this.agentRunner ? 'injected runner' : 'default runner'}`);
   }
 
   /**
@@ -147,7 +144,6 @@ export class AgentListener {
     this.unsubscribers = [];
     this.state = 'listening';
     this.claudeAgent = null;
-    console.log(`[AgentListener:${this.id}] Stopped listening`);
   }
 
   /**
@@ -193,7 +189,6 @@ export class AgentListener {
     // This prevents over-chatty behavior and creates more natural flow
     // Higher threshold = more likely to react (threshold of 1.0 = always react)
     if (Math.random() > this.config.reactivityThreshold) {
-      console.log(`[AgentListener:${this.id}] Skipping reaction (probability threshold ${this.config.reactivityThreshold})`);
       return;
     }
 
@@ -226,13 +221,10 @@ export class AgentListener {
 
         this.state = 'waiting';
         this.bus.emit('floor:request', request);
-        console.log(`[AgentListener:${this.id}] Requesting floor (${reaction.urgency}): ${reaction.reason}`);
       } else {
         this.state = 'listening';
-        console.log(`[AgentListener:${this.id}] Passing: ${reaction.reason}`);
       }
     } catch (error) {
-      console.error(`[AgentListener:${this.id}] Evaluation error:`, error);
       this.state = 'listening';
     }
   }
@@ -244,7 +236,6 @@ export class AgentListener {
     if (!this.sessionConfig || !this.claudeAgent) return;
 
     this.state = 'speaking';
-    console.log(`[AgentListener:${this.id}] Got floor, speaking...`);
 
     try {
       const recentMessages = this.bus.getRecentMessages(this.config.maxResponseMessages);
@@ -283,7 +274,6 @@ export class AgentListener {
       this.messagesSinceSpoke = 0;
 
     } catch (error) {
-      console.error(`[AgentListener:${this.id}] Response error:`, error);
       this.bus.emit('floor:released', { agentId: this.id });
       this.state = 'listening';
     }
@@ -293,7 +283,6 @@ export class AgentListener {
    * Called when floor request is denied
    */
   private onFloorDenied(reason: string): void {
-    console.log(`[AgentListener:${this.id}] Floor denied: ${reason}`);
     this.state = 'listening';
   }
 

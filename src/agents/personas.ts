@@ -384,23 +384,16 @@ export async function generatePersonas(
   projectName: string,
   goal: string,
   count: number = 5,
-  apiKey?: string
+  _apiKey?: string
 ): Promise<{ personas: AgentPersona[]; expertise?: string } | null> {
+  let content = '';
   try {
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const client = new Anthropic(apiKey ? { apiKey } : undefined);
+    const { query: claudeQuery } = await import('@anthropic-ai/claude-agent-sdk');
+    const os = await import('os');
+    const path = await import('path');
+    const CLAUDE_CODE_PATH = path.join(os.homedir(), '.local', 'bin', 'claude');
 
-    const prompt = `Generate debate personas for this project:
-
-**Project:** ${projectName}
-**Goal:** ${goal}
-
-Create ${count} personas that would be valuable stakeholders in debating and making decisions for this project. Include diverse perspectives that will create productive tension.`;
-
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      system: `You are an expert at creating debate personas for multi-agent deliberation systems.
+    const systemPrompt = `You are an expert at creating debate personas for multi-agent deliberation systems.
 
 Your task is to generate a set of personas that will engage in productive debate about a specific domain or project.
 
@@ -423,25 +416,56 @@ An array of ${count} personas. Each persona must have:
 - strengths: Array of 3-4 strengths
 - weaknesses: Array of 2 weaknesses
 - speakingStyle: How they communicate
-- color: One of: pink, green, purple, orange, blue, cyan, yellow, red`,
-      messages: [{ role: 'user', content: prompt }],
+- color: One of: pink, green, purple, orange, blue, cyan, yellow, red`;
+
+    const contextPrompt = `Generate debate personas for this project:
+
+**Project:** ${projectName}
+**Goal:** ${goal}
+
+Create ${count} personas that would be valuable stakeholders in debating and making decisions for this project. Include diverse perspectives that will create productive tension.`;
+
+    const q = claudeQuery({
+      prompt: contextPrompt,
+      options: {
+        systemPrompt,
+        model: 'claude-sonnet-4-20250514',
+        tools: [],
+        permissionMode: 'dontAsk',
+        persistSession: false,
+        maxTurns: 1,
+        pathToClaudeCodeExecutable: CLAUDE_CODE_PATH,
+        stderr: (data: string) => process.stderr.write(`[persona-gen] ${data}`),
+      },
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) {
-      console.error('[generatePersonas] Failed to parse response');
+    for await (const message of q) {
+      if (message.type === 'assistant' && message.message?.content) {
+        for (const block of message.message.content) {
+          if (block.type === 'text') {
+            content += block.text;
+          }
+        }
+      }
+    }
+  } catch (error: any) {
+    // SDK may throw on cleanup even if query succeeded - check for content
+    if (!content) {
+      console.error('[generatePersonas] Error:', error.message);
       return null;
     }
+  }
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    const personas = parsed.personas || parsed;
-    const expertise = parsed.expertise;
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
 
-    return { personas, expertise };
-  } catch (error: any) {
-    console.error('[generatePersonas] Error:', error.message);
+  if (!jsonMatch) {
+    console.error('[generatePersonas] Failed to parse response');
     return null;
   }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  const personas = parsed.personas || parsed;
+  const expertise = parsed.expertise;
+
+  return { personas, expertise };
 }

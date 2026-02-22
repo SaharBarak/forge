@@ -62,6 +62,17 @@ export class SessionPersistence {
   }
 
   /**
+   * Resume into an existing session directory (no new dir created)
+   */
+  async resumeSession(session: Session, existingDir: string): Promise<string> {
+    this.session = session;
+    this.sessionDir = existingDir;
+    this.lastSavedMessageCount = session.messages.length; // Don't re-save existing messages
+    this.startAutoSave();
+    return this.sessionDir;
+  }
+
+  /**
    * Start auto-save timer
    */
   private startAutoSave(): void {
@@ -221,7 +232,7 @@ export class SessionPersistence {
 
     const agent = getAgentById(agentId);
     if (agent) {
-      return `**${agent.name}** (${agent.nameHe})`;
+      return `**${agent.name}**`;
     }
     return `**${agentId}**`;
   }

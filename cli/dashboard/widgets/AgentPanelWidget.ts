@@ -1,10 +1,10 @@
 /**
- * AgentPanelWidget — shows agents with state icons, colored names, contribution bars
+ * AgentPanelWidget — shows agents with state icons, colored names, contribution bars, resonance
  */
 
 import type blessed from 'blessed';
 import type { AgentInfo } from '../types';
-import { STATE_ICONS, BAR_CHAR, BAR_EMPTY } from '../theme';
+import { STATE_ICONS, BAR_CHAR, BAR_EMPTY, RESONANCE_COLORS, RESONANCE_TREND_ICONS } from '../theme';
 
 /**
  * Map persona color names to blessed tag-compatible colors
@@ -27,6 +27,17 @@ function buildBar(count: number, maxCount: number, width: number): string {
   return BAR_CHAR.repeat(filled) + BAR_EMPTY.repeat(width - filled);
 }
 
+function getResonanceColor(score: number): string {
+  if (score >= 60) return RESONANCE_COLORS.high;
+  if (score >= 30) return RESONANCE_COLORS.medium;
+  return RESONANCE_COLORS.low;
+}
+
+function getResonanceTrendIcon(trend?: 'rising' | 'stable' | 'falling'): string {
+  if (!trend) return '';
+  return RESONANCE_TREND_ICONS[trend];
+}
+
 export function updateAgentPanel(
   widget: blessed.Widgets.BoxElement,
   agents: AgentInfo[],
@@ -46,10 +57,18 @@ export function updateAgentPanel(
     const boldEnd = isSpeaking ? '{/bold}' : '';
     const wireframeIcon = agent.hasWireframe ? ' \u{1F5BC}' : '';
 
-    // Line 1: icon Name (Role) wireframe-icon  bar count
+    // Resonance indicator: R:78^
+    let resonanceStr = '';
+    if (agent.resonance !== undefined) {
+      const rColor = getResonanceColor(agent.resonance);
+      const trendIcon = getResonanceTrendIcon(agent.resonanceTrend);
+      resonanceStr = ` {${rColor}-fg}R:${agent.resonance}${trendIcon}{/${rColor}-fg}`;
+    }
+
+    // Line 1: icon Name (Role) wireframe-icon  bar count R:score^
     const roleStr = agent.role ? ` {gray-fg}(${agent.role.slice(0, 15)}){/gray-fg}` : '';
     lines.push(
-      `${stateIcon} ${boldStart}{${color}-fg}${agent.name.padEnd(10)}{/${color}-fg}${boldEnd}${roleStr}${wireframeIcon} {cyan-fg}${bar}{/cyan-fg} ${agent.contributions}`
+      `${stateIcon} ${boldStart}{${color}-fg}${agent.name.padEnd(10)}{/${color}-fg}${boldEnd}${roleStr}${wireframeIcon} {cyan-fg}${bar}{/cyan-fg} ${agent.contributions}${resonanceStr}`
     );
 
     // Line 2: stance or latest argument summary (gray, indented)

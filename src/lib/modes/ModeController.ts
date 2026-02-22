@@ -435,23 +435,22 @@ Previous phase complete. Carry forward what we learned, but shift focus.`
         allowed: false,
         message: `⚠️ **RESEARCH REQUIRED BEFORE SYNTHESIS**
 
-נדרש לפחות ${required} בקשות מחקר לפני מעבר לסינתזה.
-בוצעו עד כה: ${completed}
+At least ${required} research requests needed before synthesis.
+Completed so far: ${completed}
 
-**פעולה נדרשת:** הסוכנים צריכים לבקש מידע נוסף מהחוקרים לפני שממשיכים.
+**Action required:** Agents need to request more information from researchers before proceeding.
 
-**חוקרים זמינים:**
-- @stats-finder - נתונים וסטטיסטיקות
-- @competitor-analyst - ניתוח מתחרים
-- @audience-insight - תובנות קהל יעד
-- @copy-explorer - דוגמאות קופי
-- @local-context - הקשר מקומי`
+**Available researchers:**
+- @stats-finder - Data and statistics
+- @competitor-analyst - Competitor analysis
+- @audience-insight - Audience insights
+- @copy-explorer - Copy examples`
       };
     }
 
     return {
       allowed: true,
-      message: `✅ דרישות המחקר התמלאו (${completed}/${required})`
+      message: `✅ Research requirements met (${completed}/${required})`
     };
   }
 

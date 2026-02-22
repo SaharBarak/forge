@@ -1,107 +1,122 @@
 /**
- * CLIAgentRunner - Direct Claude SDK integration for CLI
- * Runs Claude queries without going through Electron IPC
+ * CLIAgentRunner - Uses Claude Agent SDK (same as Electron main.js)
+ * Spawns Claude Code sessions at runtime, works with setup tokens
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { query as claudeQuery } from '@anthropic-ai/claude-agent-sdk';
+import * as os from 'os';
+import * as path from 'path';
 import type { IAgentRunner, QueryParams, QueryResult, EvalParams, EvalResult } from '../../src/lib/interfaces';
 
+const CLAUDE_CODE_PATH = path.join(os.homedir(), '.local', 'bin', 'claude');
+
 export class CLIAgentRunner implements IAgentRunner {
-  private client: Anthropic;
   private defaultModel: string;
 
-  constructor(apiKey?: string, defaultModel = 'claude-sonnet-4-20250514') {
-    this.client = new Anthropic({
-      apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
-    });
+  constructor(_apiKey?: string, defaultModel = 'claude-sonnet-4-20250514') {
     this.defaultModel = defaultModel;
   }
 
   async query(params: QueryParams): Promise<QueryResult> {
+    let content = '';
+    let usage = null;
+
     try {
-      const response = await this.client.messages.create({
-        model: params.model || this.defaultModel,
-        max_tokens: 2048,
-        system: params.systemPrompt || '',
-        messages: [
-          {
-            role: 'user',
-            content: params.prompt,
-          },
-        ],
+      const q = claudeQuery({
+        prompt: params.prompt,
+        options: {
+          systemPrompt: params.systemPrompt || undefined,
+          model: params.model || this.defaultModel,
+          tools: [],
+          permissionMode: 'dontAsk',
+          persistSession: false,
+          maxTurns: 1,
+          pathToClaudeCodeExecutable: CLAUDE_CODE_PATH,
+          stderr: () => {},
+        },
       });
 
-      const content = response.content[0].type === 'text'
-        ? response.content[0].text
-        : '';
-
-      return {
-        success: true,
-        content,
-        usage: {
-          inputTokens: response.usage.input_tokens,
-          outputTokens: response.usage.output_tokens,
-          costUsd: this.estimateCost(response.usage.input_tokens, response.usage.output_tokens),
-        },
-      };
+      for await (const message of q) {
+        if (message.type === 'assistant' && message.message?.content) {
+          for (const block of message.message.content) {
+            if (block.type === 'text') {
+              content += block.text;
+            }
+          }
+        }
+        if (message.type === 'result' && message.usage) {
+          usage = {
+            inputTokens: message.usage.input_tokens || 0,
+            outputTokens: message.usage.output_tokens || 0,
+            costUsd: message.total_cost_usd || 0,
+          };
+        }
+      }
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+      if (!content) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
     }
+
+    return {
+      success: true,
+      content,
+      usage: usage || { inputTokens: 0, outputTokens: 0, costUsd: 0 },
+    };
   }
 
   async evaluate(params: EvalParams): Promise<EvalResult> {
+    let content = '';
+
     try {
-      // Use haiku for evaluations - fast and cost-effective per ADAPTERS.md spec
-      const response = await this.client.messages.create({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 200,
-        messages: [
-          {
-            role: 'user',
-            content: params.evalPrompt,
-          },
-        ],
+      const q = claudeQuery({
+        prompt: params.evalPrompt,
+        options: {
+          systemPrompt: 'You are evaluating whether to speak in a discussion. Respond only with JSON.',
+          model: 'claude-3-5-haiku-20241022',
+          tools: [],
+          permissionMode: 'dontAsk',
+          persistSession: false,
+          maxTurns: 1,
+          pathToClaudeCodeExecutable: CLAUDE_CODE_PATH,
+          stderr: () => {},
+        },
       });
 
-      const text = response.content[0].type === 'text'
-        ? response.content[0].text
-        : '{}';
-
-      // Extract JSON from response (handle markdown code blocks)
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      for await (const message of q) {
+        if (message.type === 'assistant' && message.message?.content) {
+          for (const block of message.message.content) {
+            if (block.type === 'text') {
+              content += block.text;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (!content) {
         return {
           success: false,
           urgency: 'pass',
-          reason: 'Failed to parse response',
+          reason: error instanceof Error ? error.message : 'Unknown error',
           responseType: '',
         };
       }
-
-      const result = JSON.parse(jsonMatch[0]);
-      return {
-        success: true,
-        urgency: result.urgency || 'pass',
-        reason: result.reason || '',
-        responseType: result.responseType || '',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        urgency: 'pass',
-        reason: error instanceof Error ? error.message : 'Unknown error',
-        responseType: '',
-      };
     }
-  }
 
-  private estimateCost(inputTokens: number, outputTokens: number): number {
-    // Sonnet pricing (approximate)
-    const inputCost = (inputTokens / 1_000_000) * 3;
-    const outputCost = (outputTokens / 1_000_000) * 15;
-    return inputCost + outputCost;
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { success: true, urgency: 'pass', reason: 'Listening', responseType: '' };
+    }
+
+    const result = JSON.parse(jsonMatch[0]);
+    return {
+      success: true,
+      urgency: result.urgency || 'pass',
+      reason: result.reason || '',
+      responseType: result.responseType || '',
+    };
   }
 }

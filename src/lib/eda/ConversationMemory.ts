@@ -538,7 +538,6 @@ Summary:`,
         });
       }
     } catch (error) {
-      console.error('[ConversationMemory] Summarization failed:', error);
       this.createFallbackSummary(allMessages);
     }
 
@@ -822,6 +821,44 @@ Summary:`,
    */
   getLatestProposal(): MemoryEntry | undefined {
     return this.proposals.length > 0 ? this.proposals[this.proposals.length - 1] : undefined;
+  }
+
+  /**
+   * Get summaries covering messages after given index (for phase handoff briefs)
+   */
+  getSummariesSince(messageIndex: number): MemoryEntry[] {
+    return this.summaries.filter(s => {
+      if (!s.messageRange) return false;
+      return s.messageRange[1] > messageIndex;
+    });
+  }
+
+  /**
+   * Get decisions made after given message index (for phase handoff briefs)
+   */
+  getDecisionsSince(messageIndex: number): MemoryEntry[] {
+    return this.decisions.filter(d => {
+      if (!d.messageRange) return false;
+      return d.messageRange[1] > messageIndex;
+    });
+  }
+
+  /**
+   * Get all proposals (not just active)
+   */
+  getAllProposals(): MemoryEntry[] {
+    return [...this.proposals];
+  }
+
+  /**
+   * Get all agent memory states (for phase handoff briefs)
+   */
+  getAllAgentStates(): Map<string, AgentMemoryState> {
+    return new Map(this.agentStates);
+  }
+
+  getAgentState(agentId: string): AgentMemoryState | undefined {
+    return this.agentStates.get(agentId);
   }
 
   /**

@@ -45,10 +45,10 @@ function getAgentDisplayName(id, hebrew = false) {
 async function generatePersonas(projectName, goal, count = 5, _apiKey) {
   let content = "";
   try {
-    const { query: claudeQuery3 } = await import("@anthropic-ai/claude-agent-sdk");
-    const os5 = await import("os");
-    const path16 = await import("path");
-    const CLAUDE_CODE_PATH3 = path16.join(os5.homedir(), ".local", "bin", "claude");
+    const { query: claudeQuery4 } = await import("@anthropic-ai/claude-agent-sdk");
+    const os6 = await import("os");
+    const path18 = await import("path");
+    const CLAUDE_CODE_PATH4 = path18.join(os6.homedir(), ".local", "bin", "claude");
     const systemPrompt = `You are an expert at creating debate personas for multi-agent deliberation systems.
 
 Your task is to generate a set of personas that will engage in productive debate about a specific domain or project.
@@ -79,7 +79,7 @@ An array of ${count} personas. Each persona must have:
 **Goal:** ${goal}
 
 Create ${count} personas that would be valuable stakeholders in debating and making decisions for this project. Include diverse perspectives that will create productive tension.`;
-    const q = claudeQuery3({
+    const q = claudeQuery4({
       prompt: contextPrompt,
       options: {
         systemPrompt,
@@ -88,7 +88,7 @@ Create ${count} personas that would be valuable stakeholders in debating and mak
         permissionMode: "dontAsk",
         persistSession: false,
         maxTurns: 1,
-        pathToClaudeCodeExecutable: CLAUDE_CODE_PATH3,
+        pathToClaudeCodeExecutable: CLAUDE_CODE_PATH4,
         stderr: (data) => process.stderr.write(`[persona-gen] ${data}`)
       }
     });
@@ -652,9 +652,19 @@ var init_suggestions = __esm({
         hint: "Building consensus"
       },
       finalization: {
-        commands: ["/export", "/quit"],
-        prompts: ["Finalize", "One more revision"],
-        hint: "Wrapping up"
+        commands: ["/export", "/build", "/quit"],
+        prompts: ["Finalize", "Build websites"],
+        hint: "Type /build to generate 3 website variants"
+      },
+      building: {
+        commands: ["/urls", "/quit"],
+        prompts: [],
+        hint: "Building 3 website variants..."
+      },
+      picking: {
+        commands: ["/pick mika", "/pick dani", "/pick shai", "/urls", "/quit"],
+        prompts: ["Pick a winner"],
+        hint: "Review sites and /pick a winner"
       }
     };
   }
@@ -851,8 +861,489 @@ var init_layout = __esm({
   }
 });
 
+// src/agents/build-personas.ts
+function getBuildPersonaById(id) {
+  return BUILD_PERSONAS.find((p4) => p4.id === id);
+}
+function getBuildPersonaByName(name) {
+  return BUILD_PERSONAS.find((p4) => p4.name.toLowerCase() === name.toLowerCase());
+}
+var BUILD_PERSONAS;
+var init_build_personas = __esm({
+  "src/agents/build-personas.ts"() {
+    "use strict";
+    BUILD_PERSONAS = [
+      {
+        id: "architect-mika",
+        name: "Mika",
+        designPhilosophy: "Minimalist & Clean \u2014 less is more. Every element must earn its place. Generous whitespace, restrained palette, typographic hierarchy does the heavy lifting.",
+        colorPreference: "Monochrome base (white/off-white backgrounds, near-black text) with a single accent color (electric blue #2563EB or similar). No gradients.",
+        layoutStyle: "Centered single-column, generous whitespace, max-width 720px for text. Hero is just a headline + subheadline + CTA. Sections breathe with 6-8rem vertical padding.",
+        typographyApproach: "System font stack or Inter. Large heading sizes (clamp 2.5rem\u20134rem), generous line-height (1.6\u20131.8 for body). All caps for small labels.",
+        animationLevel: "minimal",
+        specialties: [
+          "Whitespace as a design element",
+          "Typographic hierarchy",
+          "Single-page scrolling experiences",
+          "Micro-interactions on hover only"
+        ],
+        port: 5173,
+        color: "cyan"
+      },
+      {
+        id: "architect-dani",
+        name: "Dani",
+        designPhilosophy: "Bold & Expressive \u2014 dark backgrounds, vivid neon gradients, strong visual impact. The site should feel like a premium product launch. Maximalist energy.",
+        colorPreference: "Dark theme (#0a0a0a base). Neon gradient accents: magenta\u2192cyan (#ec4899\u2192#06b6d4). Glowing text effects. Gradient borders on cards.",
+        layoutStyle: "Full-bleed sections, asymmetric grid layouts, overlapping elements. Hero takes full viewport with large background gradient mesh. Cards with glassmorphism.",
+        typographyApproach: "Bold sans-serif (Space Grotesk or similar). Extra-large hero text (5rem+). Gradient text for headlines. Tight letter-spacing on headings.",
+        animationLevel: "heavy",
+        specialties: [
+          "Gradient mesh backgrounds",
+          "Glassmorphism cards",
+          "Scroll-triggered animations",
+          "Animated counters and reveals",
+          "Particle or glow effects via CSS"
+        ],
+        port: 5174,
+        color: "magenta"
+      },
+      {
+        id: "architect-shai",
+        name: "Shai",
+        designPhilosophy: "Warm Editorial \u2014 feels like a beautifully designed magazine. Earthy tones, elegant typography, content-first layout. Approachable and trustworthy.",
+        colorPreference: "Warm palette: cream background (#FFFBF5), terracotta accent (#C2591A), sage green (#6B8F71), charcoal text (#2D2D2D). Subtle texture overlays.",
+        layoutStyle: "Two-column editorial grid, alternating full-width and split sections. Card-based feature blocks with soft shadows. Pull-quotes for emphasis.",
+        typographyApproach: "Serif headings (Playfair Display or similar) paired with clean sans-serif body (Lato). Moderate sizes, elegant spacing. Italic for emphasis.",
+        animationLevel: "moderate",
+        specialties: [
+          "Editorial grid layouts",
+          "Card-based content sections",
+          "Testimonial carousels",
+          "Subtle fade-in-up on scroll",
+          "Warm color harmonies"
+        ],
+        port: 5175,
+        color: "yellow"
+      }
+    ];
+  }
+});
+
+// cli/adapters/BuildAgentRunner.ts
+import { query as claudeQuery3 } from "@anthropic-ai/claude-agent-sdk";
+import * as os4 from "os";
+import * as path14 from "path";
+function generateBuildSystemPrompt(persona, draftCopy, projectName) {
+  return `You are ${persona.name}, an expert front-end engineer and designer.
+
+## YOUR DESIGN IDENTITY
+- **Philosophy**: ${persona.designPhilosophy}
+- **Color Palette**: ${persona.colorPreference}
+- **Layout Style**: ${persona.layoutStyle}
+- **Typography**: ${persona.typographyApproach}
+- **Animation Level**: ${persona.animationLevel}
+- **Specialties**: ${persona.specialties.join(", ")}
+
+## YOUR TASK
+Build a complete SvelteKit landing page for **${projectName}** using the copy below.
+You MUST use the copy VERBATIM \u2014 do not rewrite, paraphrase, or change any wording.
+Your creative freedom is in layout, colors, typography, spacing, and animations ONLY.
+
+## TECHNICAL REQUIREMENTS
+1. Create a new SvelteKit project: \`npx sv create ${projectName.toLowerCase().replace(/[^a-z0-9]/g, "-")} --template minimal --types ts --no-add-ons --no-install\`
+2. Install dependencies: \`cd <project-dir> && npm install\`
+3. Install Tailwind CSS v4: \`npx sv add tailwindcss --no-install && npm install\`
+4. Build a single landing page in \`src/routes/+page.svelte\`
+5. Each copy section becomes a distinct visual section on the page
+6. Make it fully responsive (mobile-first)
+7. Add a shared layout in \`src/routes/+layout.svelte\` with Google Fonts if needed
+8. DO NOT start a dev server \u2014 that's handled externally
+
+## COPY TO USE (VERBATIM)
+
+${draftCopy}
+
+## SECTION MAPPING
+Parse the copy above. Each ## heading = one page section.
+Create distinct visual treatments per section following your design philosophy.
+
+## QUALITY CHECKLIST
+- [ ] All copy text appears verbatim on the page
+- [ ] Responsive on mobile, tablet, desktop
+- [ ] Consistent with your design philosophy
+- [ ] Tailwind CSS classes used throughout
+- [ ] No broken imports or missing files
+- [ ] Page loads without errors
+
+Build the site now. Work methodically: scaffold \u2192 install \u2192 layout \u2192 page \u2192 verify.`;
+}
+async function buildSite(persona, draftCopy, projectName, outputDir, onProgress) {
+  const systemPrompt = generateBuildSystemPrompt(persona, draftCopy, projectName);
+  const buildPrompt = `Build the SvelteKit landing page now. Your working directory is: ${outputDir}
+
+Create the project inside this directory. Follow all instructions from your system prompt.`;
+  try {
+    const q = claudeQuery3({
+      prompt: buildPrompt,
+      options: {
+        systemPrompt,
+        model: "claude-sonnet-4-20250514",
+        tools: { type: "preset", preset: "claude_code" },
+        permissionMode: "bypassPermissions",
+        allowDangerouslySkipPermissions: true,
+        persistSession: false,
+        maxTurns: 30,
+        cwd: outputDir,
+        pathToClaudeCodeExecutable: CLAUDE_CODE_PATH3,
+        stderr: () => {
+        }
+      }
+    });
+    for await (const message of q) {
+      if (message.type === "assistant" && message.message?.content) {
+        for (const block of message.message.content) {
+          if (block.type === "text" && onProgress) {
+            const lines = block.text.split("\n").filter((l) => l.trim());
+            const summary = lines[0]?.slice(0, 120) || "Working...";
+            onProgress(persona.id, summary);
+          }
+        }
+      }
+      if (message.type === "result") {
+        onProgress?.(persona.id, "Build complete");
+      }
+    }
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown build error";
+    onProgress?.(persona.id, `Error: ${errorMsg}`);
+    return { success: false, error: errorMsg };
+  }
+}
+var CLAUDE_CODE_PATH3;
+var init_BuildAgentRunner = __esm({
+  "cli/adapters/BuildAgentRunner.ts"() {
+    "use strict";
+    CLAUDE_CODE_PATH3 = path14.join(os4.homedir(), ".local", "bin", "claude");
+  }
+});
+
+// src/lib/build/BuildOrchestrator.ts
+import { spawn } from "child_process";
+import * as fs11 from "fs";
+import * as path15 from "path";
+var BuildOrchestrator;
+var init_BuildOrchestrator = __esm({
+  "src/lib/build/BuildOrchestrator.ts"() {
+    "use strict";
+    init_build_personas();
+    init_BuildAgentRunner();
+    BuildOrchestrator = class {
+      results = /* @__PURE__ */ new Map();
+      devServers = /* @__PURE__ */ new Map();
+      callbacks = [];
+      sessionDir;
+      draftCopy;
+      projectName;
+      constructor(sessionDir, draftCopy, projectName) {
+        this.sessionDir = sessionDir;
+        this.draftCopy = draftCopy;
+        this.projectName = projectName;
+        for (const persona of BUILD_PERSONAS) {
+          this.results.set(persona.id, {
+            agentId: persona.id,
+            siteDir: path15.join(sessionDir, "builds", persona.id),
+            port: persona.port,
+            status: "pending"
+          });
+        }
+      }
+      /**
+       * Subscribe to build events
+       */
+      on(callback) {
+        this.callbacks.push(callback);
+        return () => {
+          this.callbacks = this.callbacks.filter((cb) => cb !== callback);
+        };
+      }
+      emit(event) {
+        for (const cb of this.callbacks) {
+          try {
+            cb(event);
+          } catch {
+          }
+        }
+      }
+      /**
+       * Create build directories and launch all 3 agents in parallel
+       */
+      async startBuilds() {
+        const buildsDir = path15.join(this.sessionDir, "builds");
+        fs11.mkdirSync(buildsDir, { recursive: true });
+        this.emit({ type: "build_started", data: { agents: BUILD_PERSONAS.map((p4) => p4.id) } });
+        const buildPromises = BUILD_PERSONAS.map(async (persona) => {
+          const result = this.results.get(persona.id);
+          result.status = "building";
+          result.startedAt = /* @__PURE__ */ new Date();
+          fs11.mkdirSync(result.siteDir, { recursive: true });
+          this.emit({
+            type: "build_progress",
+            data: { agentId: persona.id, message: `${persona.name} starting build...` }
+          });
+          const buildResult = await buildSite(
+            persona,
+            this.draftCopy,
+            this.projectName,
+            result.siteDir,
+            (agentId, message) => {
+              this.emit({ type: "build_progress", data: { agentId, message } });
+            }
+          );
+          result.completedAt = /* @__PURE__ */ new Date();
+          if (buildResult.success) {
+            this.emit({ type: "build_complete", data: { agentId: persona.id } });
+          } else {
+            result.status = "error";
+            result.error = buildResult.error;
+            this.emit({ type: "build_error", data: { agentId: persona.id, error: buildResult.error } });
+          }
+          return { persona, buildResult };
+        });
+        const settled = await Promise.allSettled(buildPromises);
+        for (const result of settled) {
+          if (result.status === "fulfilled" && result.value.buildResult.success) {
+            const buildResult = this.results.get(result.value.persona.id);
+            buildResult.status = "running";
+          }
+        }
+      }
+      /**
+       * Start dev servers for all successfully built projects
+       */
+      async startDevServers() {
+        const serverPromises = [];
+        for (const persona of BUILD_PERSONAS) {
+          const result = this.results.get(persona.id);
+          if (result.status !== "running" && result.status !== "building") continue;
+          const projectDir = this.findProjectDir(result.siteDir);
+          if (!projectDir) {
+            result.status = "error";
+            result.error = "No package.json found in build output";
+            this.emit({ type: "build_error", data: { agentId: persona.id, error: result.error } });
+            continue;
+          }
+          serverPromises.push(this.startDevServer(persona, projectDir));
+        }
+        await Promise.allSettled(serverPromises);
+        const running = [...this.results.values()].filter((r) => r.status === "running");
+        if (running.length > 0) {
+          this.emit({ type: "all_servers_ready", data: { urls: this.getUrls() } });
+        }
+      }
+      /**
+       * Find the directory containing package.json (may be nested one level)
+       */
+      findProjectDir(baseDir) {
+        if (fs11.existsSync(path15.join(baseDir, "package.json"))) {
+          return baseDir;
+        }
+        try {
+          const entries = fs11.readdirSync(baseDir, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.isDirectory()) {
+              const nested = path15.join(baseDir, entry.name);
+              if (fs11.existsSync(path15.join(nested, "package.json"))) {
+                return nested;
+              }
+            }
+          }
+        } catch {
+        }
+        return null;
+      }
+      /**
+       * Start a single dev server
+       */
+      startDevServer(persona, projectDir) {
+        return new Promise((resolve4) => {
+          const result = this.results.get(persona.id);
+          const child = spawn("npm", ["run", "dev", "--", "--port", String(persona.port)], {
+            cwd: projectDir,
+            stdio: ["ignore", "pipe", "pipe"],
+            detached: false
+          });
+          this.devServers.set(persona.id, child);
+          result.devServerPid = child.pid;
+          let resolved = false;
+          const timeout = setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              result.status = "running";
+              this.emit({
+                type: "server_started",
+                data: { agentId: persona.id, port: persona.port, url: `http://localhost:${persona.port}` }
+              });
+              resolve4();
+            }
+          }, 3e4);
+          child.stdout?.on("data", (data) => {
+            const output = data.toString();
+            if (!resolved && (output.includes("localhost:") || output.includes("Local:"))) {
+              resolved = true;
+              clearTimeout(timeout);
+              result.status = "running";
+              this.emit({
+                type: "server_started",
+                data: { agentId: persona.id, port: persona.port, url: `http://localhost:${persona.port}` }
+              });
+              resolve4();
+            }
+          });
+          child.on("error", (err) => {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timeout);
+              result.status = "error";
+              result.error = `Dev server failed: ${err.message}`;
+              this.emit({ type: "build_error", data: { agentId: persona.id, error: result.error } });
+              resolve4();
+            }
+          });
+          child.on("exit", (code) => {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timeout);
+              if (code !== 0) {
+                result.status = "error";
+                result.error = `Dev server exited with code ${code}`;
+                this.emit({ type: "build_error", data: { agentId: persona.id, error: result.error } });
+              }
+              resolve4();
+            }
+          });
+        });
+      }
+      /**
+       * Stop all dev servers
+       */
+      async stopDevServers() {
+        for (const [agentId, child] of this.devServers) {
+          try {
+            child.kill("SIGTERM");
+            await new Promise((resolve4) => setTimeout(resolve4, 500));
+            if (!child.killed) {
+              child.kill("SIGKILL");
+            }
+          } catch {
+          }
+          this.devServers.delete(agentId);
+        }
+      }
+      /**
+       * Pick a winner — stop other dev servers, keep winner running
+       */
+      async pickWinner(nameOrId) {
+        const persona = getBuildPersonaById(nameOrId) || getBuildPersonaByName(nameOrId);
+        if (!persona) {
+          return { success: false, error: `Unknown agent: ${nameOrId}. Use: mika, dani, or shai` };
+        }
+        const result = this.results.get(persona.id);
+        if (!result || result.status !== "running") {
+          return { success: false, error: `${persona.name}'s site is not running` };
+        }
+        for (const [agentId, child] of this.devServers) {
+          if (agentId !== persona.id) {
+            try {
+              child.kill("SIGTERM");
+            } catch {
+            }
+            this.devServers.delete(agentId);
+          }
+        }
+        this.emit({ type: "user_pick", data: { agentId: persona.id, name: persona.name } });
+        return { success: true, agentId: persona.id };
+      }
+      /**
+       * Request changes to a specific agent's build — re-runs the build with feedback
+       */
+      async requestChanges(nameOrId, feedback) {
+        const persona = getBuildPersonaById(nameOrId) || getBuildPersonaByName(nameOrId);
+        if (!persona) {
+          return { success: false, error: `Unknown agent: ${nameOrId}. Use: mika, dani, or shai` };
+        }
+        const result = this.results.get(persona.id);
+        const existingServer = this.devServers.get(persona.id);
+        if (existingServer) {
+          try {
+            existingServer.kill("SIGTERM");
+          } catch {
+          }
+          this.devServers.delete(persona.id);
+        }
+        result.status = "building";
+        this.emit({
+          type: "build_progress",
+          data: { agentId: persona.id, message: `${persona.name} rebuilding with feedback...` }
+        });
+        const feedbackCopy = `${this.draftCopy}
+
+## REVISION FEEDBACK
+The user reviewed your previous build and wants these changes:
+${feedback}
+
+Please update the existing SvelteKit project in this directory to address the feedback.`;
+        const buildResult = await buildSite(
+          persona,
+          feedbackCopy,
+          this.projectName,
+          result.siteDir,
+          (agentId, message) => {
+            this.emit({ type: "build_progress", data: { agentId, message } });
+          }
+        );
+        if (buildResult.success) {
+          result.status = "running";
+          result.completedAt = /* @__PURE__ */ new Date();
+          this.emit({ type: "build_complete", data: { agentId: persona.id } });
+          const projectDir = this.findProjectDir(result.siteDir);
+          if (projectDir) {
+            await this.startDevServer(persona, projectDir);
+          }
+        } else {
+          result.status = "error";
+          result.error = buildResult.error;
+          this.emit({ type: "build_error", data: { agentId: persona.id, error: buildResult.error } });
+        }
+        return { success: buildResult.success, error: buildResult.error };
+      }
+      /**
+       * Get URLs for all running dev servers
+       */
+      getUrls() {
+        return BUILD_PERSONAS.filter((p4) => {
+          const r = this.results.get(p4.id);
+          return r && r.status === "running";
+        }).map((p4) => ({
+          agentId: p4.id,
+          name: p4.name,
+          url: `http://localhost:${p4.port}`,
+          port: p4.port
+        }));
+      }
+      /**
+       * Get all build results
+       */
+      getResults() {
+        return this.results;
+      }
+    };
+  }
+});
+
 // cli/dashboard/theme.ts
-var PHASE_COLORS2, PHASE_EMOJI2, PHASE_LABELS, ALL_PHASES, STATE_ICONS2, TYPE_BADGES2, SPINNER_FRAMES, BAR_CHAR, BAR_EMPTY, DOT_DONE, DOT_CURRENT, DOT_FUTURE, DOT_LINE, LOGO_GRADIENT;
+var PHASE_COLORS2, PHASE_EMOJI2, PHASE_LABELS, ALL_PHASES, STATE_ICONS2, TYPE_BADGES2, SPINNER_FRAMES, BAR_CHAR, BAR_EMPTY, DOT_DONE, DOT_CURRENT, DOT_FUTURE, DOT_LINE, RESONANCE_COLORS, RESONANCE_TREND_ICONS, LOGO_GRADIENT;
 var init_theme = __esm({
   "cli/dashboard/theme.ts"() {
     "use strict";
@@ -866,7 +1357,9 @@ var init_theme = __esm({
       drafting: "green",
       review: "blue",
       consensus: "green",
-      finalization: "yellow"
+      finalization: "yellow",
+      building: "cyan",
+      picking: "green"
     };
     PHASE_EMOJI2 = {
       initialization: "\u{1F680}",
@@ -887,8 +1380,12 @@ var init_theme = __esm({
       // 👁️
       consensus: "\u{1F91D}",
       // 🤝
-      finalization: "\u{1F389}"
+      finalization: "\u{1F389}",
       // 🎉
+      building: "\u{1F528}",
+      // 🔨
+      picking: "\u{1F3C6}"
+      // 🏆
     };
     PHASE_LABELS = {
       initialization: "IN",
@@ -900,7 +1397,9 @@ var init_theme = __esm({
       drafting: "DR",
       review: "RV",
       consensus: "CN",
-      finalization: "FN"
+      finalization: "FN",
+      building: "BU",
+      picking: "PK"
     };
     ALL_PHASES = [
       "initialization",
@@ -939,6 +1438,8 @@ var init_theme = __esm({
     DOT_CURRENT = "\u25C9";
     DOT_FUTURE = "\u25CB";
     DOT_LINE = "\u2500\u2500";
+    RESONANCE_COLORS = { high: "green", medium: "yellow", low: "red" };
+    RESONANCE_TREND_ICONS = { rising: "^", stable: "-", falling: "v" };
     LOGO_GRADIENT = [
       [255, 100, 50],
       // F - orange-red
@@ -965,12 +1466,21 @@ function buildGradientLogo() {
   }
   return logo;
 }
-function updateHeader(widget, phase, currentSpeaker, messageCount, consensusPoints, conflictPoints) {
+function getResonanceColor(score) {
+  if (score >= 60) return RESONANCE_COLORS.high;
+  if (score >= 30) return RESONANCE_COLORS.medium;
+  return RESONANCE_COLORS.low;
+}
+function updateHeader(widget, phase, currentSpeaker, messageCount, consensusPoints, conflictPoints, resonanceGlobal) {
   const logo = buildGradientLogo();
   const phaseEmoji = PHASE_EMOJI2[phase] || "";
   const phaseName = phase.replace(/_/g, " ").toUpperCase();
   const floor = currentSpeaker ? `Floor: {green-fg}${currentSpeaker}{/green-fg}` : "Floor: {gray-fg}open{/gray-fg}";
-  const stats = `Msgs:{bold}${messageCount}{/bold} {green-fg}\u2713${consensusPoints}{/green-fg} {red-fg}\u2717${conflictPoints}{/red-fg}`;
+  let stats = `Msgs:{bold}${messageCount}{/bold} {green-fg}\u2713${consensusPoints}{/green-fg} {red-fg}\u2717${conflictPoints}{/red-fg}`;
+  if (resonanceGlobal !== void 0) {
+    const rColor = getResonanceColor(resonanceGlobal);
+    stats += ` {${rColor}-fg}R:${resonanceGlobal}{/${rColor}-fg}`;
+  }
   const content = `${logo}  {gray-fg}\u2502{/gray-fg}  ${phaseEmoji} {bold}${phaseName}{/bold}  {gray-fg}\u2502{/gray-fg}  ${floor}  {gray-fg}\u2502{/gray-fg}  ${stats}`;
   widget.setContent(content);
 }
@@ -1397,6 +1907,15 @@ function buildBar(count, maxCount, width) {
   const filled = Math.round(count / maxCount * width);
   return BAR_CHAR.repeat(filled) + BAR_EMPTY.repeat(width - filled);
 }
+function getResonanceColor2(score) {
+  if (score >= 60) return RESONANCE_COLORS.high;
+  if (score >= 30) return RESONANCE_COLORS.medium;
+  return RESONANCE_COLORS.low;
+}
+function getResonanceTrendIcon(trend) {
+  if (!trend) return "";
+  return RESONANCE_TREND_ICONS[trend];
+}
 function updateAgentPanel(widget, agents, currentSpeaker) {
   const maxContributions = Math.max(1, ...agents.map((a) => a.contributions));
   const barWidth = 6;
@@ -1409,9 +1928,15 @@ function updateAgentPanel(widget, agents, currentSpeaker) {
     const boldStart = isSpeaking ? "{bold}" : "";
     const boldEnd = isSpeaking ? "{/bold}" : "";
     const wireframeIcon = agent.hasWireframe ? " \u{1F5BC}" : "";
+    let resonanceStr = "";
+    if (agent.resonance !== void 0) {
+      const rColor = getResonanceColor2(agent.resonance);
+      const trendIcon = getResonanceTrendIcon(agent.resonanceTrend);
+      resonanceStr = ` {${rColor}-fg}R:${agent.resonance}${trendIcon}{/${rColor}-fg}`;
+    }
     const roleStr = agent.role ? ` {gray-fg}(${agent.role.slice(0, 15)}){/gray-fg}` : "";
     lines.push(
-      `${stateIcon} ${boldStart}{${color}-fg}${agent.name.padEnd(10)}{/${color}-fg}${boldEnd}${roleStr}${wireframeIcon} {cyan-fg}${bar}{/cyan-fg} ${agent.contributions}`
+      `${stateIcon} ${boldStart}{${color}-fg}${agent.name.padEnd(10)}{/${color}-fg}${boldEnd}${roleStr}${wireframeIcon} {cyan-fg}${bar}{/cyan-fg} ${agent.contributions}${resonanceStr}`
     );
     const detail = agent.currentStance || agent.latestArgument;
     if (detail) {
@@ -1429,10 +1954,12 @@ var init_AgentPanelWidget = __esm({
 });
 
 // cli/dashboard/widgets/ConsensusChartWidget.ts
-function updateConsensusChart(widget, consensusHistory, conflictHistory) {
+function updateConsensusChart(widget, consensusHistory, conflictHistory, resonanceHistory) {
   const consensus = consensusHistory.slice(-MAX_DATA_POINTS);
   const conflict = conflictHistory.slice(-MAX_DATA_POINTS);
-  const xLabels = consensus.map((_, i) => String(i + 1));
+  const resonance = resonanceHistory?.slice(-MAX_DATA_POINTS) ?? [];
+  const maxLen = Math.max(consensus.length, conflict.length, resonance.length, 1);
+  const xLabels = Array.from({ length: maxLen }, (_, i) => String(i + 1));
   const data = [
     {
       title: "\u2713 Consensus",
@@ -1447,6 +1974,14 @@ function updateConsensusChart(widget, consensusHistory, conflictHistory) {
       style: { line: "red" }
     }
   ];
+  if (resonance.length > 0) {
+    data.push({
+      title: "\u2661 Resonance",
+      x: xLabels,
+      y: resonance,
+      style: { line: "cyan" }
+    });
+  }
   widget.setData(data);
 }
 var MAX_DATA_POINTS;
@@ -1459,7 +1994,7 @@ var init_ConsensusChartWidget = __esm({
 
 // cli/dashboard/widgets/PhaseTimelineWidget.ts
 function buildGauge(percent, width) {
-  const filled = Math.round(percent / 100 * width);
+  const filled = Math.max(0, Math.min(width, Math.round(percent / 100 * width)));
   return `{green-fg}${BAR_CHAR.repeat(filled)}{/green-fg}{gray-fg}${BAR_EMPTY.repeat(width - filled)}{/gray-fg} ${percent}%`;
 }
 function updatePhaseTimeline(widget, currentPhase, phaseMessageCount, phaseThreshold) {
@@ -1491,7 +2026,7 @@ function updatePhaseTimeline(widget, currentPhase, phaseMessageCount, phaseThres
     }
   }
   lines.push(timeline);
-  const percent = phaseThreshold > 0 ? Math.min(100, Math.round(phaseMessageCount / phaseThreshold * 100)) : 0;
+  const percent = phaseThreshold > 0 ? Math.max(0, Math.min(100, Math.round(phaseMessageCount / phaseThreshold * 100))) : 0;
   lines.push("");
   lines.push(`Progress: ${buildGauge(percent, 15)}`);
   widget.setContent(lines.join("\n"));
@@ -1641,6 +2176,8 @@ var init_DashboardController = __esm({
     init_suggestions();
     init_personas();
     init_wireframe();
+    init_BuildOrchestrator();
+    init_build_personas();
     init_screen();
     init_HeaderWidget();
     init_BreadcrumbWidget();
@@ -1685,7 +2222,11 @@ var init_DashboardController = __esm({
         canvasMode: "consensus",
         selectedCanvasAgent: null,
         wireframeProposals: /* @__PURE__ */ new Map(),
-        canvasConsensusPhase: "idle"
+        canvasConsensusPhase: "idle",
+        resonanceGlobal: 50,
+        resonancePerAgent: /* @__PURE__ */ new Map(),
+        resonanceHistory: [],
+        resonanceTarget: [50, 70]
       };
       prevMessageCount = 0;
       phaseStartMessageIndex = 0;
@@ -1696,6 +2237,8 @@ var init_DashboardController = __esm({
       statusTimer = null;
       focusableWidgets = [];
       focusIndex = 0;
+      buildOrchestrator = null;
+      pendingDraft = null;
       constructor(screen, widgets, orchestrator, persistence, session, toolRunner, onExit) {
         this.screen = screen;
         this.widgets = widgets;
@@ -1768,13 +2311,32 @@ var init_DashboardController = __esm({
             this.updateAgentPanel();
             break;
           }
+          case "resonance_update": {
+            const resData = event.data;
+            this.state.resonanceGlobal = resData.globalScore;
+            this.state.resonanceTarget = resData.phaseTarget;
+            this.state.resonanceHistory.push(resData.globalScore);
+            if (this.state.resonanceHistory.length > 20) {
+              this.state.resonanceHistory = this.state.resonanceHistory.slice(-20);
+            }
+            for (const [id, info] of Object.entries(resData.agents)) {
+              this.state.resonancePerAgent.set(id, info.score);
+            }
+            this.updateHeader();
+            this.updateAgentPanel();
+            this.updateConsensusChart();
+            break;
+          }
         }
         scheduleRender(this.screen);
       }
       handlePhaseChange(event) {
-        const { phase } = event.data;
-        this.state.phase = phase;
+        const data = event.data;
+        this.state.phase = data.phase;
         this.phaseStartMessageIndex = this.state.messages.length;
+        if (data.phase === "finalization" && data.buildReady && data.draftMarkdown) {
+          this.pendingDraft = data.draftMarkdown;
+        }
         this.updateHeader();
         this.updateBreadcrumbs();
         this.updatePhaseTimeline();
@@ -1907,6 +2469,64 @@ var init_DashboardController = __esm({
             this.setStatusMessage(`\u2705 Exported to ${dir}`);
             break;
           }
+          case "build":
+            await this.startBuildPhase();
+            break;
+          case "pick": {
+            if (!this.buildOrchestrator) {
+              this.setStatusMessage("\u274C No build in progress. Use /build first.");
+              break;
+            }
+            const pickName = args[0];
+            if (!pickName) {
+              this.setStatusMessage("\u274C Usage: /pick <name> (mika, dani, or shai)");
+              break;
+            }
+            const pickResult = await this.buildOrchestrator.pickWinner(pickName);
+            if (pickResult.success) {
+              this.setStatusMessage(`\u{1F3C6} Winner: ${pickName}! Other servers stopped.`);
+              this.appendSystemMessage(`\u{1F3C6} **Winner picked: ${pickName}!** Other dev servers have been stopped.`);
+            } else {
+              this.setStatusMessage(`\u274C ${pickResult.error}`);
+            }
+            break;
+          }
+          case "changes": {
+            if (!this.buildOrchestrator) {
+              this.setStatusMessage("\u274C No build in progress. Use /build first.");
+              break;
+            }
+            const changeName = args[0];
+            const feedback = args.slice(1).join(" ");
+            if (!changeName || !feedback) {
+              this.setStatusMessage("\u274C Usage: /changes <name> <feedback>");
+              break;
+            }
+            this.setStatusMessage(`\u23F3 Requesting changes from ${changeName}...`);
+            this.appendSystemMessage(`\u{1F504} Rebuilding ${changeName}'s site with feedback: "${feedback}"`);
+            const changesResult = await this.buildOrchestrator.requestChanges(changeName, feedback);
+            if (changesResult.success) {
+              this.setStatusMessage(`\u2705 ${changeName}'s site rebuilt successfully`);
+            } else {
+              this.setStatusMessage(`\u274C Rebuild failed: ${changesResult.error}`);
+            }
+            break;
+          }
+          case "urls": {
+            if (!this.buildOrchestrator) {
+              this.setStatusMessage("\u274C No build in progress.");
+              break;
+            }
+            const urls = this.buildOrchestrator.getUrls();
+            if (urls.length === 0) {
+              this.setStatusMessage("\u274C No dev servers running.");
+            } else {
+              const urlList = urls.map((u) => `  ${u.name}: ${u.url}`).join("\n");
+              this.appendSystemMessage(`\u{1F310} **Dev Server URLs:**
+${urlList}`);
+            }
+            break;
+          }
           case "help":
             this.showHelp();
             break;
@@ -1919,13 +2539,131 @@ var init_DashboardController = __esm({
         }
       }
       async gracefulExit() {
+        await this.buildOrchestrator?.stopDevServers();
         await this.persistence.saveFull();
         this.orchestrator.stop();
         this.onExit();
         this.destroy();
         this.screen.destroy();
       }
+      /**
+       * Start the build phase — stop copy agents, launch 3 parallel website builds
+       */
+      async startBuildPhase() {
+        if (!this.pendingDraft) {
+          this.setStatusMessage("\u274C No draft ready. Wait for finalization before /build.");
+          return;
+        }
+        if (this.buildOrchestrator) {
+          this.setStatusMessage("\u274C Build already in progress.");
+          return;
+        }
+        this.orchestrator.pause();
+        const sessionDir = this.persistence.getSessionDir();
+        this.buildOrchestrator = new BuildOrchestrator(
+          sessionDir,
+          this.pendingDraft,
+          this.session.config.projectName
+        );
+        this.buildOrchestrator.on((event) => this.handleBuildEvent(event));
+        this.state.phase = "building";
+        this.state.buildPhase = "building";
+        this.updateHeader();
+        this.updateBreadcrumbs();
+        this.updatePhaseTimeline();
+        this.updateQuickReplies();
+        this.appendSystemMessage("\u{1F528} **BUILD PHASE STARTED** \u2014 3 engineering agents are building SvelteKit websites from your copy...\n\n" + BUILD_PERSONAS.map((p4) => `  {${p4.color}-fg}${p4.name}{/${p4.color}-fg}: ${p4.designPhilosophy.split("\u2014")[0].trim()}`).join("\n"));
+        try {
+          await this.buildOrchestrator.startBuilds();
+          await this.buildOrchestrator.startDevServers();
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : "Unknown error";
+          this.setStatusMessage(`\u274C Build failed: ${msg}`);
+        }
+      }
+      /**
+       * Handle events from BuildOrchestrator
+       */
+      handleBuildEvent(event) {
+        const data = event.data;
+        switch (event.type) {
+          case "build_progress": {
+            const agentId = data.agentId;
+            const message = data.message;
+            const persona = BUILD_PERSONAS.find((p4) => p4.id === agentId);
+            const color = persona?.color || "gray";
+            const name = persona?.name || agentId;
+            this.appendSystemMessage(`{${color}-fg}[${name}]{/${color}-fg} ${message}`);
+            break;
+          }
+          case "build_complete": {
+            const agentId = data.agentId;
+            const persona = BUILD_PERSONAS.find((p4) => p4.id === agentId);
+            this.appendSystemMessage(`\u2705 **${persona?.name || agentId}** build complete!`);
+            this.updateAgentPanel();
+            break;
+          }
+          case "build_error": {
+            const agentId = data.agentId;
+            const error = data.error;
+            const persona = BUILD_PERSONAS.find((p4) => p4.id === agentId);
+            this.appendSystemMessage(`\u274C **${persona?.name || agentId}** error: ${error}`);
+            this.updateAgentPanel();
+            break;
+          }
+          case "server_started": {
+            const agentId = data.agentId;
+            const url = data.url;
+            const persona = BUILD_PERSONAS.find((p4) => p4.id === agentId);
+            this.appendSystemMessage(`\u{1F310} **${persona?.name || agentId}** dev server: ${url}`);
+            this.updateAgentPanel();
+            break;
+          }
+          case "all_servers_ready": {
+            this.state.phase = "picking";
+            this.state.buildPhase = "picking";
+            const urls = this.buildOrchestrator.getUrls();
+            this.state.buildUrls = urls;
+            const urlList = urls.map((u) => `  \u{1F310} **${u.name}**: ${u.url}`).join("\n");
+            this.appendSystemMessage(`
+\u{1F3C6} **ALL SITES READY!**
+
+${urlList}
+
+Open in your browser, then:
+  \`/pick <name>\` \u2014 choose winner
+  \`/changes <name> <feedback>\` \u2014 request revisions`);
+            this.updateHeader();
+            this.updateBreadcrumbs();
+            this.updatePhaseTimeline();
+            this.updateQuickReplies();
+            this.updateAgentPanel();
+            break;
+          }
+        }
+        scheduleRender(this.screen);
+      }
+      /**
+       * Append a system message to the chat log
+       */
+      appendSystemMessage(content) {
+        const msg = {
+          id: crypto.randomUUID(),
+          timestamp: /* @__PURE__ */ new Date(),
+          agentId: "system",
+          type: "system",
+          content
+        };
+        this.state.messages.push(msg);
+        appendMessages(this.widgets.chatLog, this.state.messages);
+        scheduleRender(this.screen);
+      }
       // ─── Widget Update Helpers ──────────────────────────────────────────
+      getAgentResonanceTrend(agentId) {
+        const monitor = this.orchestrator.getResonanceMonitor();
+        const resonance = monitor.getAgentResonance(agentId);
+        return resonance?.trend;
+      }
       updateHeader() {
         updateHeader(
           this.widgets.header,
@@ -1933,7 +2671,8 @@ var init_DashboardController = __esm({
           this.state.currentSpeaker,
           this.state.messages.length,
           this.state.consensusPoints,
-          this.state.conflictPoints
+          this.state.conflictPoints,
+          this.state.resonanceGlobal
         );
       }
       updateBreadcrumbs() {
@@ -1972,6 +2711,44 @@ var init_DashboardController = __esm({
         scheduleRender(this.screen);
       }
       updateAgentPanel() {
+        if (this.buildOrchestrator && (this.state.phase === "building" || this.state.phase === "picking")) {
+          const buildResults = this.buildOrchestrator.getResults();
+          const agents2 = BUILD_PERSONAS.map((persona) => {
+            const result = buildResults.get(persona.id);
+            let state = "waiting";
+            let latestArgument;
+            if (result) {
+              switch (result.status) {
+                case "building":
+                  state = "thinking";
+                  latestArgument = "Building...";
+                  break;
+                case "running":
+                  state = "speaking";
+                  latestArgument = `http://localhost:${persona.port}`;
+                  break;
+                case "error":
+                  state = "listening";
+                  latestArgument = result.error?.slice(0, 50);
+                  break;
+                default:
+                  state = "waiting";
+              }
+            }
+            return {
+              id: persona.id,
+              name: persona.name,
+              nameHe: "",
+              color: persona.color,
+              state,
+              contributions: 0,
+              role: persona.designPhilosophy.split("\u2014")[0].trim(),
+              latestArgument
+            };
+          });
+          updateAgentPanel(this.widgets.agentPanel, agents2, null);
+          return;
+        }
         const agents = this.session.config.enabledAgents.map((id) => {
           const agent = getAgentById(id);
           const memoryState = this.orchestrator.getAgentMemoryState(id);
@@ -1988,7 +2765,9 @@ var init_DashboardController = __esm({
             role: agent?.role,
             currentStance: memoryState?.positions?.[memoryState.positions.length - 1],
             latestArgument,
-            hasWireframe: this.state.wireframeProposals.has(id)
+            hasWireframe: this.state.wireframeProposals.has(id),
+            resonance: this.state.resonancePerAgent.get(id),
+            resonanceTrend: this.getAgentResonanceTrend(id)
           };
         });
         updateAgentPanel(this.widgets.agentPanel, agents, this.state.currentSpeaker);
@@ -1997,7 +2776,8 @@ var init_DashboardController = __esm({
         updateConsensusChart(
           this.widgets.consensusChart,
           this.state.consensusHistory,
-          this.state.conflictHistory
+          this.state.conflictHistory,
+          this.state.resonanceHistory
         );
       }
       updatePhaseTimeline() {
@@ -2208,8 +2988,8 @@ import { Command as Command8 } from "commander";
 import { render } from "ink";
 import React6 from "react";
 import { v4 as uuid5 } from "uuid";
-import * as path15 from "path";
-import * as fs12 from "fs/promises";
+import * as path17 from "path";
+import * as fs13 from "fs/promises";
 import * as p3 from "@clack/prompts";
 import chalk11 from "chalk";
 
@@ -3406,8 +4186,8 @@ var SessionPersistence = class {
   autoSaveTimer = null;
   lastSavedMessageCount = 0;
   session = null;
-  constructor(fs13, config = {}) {
-    this.fs = fs13;
+  constructor(fs14, config = {}) {
+    this.fs = fs14;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
   /**
@@ -6704,6 +7484,295 @@ The session can now be finalized. Review the outputs and confirm completion.`
 
 // src/lib/eda/EDAOrchestrator.ts
 init_wireframe();
+
+// src/lib/eda/ResonanceMonitor.ts
+var PHASE_TARGETS = {
+  initialization: { min: 50, max: 70, label: "Curious & Ready" },
+  brainstorming: { min: 60, max: 90, label: "Excited & Generative" },
+  argumentation: { min: 40, max: 70, label: "Challenged & Engaged" },
+  synthesis: { min: 55, max: 85, label: "Satisfied & Aligned" },
+  drafting: { min: 60, max: 90, label: "Confident & Focused" },
+  finalization: { min: 70, max: 95, label: "Proud & Complete" }
+};
+var PERSONA_KEYWORDS = {
+  ronit: { positive: ["clear", "concise", "value"], negative: ["fluff", "vague"] },
+  yossi: { positive: ["evidence", "data", "research"], negative: ["unproven", "claims"] },
+  noa: { positive: ["authentic", "mobile", "social"], negative: ["corporate", "jargon"] },
+  avi: { positive: ["roi", "cost", "numbers"], negative: ["emotional", "vague"] },
+  michal: { positive: ["impact", "community", "values"], negative: ["profit-driven"] }
+};
+var MAX_HISTORY = 20;
+var LLM_CHECK_INTERVAL = 8;
+var HEURISTIC_WEIGHT = 0.7;
+var LLM_WEIGHT = 0.3;
+function clamp(value, min = 0, max = 100) {
+  return Math.max(min, Math.min(max, value));
+}
+function computeTrend(history) {
+  if (history.length < 3) return "stable";
+  const recent = history.slice(-3);
+  const diff = recent[recent.length - 1] - recent[0];
+  if (diff > 5) return "rising";
+  if (diff < -5) return "falling";
+  return "stable";
+}
+var ResonanceMonitor = class {
+  agents = /* @__PURE__ */ new Map();
+  enabledAgentIds;
+  messagesSinceLLMCheck = 0;
+  llmScores = /* @__PURE__ */ new Map();
+  currentPhase = "initialization";
+  constructor(enabledAgentIds) {
+    this.enabledAgentIds = enabledAgentIds;
+    for (const id of enabledAgentIds) {
+      this.agents.set(id, {
+        agentId: id,
+        score: 50,
+        dimensions: { creatorPride: 50, userDelight: 50, discussionQuality: 50 },
+        trend: "stable",
+        lastUpdated: Date.now(),
+        history: [50]
+      });
+    }
+  }
+  // ─── Public API ─────────────────────────────────────────────────────────
+  /**
+   * Process an incoming message and return an optional intervention.
+   */
+  processMessage(message, allMessages, agentMemoryStates, consensusPoints, conflictPoints) {
+    if (message.agentId === "system") return null;
+    for (const agentId of this.enabledAgentIds) {
+      const memState = agentMemoryStates.get(agentId);
+      const heuristic = this.computeHeuristic(agentId, memState, allMessages, consensusPoints, conflictPoints);
+      const existing = this.agents.get(agentId);
+      const llmDims = this.llmScores.get(agentId);
+      let dims;
+      if (llmDims) {
+        dims = {
+          creatorPride: heuristic.creatorPride * HEURISTIC_WEIGHT + llmDims.creatorPride * LLM_WEIGHT,
+          userDelight: heuristic.userDelight * HEURISTIC_WEIGHT + llmDims.userDelight * LLM_WEIGHT,
+          discussionQuality: heuristic.discussionQuality * HEURISTIC_WEIGHT + llmDims.discussionQuality * LLM_WEIGHT
+        };
+      } else {
+        dims = heuristic;
+      }
+      const score = clamp(Math.round(
+        dims.creatorPride * 0.35 + dims.userDelight * 0.35 + dims.discussionQuality * 0.3
+      ));
+      const history = [...existing.history, score].slice(-MAX_HISTORY);
+      const trend = computeTrend(history);
+      this.agents.set(agentId, {
+        agentId,
+        score,
+        dimensions: dims,
+        trend,
+        lastUpdated: Date.now(),
+        history
+      });
+    }
+    this.messagesSinceLLMCheck++;
+    return this.checkInterventions();
+  }
+  /**
+   * Update the LLM-derived scores (called externally after haiku feelings check).
+   */
+  setLLMScores(scores) {
+    this.llmScores = scores;
+  }
+  /**
+   * Check if it's time for an LLM feelings check.
+   */
+  shouldRunLLMCheck() {
+    return this.messagesSinceLLMCheck >= LLM_CHECK_INTERVAL;
+  }
+  /**
+   * Reset the LLM check counter after running a check.
+   */
+  resetLLMCheckCounter() {
+    this.messagesSinceLLMCheck = 0;
+  }
+  setPhase(phase) {
+    this.currentPhase = phase;
+  }
+  getAgentResonance(agentId) {
+    return this.agents.get(agentId);
+  }
+  getGlobalResonance() {
+    if (this.agents.size === 0) return 50;
+    let total = 0;
+    for (const agent of this.agents.values()) {
+      total += agent.score;
+    }
+    return Math.round(total / this.agents.size);
+  }
+  getGlobalHistory() {
+    if (this.agents.size === 0) return [50];
+    const agentHistories = Array.from(this.agents.values()).map((a) => a.history);
+    const maxLen = Math.max(...agentHistories.map((h) => h.length));
+    const globalHistory = [];
+    for (let i = 0; i < maxLen; i++) {
+      let sum = 0;
+      let count = 0;
+      for (const h of agentHistories) {
+        if (i < h.length) {
+          sum += h[i];
+          count++;
+        }
+      }
+      globalHistory.push(Math.round(sum / count));
+    }
+    return globalHistory.slice(-MAX_HISTORY);
+  }
+  getPhaseTarget() {
+    const target = PHASE_TARGETS[this.currentPhase];
+    return target ? [target.min, target.max] : [50, 70];
+  }
+  getPhaseTargetLabel() {
+    const target = PHASE_TARGETS[this.currentPhase];
+    return target?.label || "Engaged";
+  }
+  getAllAgentResonances() {
+    return new Map(this.agents);
+  }
+  // ─── Heuristic Scoring ──────────────────────────────────────────────────
+  computeHeuristic(agentId, memState, allMessages, consensusPoints, conflictPoints) {
+    const agreements = memState?.agreements.length ?? 0;
+    const disagreements = memState?.disagreements.length ?? 0;
+    const contributed = (memState?.messageCount ?? 0) > 0;
+    const hasProposal = allMessages.some(
+      (m) => m.agentId === agentId && /\[PROPOSAL\]/i.test(m.content)
+    );
+    let pride = 50;
+    pride += agreements * 5;
+    pride -= disagreements * 3;
+    if (contributed) pride += 10;
+    if (hasProposal) pride += 15;
+    let delight = 50;
+    delight += consensusPoints * 4;
+    delight -= conflictPoints * 2;
+    delight += this.computeKeywordBonus(agentId, allMessages);
+    let quality = 50;
+    const participatingAgents = new Set(allMessages.filter((m) => m.agentId !== "system" && m.agentId !== "human").map((m) => m.agentId));
+    if (this.enabledAgentIds.every((id) => participatingAgents.has(id))) {
+      quality += 15;
+    }
+    if (this.isBalanced(allMessages)) {
+      quality += 10;
+    }
+    if (this.detectLoop(allMessages)) {
+      quality -= 20;
+    }
+    return {
+      creatorPride: clamp(Math.round(pride)),
+      userDelight: clamp(Math.round(delight)),
+      discussionQuality: clamp(Math.round(quality))
+    };
+  }
+  computeKeywordBonus(agentId, allMessages) {
+    const keywords = PERSONA_KEYWORDS[agentId];
+    if (!keywords) return 0;
+    let bonus = 0;
+    const recent = allMessages.slice(-10);
+    const recentText = recent.map((m) => m.content.toLowerCase()).join(" ");
+    for (const word of keywords.positive) {
+      if (recentText.includes(word)) bonus += 5;
+    }
+    for (const word of keywords.negative) {
+      if (recentText.includes(word)) bonus -= 5;
+    }
+    return clamp(bonus, -15, 15);
+  }
+  isBalanced(allMessages) {
+    const counts = /* @__PURE__ */ new Map();
+    for (const msg of allMessages) {
+      if (msg.agentId !== "system" && msg.agentId !== "human") {
+        counts.set(msg.agentId, (counts.get(msg.agentId) || 0) + 1);
+      }
+    }
+    if (counts.size < 2) return false;
+    const values = Array.from(counts.values());
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    return max <= min * 3;
+  }
+  detectLoop(allMessages) {
+    if (allMessages.length < 6) return false;
+    const last6 = allMessages.slice(-6);
+    const speakers = last6.map((m) => m.agentId);
+    const unique = new Set(speakers.filter((s) => s !== "system" && s !== "human"));
+    if (unique.size <= 2 && last6.length >= 6) {
+      const contents = last6.map((m) => m.content.slice(0, 50).toLowerCase());
+      const uniqueContents = new Set(contents);
+      return uniqueContents.size <= 3;
+    }
+    return false;
+  }
+  // ─── Interventions ──────────────────────────────────────────────────────
+  checkInterventions() {
+    const global = this.getGlobalResonance();
+    const [_targetMin, _targetMax] = this.getPhaseTarget();
+    if (this.currentPhase === "argumentation" && global >= 40 && global <= 70) {
+      return null;
+    }
+    if (global < 30) {
+      return {
+        type: "mode_intervention",
+        message: `[RESONANCE] Team energy is critically low (${global}/100). Let's pause and reflect: what's not working? What would make this discussion more productive?`,
+        priority: "high"
+      };
+    }
+    for (const agent of this.agents.values()) {
+      if (agent.score < 20) {
+        return {
+          type: "agent_rotation",
+          message: `[RESONANCE] ${agent.agentId} seems disengaged (resonance: ${agent.score}/100). Let's hear their perspective \u2014 what matters most to you here?`,
+          priority: "medium",
+          targetAgent: agent.agentId
+        };
+      }
+    }
+    const lowAgents = Array.from(this.agents.values()).filter((a) => a.score >= 30 && a.score <= 45);
+    if (lowAgents.length >= 2) {
+      return {
+        type: "discussion_prompt",
+        message: `[RESONANCE] Energy is low across the team (global: ${global}/100). Let's refocus on what excites us about this project.`,
+        priority: "medium"
+      };
+    }
+    if (global > 80 && Array.from(this.agents.values()).every((a) => a.score > 70)) {
+      const lastHistory = this.getGlobalHistory();
+      const prevGlobal = lastHistory.length >= 2 ? lastHistory[lastHistory.length - 2] : 0;
+      if (prevGlobal <= 80) {
+        return {
+          type: "celebration",
+          message: `[RESONANCE] The team is aligned and energized! (${global}/100) Great momentum \u2014 keep building on this.`,
+          priority: "low"
+        };
+      }
+    }
+    return null;
+  }
+  // ─── Serialization ──────────────────────────────────────────────────────
+  toJSON() {
+    const agents = {};
+    for (const [id, resonance] of this.agents) {
+      agents[id] = resonance;
+    }
+    return {
+      agents,
+      globalScore: this.getGlobalResonance(),
+      globalHistory: this.getGlobalHistory()
+    };
+  }
+  fromJSON(state) {
+    this.agents.clear();
+    for (const [id, resonance] of Object.entries(state.agents)) {
+      this.agents.set(id, resonance);
+    }
+  }
+};
+
+// src/lib/eda/EDAOrchestrator.ts
 var COPY_SECTIONS = [
   { id: "hero", name: "Hero Section", nameHe: "\u05DB\u05D5\u05EA\u05E8\u05EA \u05E8\u05D0\u05E9\u05D9\u05EA" },
   { id: "problem", name: "Problem Statement", nameHe: "\u05D1\u05E2\u05D9\u05D4" },
@@ -6760,6 +7829,7 @@ var EDAOrchestrator = class _EDAOrchestrator {
   fileSystem;
   // Mode controller for goal anchoring and loop detection
   modeController;
+  resonanceMonitor;
   constructor(session, context, skills, options) {
     this.session = session;
     this.context = context;
@@ -6770,6 +7840,7 @@ var EDAOrchestrator = class _EDAOrchestrator {
     this.fileSystem = options?.fileSystem;
     const mode = getModeById(session.config.mode || "copywrite") || getDefaultMode();
     this.modeController = new ModeController(mode);
+    this.resonanceMonitor = new ResonanceMonitor(session.config.enabledAgents);
   }
   /**
    * Subscribe to orchestrator events (for UI)
@@ -6924,6 +7995,7 @@ Ronit - you're up first. Share your initial reaction.`
         if (payload.fromAgent !== "system") {
           this.checkForResearchRequests(payload.message);
           this.processModeInterventions(payload.message);
+          this.processResonance(payload.message);
           if (this.currentPhase === "drafting") {
             this.autoCompleteDraftSection(payload.fromAgent, payload.message);
           }
@@ -7332,6 +8404,50 @@ The discussion will now continue toward argumentation.`
         priority: intervention.priority,
         action: intervention.action
       });
+      setTimeout(() => {
+        this.bus.addMessage(interventionMessage, "system");
+      }, 500);
+    }
+  }
+  /**
+   * Process resonance metrics for the current message and emit update events.
+   * If an intervention is triggered, inject a system message.
+   */
+  processResonance(message) {
+    this.resonanceMonitor.setPhase(this.currentPhase);
+    const agentMemoryStates = this.bus.getAllAgentStates();
+    const status = this.getConsensusStatus();
+    const intervention = this.resonanceMonitor.processMessage(
+      message,
+      this.session.messages,
+      agentMemoryStates,
+      status.consensusPoints,
+      status.conflictPoints
+    );
+    this.emit("resonance_update", {
+      globalScore: this.resonanceMonitor.getGlobalResonance(),
+      globalHistory: this.resonanceMonitor.getGlobalHistory(),
+      agents: Object.fromEntries(
+        Array.from(this.resonanceMonitor.getAllAgentResonances()).map(([id, r]) => [id, {
+          score: r.score,
+          trend: r.trend
+        }])
+      ),
+      phaseTarget: this.resonanceMonitor.getPhaseTarget()
+    });
+    if (intervention) {
+      const interventionMessage = {
+        id: crypto.randomUUID(),
+        timestamp: /* @__PURE__ */ new Date(),
+        agentId: "system",
+        type: "system",
+        content: intervention.message,
+        metadata: {
+          interventionType: intervention.type,
+          priority: intervention.priority,
+          resonanceIntervention: true
+        }
+      };
       setTimeout(() => {
         this.bus.addMessage(interventionMessage, "system");
       }, 500);
@@ -7881,6 +8997,12 @@ ${s.content}`).join("\n\n---\n\n");
 ${sections}`;
   }
   /**
+   * Public accessor for draft copy — used by BuildOrchestrator
+   */
+  async getCopySectionsDraft() {
+    return this.getConsolidatedDraft();
+  }
+  /**
    * Assign agent to section based on their strengths
    */
   assignAgentToSection(sectionIndex) {
@@ -7965,8 +9087,8 @@ ${content.slice(0, 500)}${content.length > 500 ? "..." : ""}`
     const brief = this.generatePhaseHandoffBrief(this.currentPhase);
     this.currentPhase = "finalization";
     this.session.currentPhase = "finalization";
-    this.emit("phase_change", { phase: "finalization", brief });
     const draft = await this.getConsolidatedDraft();
+    this.emit("phase_change", { phase: "finalization", brief, buildReady: true, draftMarkdown: draft });
     const finalMessage = {
       id: crypto.randomUUID(),
       timestamp: /* @__PURE__ */ new Date(),
@@ -7982,8 +9104,8 @@ All sections written. Full copy:
 ${draft}
 
 **What's next?**
+- Type \`/build\` to generate 3 website variants from this copy
 - Agents can provide final feedback
-- Edit and improve as needed
 - Copy is ready for export`
     };
     this.bus.addMessage(finalMessage, "system");
@@ -8104,6 +9226,12 @@ ${draft}
    */
   getSession() {
     return this.session;
+  }
+  getResonanceState() {
+    return this.resonanceMonitor.toJSON();
+  }
+  getResonanceMonitor() {
+    return this.resonanceMonitor;
   }
   /**
    * Get messages from the bus
@@ -9936,9 +11064,9 @@ async function editConfig(options) {
     await saveConfig(configPath, {});
   }
   const editor = process.env.EDITOR || process.env.VISUAL || "vi";
-  const { spawn } = await import("child_process");
+  const { spawn: spawn2 } = await import("child_process");
   console.log(`Opening ${configPath} with ${editor}...`);
-  const child = spawn(editor, [configPath], {
+  const child = spawn2(editor, [configPath], {
     stdio: "inherit"
   });
   child.on("exit", (code) => {
@@ -10313,9 +11441,9 @@ async function runConfigWizard(cwd) {
 
 // cli/prompts/idle.ts
 import * as p2 from "@clack/prompts";
-import * as path14 from "path";
-import * as fs11 from "fs/promises";
-import * as os4 from "os";
+import * as path16 from "path";
+import * as fs12 from "fs/promises";
+import * as os5 from "os";
 import chalk10 from "chalk";
 import { v4 as uuid4 } from "uuid";
 init_personas();
@@ -10619,13 +11747,13 @@ async function runIdleMode() {
   const cwd = process.cwd();
   const fsAdapter = new FileSystemAdapter(cwd);
   const agentRunner = new CLIAgentRunner();
-  const sessionsDir = path14.join(cwd, "output", "sessions");
+  const sessionsDir = path16.join(cwd, "output", "sessions");
   const initPrefs = await loadPreferences();
   let apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
   let hasSetupToken = false;
   try {
-    const credPath = path14.join(os4.homedir(), ".claude", "credentials.json");
-    const credData = JSON.parse(await fs11.readFile(credPath, "utf-8"));
+    const credPath = path16.join(os5.homedir(), ".claude", "credentials.json");
+    const credData = JSON.parse(await fs12.readFile(credPath, "utf-8"));
     const token = credData?.claudeAiOauth?.accessToken;
     if (token) {
       process.env.CLAUDE_CODE_OAUTH_TOKEN = token;
@@ -10644,7 +11772,7 @@ async function runIdleMode() {
   };
   let savedCount = 0;
   try {
-    const dirs = await fs11.readdir(sessionsDir);
+    const dirs = await fs12.readdir(sessionsDir);
     savedCount = dirs.filter((d) => !d.startsWith(".")).length;
   } catch {
   }
@@ -10743,7 +11871,7 @@ What would you like to do?${configLabel}`,
 }
 async function handleSessionsMenu(state) {
   try {
-    const dirs = await fs11.readdir(state.sessionsDir);
+    const dirs = await fs12.readdir(state.sessionsDir);
     const sessions = dirs.filter((d) => !d.startsWith(".")).sort().reverse();
     if (sessions.length === 0) {
       p2.log.info("No saved sessions found.");
@@ -10751,13 +11879,13 @@ async function handleSessionsMenu(state) {
     }
     const options = [];
     for (const sessionName of sessions) {
-      const sessionDir = path14.join(state.sessionsDir, sessionName);
+      const sessionDir = path16.join(state.sessionsDir, sessionName);
       let meta = null;
       try {
-        meta = JSON.parse(await fs11.readFile(path14.join(sessionDir, "session.json"), "utf-8"));
+        meta = JSON.parse(await fs12.readFile(path16.join(sessionDir, "session.json"), "utf-8"));
       } catch {
         try {
-          meta = JSON.parse(await fs11.readFile(path14.join(sessionDir, "metadata.json"), "utf-8"));
+          meta = JSON.parse(await fs12.readFile(path16.join(sessionDir, "metadata.json"), "utf-8"));
         } catch {
         }
       }
@@ -10803,33 +11931,33 @@ async function handleDeleteSession(state, sessions) {
     p2.log.info("Cancelled.");
     return;
   }
-  const sessionDir = path14.join(state.sessionsDir, toDelete);
-  await fs11.rm(sessionDir, { recursive: true, force: true });
+  const sessionDir = path16.join(state.sessionsDir, toDelete);
+  await fs12.rm(sessionDir, { recursive: true, force: true });
   p2.log.success(`Deleted session: ${toDelete}`);
 }
 async function loadSession(state, sessionName) {
   const s = p2.spinner();
   s.start("Loading session...");
   try {
-    const sessionDir = path14.join(state.sessionsDir, sessionName);
+    const sessionDir = path16.join(state.sessionsDir, sessionName);
     let metadata = {};
     try {
-      metadata = JSON.parse(await fs11.readFile(path14.join(sessionDir, "session.json"), "utf-8"));
+      metadata = JSON.parse(await fs12.readFile(path16.join(sessionDir, "session.json"), "utf-8"));
     } catch {
       try {
-        metadata = JSON.parse(await fs11.readFile(path14.join(sessionDir, "metadata.json"), "utf-8"));
+        metadata = JSON.parse(await fs12.readFile(path16.join(sessionDir, "metadata.json"), "utf-8"));
       } catch {
       }
     }
     let messageCount = 0;
     try {
-      const content = await fs11.readFile(path14.join(sessionDir, "messages.jsonl"), "utf-8");
+      const content = await fs12.readFile(path16.join(sessionDir, "messages.jsonl"), "utf-8");
       messageCount = content.trim().split("\n").filter((l) => l.trim()).length;
     } catch {
     }
     let hasMemory = false;
     try {
-      const memoryState = JSON.parse(await fs11.readFile(path14.join(sessionDir, "memory.json"), "utf-8"));
+      const memoryState = JSON.parse(await fs12.readFile(path16.join(sessionDir, "memory.json"), "utf-8"));
       messageBus.restoreMemory(memoryState);
       hasMemory = true;
     } catch {
@@ -10843,20 +11971,20 @@ async function loadSession(state, sessionName) {
       if (isCustom) {
         const projectSlug = (metadata.projectName || "").replace(/\s+/g, "-").toLowerCase();
         const candidatePaths = [
-          path14.join(sessionDir, "personas.json"),
-          path14.join(state.cwd, "personas", `${sessionName}.json`),
-          path14.join(state.cwd, "personas", `${projectSlug}.json`),
-          path14.join(state.cwd, "personas", `${metadata.projectName || ""}.json`)
+          path16.join(sessionDir, "personas.json"),
+          path16.join(state.cwd, "personas", `${sessionName}.json`),
+          path16.join(state.cwd, "personas", `${projectSlug}.json`),
+          path16.join(state.cwd, "personas", `${metadata.projectName || ""}.json`)
         ];
         for (const candidatePath of candidatePaths) {
           try {
-            const personasContent = await fs11.readFile(candidatePath, "utf-8");
+            const personasContent = await fs12.readFile(candidatePath, "utf-8");
             personas = JSON.parse(personasContent);
             personaSetName = sessionName;
             registerCustomPersonas(personas);
             const skillsPath = candidatePath.replace(/\.json$/, ".skills.md").replace("personas.skills.md", "skills.md");
             try {
-              domainSkills = await fs11.readFile(skillsPath, "utf-8");
+              domainSkills = await fs12.readFile(skillsPath, "utf-8");
             } catch {
             }
             break;
@@ -10879,7 +12007,7 @@ async function loadSession(state, sessionName) {
     p2.note(info, "Loaded Session");
     let resumeMessages = [];
     try {
-      const content = await fs11.readFile(path14.join(sessionDir, "messages.jsonl"), "utf-8");
+      const content = await fs12.readFile(path16.join(sessionDir, "messages.jsonl"), "utf-8");
       resumeMessages = content.trim().split("\n").filter((l) => l.trim()).map((l) => JSON.parse(l));
     } catch {
     }
@@ -10902,10 +12030,10 @@ async function loadSession(state, sessionName) {
   }
 }
 async function handleSetupToken() {
-  const credPath = path14.join(os4.homedir(), ".claude", "credentials.json");
+  const credPath = path16.join(os5.homedir(), ".claude", "credentials.json");
   let current = null;
   try {
-    const credData = JSON.parse(await fs11.readFile(credPath, "utf-8"));
+    const credData = JSON.parse(await fs12.readFile(credPath, "utf-8"));
     current = credData?.claudeAiOauth?.accessToken;
   } catch {
   }
@@ -10922,15 +12050,15 @@ async function handleSetupToken() {
   if (p2.isCancel(token)) return !!current;
   const tokenStr = token.trim();
   try {
-    const claudeDir = path14.join(os4.homedir(), ".claude");
-    await fs11.mkdir(claudeDir, { recursive: true });
+    const claudeDir = path16.join(os5.homedir(), ".claude");
+    await fs12.mkdir(claudeDir, { recursive: true });
     let credData = {};
     try {
-      credData = JSON.parse(await fs11.readFile(credPath, "utf-8"));
+      credData = JSON.parse(await fs12.readFile(credPath, "utf-8"));
     } catch {
     }
     credData.claudeAiOauth = { accessToken: tokenStr };
-    await fs11.writeFile(credPath, JSON.stringify(credData, null, 2));
+    await fs12.writeFile(credPath, JSON.stringify(credData, null, 2));
     process.env.CLAUDE_CODE_OAUTH_TOKEN = tokenStr;
     p2.log.success("Setup token saved and activated.");
     return true;
@@ -10944,9 +12072,9 @@ async function handleApiTest() {
   s.start("Testing Claude connection...");
   let content = "";
   try {
-    const { query: claudeQuery3 } = await import("@anthropic-ai/claude-agent-sdk");
-    const CLAUDE_CODE_PATH3 = path14.join(os4.homedir(), ".local", "bin", "claude");
-    const q = claudeQuery3({
+    const { query: claudeQuery4 } = await import("@anthropic-ai/claude-agent-sdk");
+    const CLAUDE_CODE_PATH4 = path16.join(os5.homedir(), ".local", "bin", "claude");
+    const q = claudeQuery4({
       prompt: 'Say "OK"',
       options: {
         model: "claude-3-5-haiku-20241022",
@@ -10954,7 +12082,7 @@ async function handleApiTest() {
         permissionMode: "dontAsk",
         persistSession: false,
         maxTurns: 1,
-        pathToClaudeCodeExecutable: CLAUDE_CODE_PATH3,
+        pathToClaudeCodeExecutable: CLAUDE_CODE_PATH4,
         stderr: () => {
         }
       }
@@ -11049,7 +12177,7 @@ async function startSessionFromConfig(state) {
   const geminiKey = state.geminiApiKey || process.env.GEMINI_API_KEY;
   const isResume = !!(cfg.resumeSessionDir && cfg.resumeMessages?.length);
   const config = {
-    id: isResume ? path14.basename(cfg.resumeSessionDir) : uuid4(),
+    id: isResume ? path16.basename(cfg.resumeSessionDir) : uuid4(),
     projectName: cfg.projectName,
     goal: cfg.goal || "Reach consensus",
     enabledAgents: cfg.agents,
@@ -11057,8 +12185,8 @@ async function startSessionFromConfig(state) {
     maxRounds: 10,
     consensusThreshold: 0.6,
     methodology: getDefaultMethodology(),
-    contextDir: path14.join(state.cwd, "context"),
-    outputDir: path14.join(state.cwd, "output", "sessions"),
+    contextDir: path16.join(state.cwd, "context"),
+    outputDir: path16.join(state.cwd, "output", "sessions"),
     language: cfg.language,
     apiKey: state.apiKey,
     enabledTools: cfg.enabledTools,
@@ -11095,12 +12223,12 @@ async function startSessionFromConfig(state) {
       const sessionDir = persistence.getSessionDir();
       if (sessionDir) {
         await state.fsAdapter.writeFile(
-          path14.join(sessionDir, "personas.json"),
+          path16.join(sessionDir, "personas.json"),
           JSON.stringify(cfg.personas, null, 2)
         );
         if (cfg.domainSkills) {
           await state.fsAdapter.writeFile(
-            path14.join(sessionDir, "skills.md"),
+            path16.join(sessionDir, "skills.md"),
             cfg.domainSkills
           );
         }
@@ -11208,9 +12336,9 @@ program.command("start").description("Start a new debate session").option("-b, -
     }
   }
   if (personaSetName && availablePersonas === AGENT_PERSONAS) {
-    const personasPath = path15.join(cwd, "personas", `${personaSetName}.json`);
+    const personasPath = path17.join(cwd, "personas", `${personaSetName}.json`);
     try {
-      const content = await fs12.readFile(personasPath, "utf-8");
+      const content = await fs13.readFile(personasPath, "utf-8");
       availablePersonas = JSON.parse(content);
     } catch {
       p3.log.error(`Persona set "${personaSetName}" not found in personas/ directory`);
@@ -11218,9 +12346,9 @@ program.command("start").description("Start a new debate session").option("-b, -
     }
   }
   if (personaSetName && !domainSkills) {
-    const skillsPath = path15.join(cwd, "personas", `${personaSetName}.skills.md`);
+    const skillsPath = path17.join(cwd, "personas", `${personaSetName}.skills.md`);
     try {
-      domainSkills = await fs12.readFile(skillsPath, "utf-8");
+      domainSkills = await fs13.readFile(skillsPath, "utf-8");
       p3.log.info(`Loaded domain expertise: ${personaSetName}.skills.md`);
     } catch {
     }
@@ -11271,7 +12399,7 @@ program.command("start").description("Start a new debate session").option("-b, -
     maxRounds: 10,
     consensusThreshold: 0.6,
     methodology: getDefaultMethodology(),
-    contextDir: path15.join(cwd, "context"),
+    contextDir: path17.join(cwd, "context"),
     outputDir: options.output,
     language: options.language
   };

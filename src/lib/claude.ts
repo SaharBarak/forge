@@ -14,7 +14,7 @@ let client: Anthropic | null = null;
 export function initializeClient(apiKey?: string): Anthropic {
   if (!client || apiKey) {
     client = new Anthropic({
-      apiKey: apiKey || '', // Will use Claude Code credentials via SDK
+      apiKey: apiKey || process.env.ANTHROPIC_API_KEY || '',
       dangerouslyAllowBrowser: true, // Required for Electron renderer process
     });
   }

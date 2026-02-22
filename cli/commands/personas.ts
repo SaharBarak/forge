@@ -5,9 +5,12 @@
 
 import { Command } from 'commander';
 import * as path from 'path';
+import * as os from 'os';
 import * as fs from 'fs/promises';
-import Anthropic from '@anthropic-ai/sdk';
+import { query as claudeQuery } from '@anthropic-ai/claude-agent-sdk';
 import type { AgentPersona } from '../../src/types';
+
+const CLAUDE_CODE_PATH = path.join(os.homedir(), '.local', 'bin', 'claude');
 
 const PERSONA_GENERATION_PROMPT = `You are an expert at creating debate personas for multi-agent deliberation systems.
 
@@ -111,23 +114,40 @@ export function createPersonasCommand(): Command {
 
       console.log('🔥 Generating personas...\n');
 
+      let text = '';
       try {
-        const client = new Anthropic();
-
-        const response = await client.messages.create({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          system: PERSONA_GENERATION_PROMPT,
-          messages: [
-            {
-              role: 'user',
-              content: contextPrompt,
-            },
-          ],
+        const q = claudeQuery({
+          prompt: contextPrompt,
+          options: {
+            systemPrompt: PERSONA_GENERATION_PROMPT,
+            model: 'claude-sonnet-4-20250514',
+            tools: [],
+            permissionMode: 'dontAsk',
+            persistSession: false,
+            maxTurns: 1,
+            pathToClaudeCodeExecutable: CLAUDE_CODE_PATH,
+            stderr: (data: string) => process.stderr.write(`[persona-gen] ${data}`),
+          },
         });
 
-        const text = response.content[0].type === 'text' ? response.content[0].text : '';
+        for await (const message of q) {
+          if (message.type === 'assistant' && message.message?.content) {
+            for (const block of message.message.content) {
+              if (block.type === 'text') {
+                text += block.text;
+              }
+            }
+          }
+        }
+      } catch (error: any) {
+        // SDK may throw on cleanup even if query succeeded
+        if (!text) {
+          console.error('Error generating personas:', error.message);
+          process.exit(1);
+        }
+      }
 
+      try {
         // Extract JSON from response (could be object or array)
         const jsonMatch = text.match(/\{[\s\S]*\}/) || text.match(/\[[\s\S]*\]/);
         if (!jsonMatch) {
@@ -187,7 +207,7 @@ export function createPersonasCommand(): Command {
         console.log(`\nUse with: forge start --personas ${options.name}`);
 
       } catch (error) {
-        console.error('Error generating personas:', error);
+        console.error('Error processing personas:', error);
         process.exit(1);
       }
     });
