@@ -251,6 +251,11 @@ ${firstPhase?.agentFocus || 'Begin the discussion'}
         }
       }
 
+      // Pick the first enabled agent to kick off
+      const firstAgentId = this.session.config.enabledAgents[0] || this.agentListeners.keys().next().value || 'agent';
+      const firstAgentObj = getAgentById(firstAgentId);
+      const firstAgentName = firstAgentObj?.name || firstAgentId;
+
       const promptMessage: Message = {
         id: crypto.randomUUID(),
         timestamp: new Date(),
@@ -266,13 +271,13 @@ ${briefContent}
 - What concerns you from YOUR persona's perspective?
 - What opportunity do you see?
 
-Ronit - you're up first. Share your initial reaction.`,
+${firstAgentName} - you're up first. Share your initial reaction.`,
       };
       this.bus.addMessage(promptMessage, 'system');
 
       // Force first agent to speak after a moment
       setTimeout(() => {
-        this.forceAgentToSpeak('ronit', 'Opening the discussion as requested');
+        this.forceAgentToSpeak(firstAgentId, 'Opening the discussion as requested');
       }, 2000);
     }, 1000);
 

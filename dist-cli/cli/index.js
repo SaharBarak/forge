@@ -7932,6 +7932,9 @@ ${brief.slice(0, 1500)}...`;
         } catch {
         }
       }
+      const firstAgentId = this.session.config.enabledAgents[0] || this.agentListeners.keys().next().value || "agent";
+      const firstAgentObj = getAgentById(firstAgentId);
+      const firstAgentName = firstAgentObj?.name || firstAgentId;
       const promptMessage = {
         id: crypto.randomUUID(),
         timestamp: /* @__PURE__ */ new Date(),
@@ -7947,11 +7950,11 @@ ${briefContent}
 - What concerns you from YOUR persona's perspective?
 - What opportunity do you see?
 
-Ronit - you're up first. Share your initial reaction.`
+${firstAgentName} - you're up first. Share your initial reaction.`
       };
       this.bus.addMessage(promptMessage, "system");
       setTimeout(() => {
-        this.forceAgentToSpeak("ronit", "Opening the discussion as requested");
+        this.forceAgentToSpeak(firstAgentId, "Opening the discussion as requested");
       }, 2e3);
     }, 1e3);
     this.synthesisInterval = setInterval(() => {
