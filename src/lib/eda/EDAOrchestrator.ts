@@ -1123,6 +1123,20 @@ ${researcher.searchDomains.map(d => `- ${d}`).join('\n')}
           if (allProposed) {
             this.triggerWireframeCritique();
           }
+          // Timeout: if agents spoke but didn't include wireframes, skip canvas cycle
+          const messagesSinceProposalPrompt = this.session.messages.slice(this.phaseStartMessageIndex)
+            .filter(m => m.agentId !== 'system' && m.agentId !== 'human').length;
+          if (messagesSinceProposalPrompt >= enabledAgents.length * 3 && this.wireframeProposals.size === 0) {
+            // No wireframes after 3x rounds — skip canvas cycle entirely
+            this.canvasConsensusPhase = 'idle';
+          } else if (messagesSinceProposalPrompt >= enabledAgents.length * 4) {
+            // Some wireframes but not all — compute with what we have
+            if (this.wireframeProposals.size > 0) {
+              this.computeCanvasConsensus();
+            } else {
+              this.canvasConsensusPhase = 'idle';
+            }
+          }
         } else if (this.canvasConsensusPhase === 'critiquing') {
           // Step 3: Check if all agents have spoken since critique started
           const critiqueMessages = this.session.messages.slice(this.critiqueStartIndex)
@@ -1132,12 +1146,19 @@ ${researcher.searchDomains.map(d => `- ${d}`).join('\n')}
           if (allCritiqued) {
             this.computeCanvasConsensus();
           }
+          // Timeout: if stuck in critiquing for too many messages, force convergence
+          if (critiqueMessages.length >= enabledAgents.length * 2) {
+            this.computeCanvasConsensus();
+          }
         }
 
         // Transition guard: require canvas convergence OR 36-message ceiling
+        // Also allow transition if canvas is stuck in sub-cycle but discussion is mature
         const canvasReady = this.canvasConsensusPhase === 'converged' || this.canvasConsensusPhase === 'idle';
+        const canvasStuck = (this.canvasConsensusPhase === 'proposing' || this.canvasConsensusPhase === 'critiquing')
+          && totalContributions >= minContributions * 2;
         if (
-          (status.allAgentsSpoke && totalContributions >= minContributions && canvasReady) ||
+          (status.allAgentsSpoke && totalContributions >= minContributions && (canvasReady || canvasStuck)) ||
           (this.autoModeratorEnabled && phaseMessageCount >= EDAOrchestrator.BRAINSTORMING_MAX)
         ) {
           await this.transitionToArgumentation();
