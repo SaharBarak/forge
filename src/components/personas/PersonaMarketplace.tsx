@@ -655,9 +655,9 @@ export function PersonaMarketplace({ onClose }: { onClose?: () => void }) {
     setSelectedPersona,
     previewOpen,
     setPreviewOpen,
-    filter,
-    setFilter,
-    clearFilter,
+    filter: _filter,
+    setFilter: _setFilter,
+    clearFilter: _clearFilter,
   } = usePersonaStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -971,7 +971,11 @@ export function PersonaMarketplace({ onClose }: { onClose?: () => void }) {
 
         {activeTab === 'create' && (
           <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-            <PersonaCreatorWizard />
+            <PersonaCreatorWizard
+              isOpen={activeTab === 'create'}
+              onClose={() => setActiveTab('browse')}
+              onSave={async (persona) => { installPersona(persona.id); setActiveTab('browse'); }}
+            />
           </div>
         )}
 

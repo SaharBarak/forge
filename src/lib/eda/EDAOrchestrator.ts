@@ -226,8 +226,9 @@ ${firstPhase?.agentFocus || 'Begin the discussion'}
       if (this.fileSystem) {
         try {
           // Dynamic import — cli adapters may not be available in browser/Electron
-          // @ts-ignore — resolved by esbuild at bundle time, not available in tsc
-          const mod = await import('../../cli/adapters/CrossSessionMemory') as any;
+          // Use variable to prevent Vite/Rollup from resolving the dynamic import
+          const crossSessionPath = '../../cli/adapters/CrossSessionMemory';
+          const mod = await import(/* @vite-ignore */ crossSessionPath) as any;
           const crossMemory = new mod.CrossSessionMemory(this.fileSystem);
           const pastContext = await crossMemory.getRelevantPastContext(
             this.session.config.projectName,
@@ -365,7 +366,7 @@ Ronit - you're up first. Share your initial reaction.`,
     );
 
     this.unsubscribers.push(
-      this.bus.subscribe('floor:request', (payload) => {
+      this.bus.subscribe('floor:request', (_payload) => {
       }, 'orchestrator')
     );
   }
@@ -545,7 +546,7 @@ Each agent should now propose a page structure using a [WIREFRAME] block.
     this.critiqueStartIndex = this.session.messages.length;
 
     // Build summary of all proposals
-    const proposalSummary = Array.from(this.wireframeProposals.entries()).map(([agentId, proposal]) => {
+    const proposalSummary = Array.from(this.wireframeProposals.entries()).map(([_agentId, proposal]) => {
       const sections = getLeafSections(proposal.wireframe).map(s => s.label).join(', ');
       return `**${proposal.agentName}**: ${sections}`;
     }).join('\n');
@@ -626,13 +627,12 @@ Focus on what should stay, what's redundant, and what needs changing.`,
       .filter(v => v.count > threshold)
       .map(v => v.label);
 
-    // Use first proposal as template, keeping only consensus sections
-    const templateProposal = this.wireframeProposals.values().next().value;
-    const consensusWireframeText = consensusSections.length > 0
-      ? `[WIREFRAME]\n${consensusSections.map(s => `${s.toLowerCase().replace(/\s+/g, '-')}: ${s}`).join('\n')}\n[/WIREFRAME]`
-      : null;
-
-    const consensusWireframe = consensusWireframeText ? extractWireframe(consensusWireframeText) : templateProposal?.wireframe;
+    // TODO: Use consensus wireframe for canvas rendering
+    // const templateProposal = this.wireframeProposals.values().next().value;
+    // const consensusWireframeText = consensusSections.length > 0
+    //   ? `[WIREFRAME]\n${consensusSections.map(s => `${s.toLowerCase().replace(/\s+/g, '-')}: ${s}`).join('\n')}\n[/WIREFRAME]`
+    //   : null;
+    // const consensusWireframe = consensusWireframeText ? extractWireframe(consensusWireframeText) : templateProposal?.wireframe;
 
     const consensusMessage: Message = {
       id: crypto.randomUUID(),

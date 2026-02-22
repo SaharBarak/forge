@@ -282,7 +282,7 @@ export class AgentListener {
   /**
    * Called when floor request is denied
    */
-  private onFloorDenied(reason: string): void {
+  private onFloorDenied(_reason: string): void {
     this.state = 'listening';
   }
 

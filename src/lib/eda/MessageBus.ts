@@ -187,7 +187,7 @@ export class MessageBus {
     this.messageHistory.push(message);
 
     // Process message for memory tracking
-    this.memory.processMessage(message, this.messageHistory).catch(err => {
+    this.memory.processMessage(message, this.messageHistory).catch(_err => {
       // memory processing error silenced
     });
 

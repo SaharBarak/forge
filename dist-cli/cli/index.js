@@ -5131,7 +5131,7 @@ var MessageBus = class {
    */
   addMessage(message, fromAgent) {
     this.messageHistory.push(message);
-    this.memory.processMessage(message, this.messageHistory).catch((err) => {
+    this.memory.processMessage(message, this.messageHistory).catch((_err) => {
     });
     this.pruneMessagesIfNeeded();
     this.emit("message:new", { message, fromAgent });
@@ -6045,7 +6045,7 @@ ${conversationHistory}` : conversationHistory;
   /**
    * Called when floor request is denied
    */
-  onFloorDenied(reason) {
+  onFloorDenied(_reason) {
     this.state = "listening";
   }
   /**
@@ -7908,7 +7908,11 @@ ${brief.slice(0, 1500)}...`;
       }
       if (this.fileSystem) {
         try {
-          const mod = await import("../../cli/adapters/CrossSessionMemory");
+          const crossSessionPath = "../../cli/adapters/CrossSessionMemory";
+          const mod = await import(
+            /* @vite-ignore */
+            crossSessionPath
+          );
           const crossMemory = new mod.CrossSessionMemory(this.fileSystem);
           const pastContext = await crossMemory.getRelevantPastContext(
             this.session.config.projectName,
@@ -8015,7 +8019,7 @@ Ronit - you're up first. Share your initial reaction.`
       }, "orchestrator")
     );
     this.unsubscribers.push(
-      this.bus.subscribe("floor:request", (payload) => {
+      this.bus.subscribe("floor:request", (_payload) => {
       }, "orchestrator")
     );
   }
@@ -8165,7 +8169,7 @@ Each agent should now propose a page structure using a [WIREFRAME] block.
   triggerWireframeCritique() {
     this.canvasConsensusPhase = "critiquing";
     this.critiqueStartIndex = this.session.messages.length;
-    const proposalSummary = Array.from(this.wireframeProposals.entries()).map(([agentId, proposal]) => {
+    const proposalSummary = Array.from(this.wireframeProposals.entries()).map(([_agentId, proposal]) => {
       const sections = getLeafSections(proposal.wireframe).map((s) => s.label).join(", ");
       return `**${proposal.agentName}**: ${sections}`;
     }).join("\n");
@@ -8231,11 +8235,6 @@ Focus on what should stay, what's redundant, and what needs changing.`
     }
     const threshold = totalProposals * 0.5;
     const consensusSections = Array.from(sectionVotes.values()).filter((v) => v.count > threshold).map((v) => v.label);
-    const templateProposal = this.wireframeProposals.values().next().value;
-    const consensusWireframeText = consensusSections.length > 0 ? `[WIREFRAME]
-${consensusSections.map((s) => `${s.toLowerCase().replace(/\s+/g, "-")}: ${s}`).join("\n")}
-[/WIREFRAME]` : null;
-    const consensusWireframe = consensusWireframeText ? extractWireframe(consensusWireframeText) : templateProposal?.wireframe;
     const consensusMessage = {
       id: crypto.randomUUID(),
       timestamp: /* @__PURE__ */ new Date(),
@@ -8628,6 +8627,16 @@ Search the web for current, accurate information.`,
           if (allProposed) {
             this.triggerWireframeCritique();
           }
+          const messagesSinceProposalPrompt = this.session.messages.slice(this.phaseStartMessageIndex).filter((m) => m.agentId !== "system" && m.agentId !== "human").length;
+          if (messagesSinceProposalPrompt >= enabledAgents.length * 3 && this.wireframeProposals.size === 0) {
+            this.canvasConsensusPhase = "idle";
+          } else if (messagesSinceProposalPrompt >= enabledAgents.length * 4) {
+            if (this.wireframeProposals.size > 0) {
+              this.computeCanvasConsensus();
+            } else {
+              this.canvasConsensusPhase = "idle";
+            }
+          }
         } else if (this.canvasConsensusPhase === "critiquing") {
           const critiqueMessages = this.session.messages.slice(this.critiqueStartIndex).filter((m) => m.agentId !== "system" && m.agentId !== "human");
           const critiqueAgents = new Set(critiqueMessages.map((m) => m.agentId));
@@ -8635,9 +8644,13 @@ Search the web for current, accurate information.`,
           if (allCritiqued) {
             this.computeCanvasConsensus();
           }
+          if (critiqueMessages.length >= enabledAgents.length * 2) {
+            this.computeCanvasConsensus();
+          }
         }
         const canvasReady = this.canvasConsensusPhase === "converged" || this.canvasConsensusPhase === "idle";
-        if (status.allAgentsSpoke && totalContributions >= minContributions && canvasReady || this.autoModeratorEnabled && phaseMessageCount >= _EDAOrchestrator.BRAINSTORMING_MAX) {
+        const canvasStuck = (this.canvasConsensusPhase === "proposing" || this.canvasConsensusPhase === "critiquing") && totalContributions >= minContributions * 2;
+        if (status.allAgentsSpoke && totalContributions >= minContributions && (canvasReady || canvasStuck) || this.autoModeratorEnabled && phaseMessageCount >= _EDAOrchestrator.BRAINSTORMING_MAX) {
           await this.transitionToArgumentation();
         }
         break;
