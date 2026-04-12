@@ -44,7 +44,10 @@ export function HomeScreen({
     switch (trimmed) {
       case 'new':
       case 'start':
+        // Signal the parent the user wants to start a session, then exit
+        // Ink so stdin is released and the readline flow can take over.
         onStartNew();
+        exit();
         break;
       case 'exit':
       case 'quit':

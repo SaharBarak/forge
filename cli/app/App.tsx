@@ -10,12 +10,13 @@
  *   - Consensus tracking with visual indicators
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import { StatusBar } from './StatusBar';
 import { AgentList } from './AgentList';
 import { ChatPane } from './ChatPane';
 import { InputPane, CommandHelp } from './InputPane';
+import { PermissionDialog } from './PermissionDialog';
 import type { Message, Session, SessionPhase } from '../../src/types';
 import type { EDAOrchestrator, EDAEvent } from '../../src/lib/eda/EDAOrchestrator';
 import type { SessionPersistence } from '../adapters/SessionPersistence';
@@ -26,12 +27,14 @@ import { ResultAsync } from '../../src/lib/core';
 import * as p2pDirect from '../adapters/p2p-direct';
 import * as connectionsDirect from '../adapters/connections-direct';
 import type { Contribution, Reaction } from '../../src/lib/community/types';
+import { createPermissionBroker, type PermissionBroker } from '../../src/lib/render/permission';
 
 interface AppProps {
   orchestrator: EDAOrchestrator;
   persistence: SessionPersistence;
   session: Session;
   onExit: () => void;
+  permissionBroker?: PermissionBroker;
 }
 
 interface AgentInfo {
@@ -50,8 +53,11 @@ const authRepo = createSessionRepository(
 const isContribution = (p: unknown): p is Contribution =>
   !!p && typeof p === 'object' && 'kind' in p && 'title' in p && (p as { kind: string }).kind !== 'reaction';
 
-export function App({ orchestrator, persistence, session, onExit }: AppProps): React.ReactElement {
+export function App({ orchestrator, persistence, session, onExit, permissionBroker }: AppProps): React.ReactElement {
   const { exit } = useApp();
+
+  // Create a default permission broker if not injected (standalone session).
+  const broker = useMemo(() => permissionBroker ?? createPermissionBroker(), [permissionBroker]);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [phase, setPhase] = useState<SessionPhase>('initialization');
@@ -303,6 +309,9 @@ export function App({ orchestrator, persistence, session, onExit }: AppProps): R
       )}
 
       {showHelp && <CommandHelp />}
+
+      {/* Tool permission approval overlay — renders when broker emits request */}
+      <PermissionDialog broker={broker} />
 
       <InputPane
         onSubmit={handleSubmit}

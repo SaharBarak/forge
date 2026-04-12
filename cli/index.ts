@@ -620,7 +620,7 @@ program.addCommand(createLoginCommand());
 program.addCommand(createCommunityCommand());
 
 
-// Default action - launch Ink home screen
+// Default action - launch Ink home screen, then drop to readline for config
 program.action(async () => {
   const cwd = process.cwd();
 
@@ -639,25 +639,48 @@ program.action(async () => {
     sessionCount = dirs.filter(d => !d.startsWith('.')).length;
   } catch {}
 
-  // Render Ink home screen
+  // Track what the user selected in the Ink HomeScreen so we can act on it
+  // AFTER the app unmounts (Ink owns stdin while mounted).
+  type HomeIntent =
+    | { kind: 'start' }
+    | { kind: 'load'; name: string }
+    | { kind: 'community' }
+    | { kind: 'exit' };
+  let intent: HomeIntent = { kind: 'exit' };
+
   const { HomeScreen } = await import('./app/HomeScreen');
-  const { waitUntilExit } = render(
+  const homeApp = render(
     React.createElement(HomeScreen, {
       did,
       sessionCount,
       onStartNew: () => {
-        console.log('\nRun: forge start --goal "your goal" --name "project"\n');
-        process.exit(0);
+        intent = { kind: 'start' };
+        homeApp.unmount();
       },
       onLoadSession: (name: string) => {
-        console.log(`\nRun: forge sessions load ${name}\n`);
-        process.exit(0);
+        intent = { kind: 'load', name };
+        homeApp.unmount();
       },
-      onExit: () => {},
+      onExit: () => {
+        intent = { kind: 'exit' };
+      },
     })
   );
 
-  await waitUntilExit();
+  await homeApp.waitUntilExit();
+
+  // After Ink unmounts, act on the user's choice.
+  if (intent.kind === 'start') {
+    console.log(`\n${CYAN}Launching deliberation session…${RESET}\n`);
+    // Delegate to the 'start' subcommand with default options (interactive).
+    await program.parseAsync(['node', 'forge', 'start']);
+  } else if (intent.kind === 'load') {
+    console.log(`\n${CYAN}Loading session: ${intent.name}${RESET}\n`);
+    await program.parseAsync(['node', 'forge', 'sessions', 'load', intent.name]);
+  } else if (intent.kind === 'community') {
+    await program.parseAsync(['node', 'forge', 'community', 'list']);
+  }
+  // 'exit' → let Node flush and exit naturally
 });
 
 // ---- graceful shutdown ----

@@ -24,3 +24,6 @@ export * from './borders';
 export * from './progress';
 export * from './phase';
 export * from './consensus';
+export * from './tool-call';
+export * from './diff';
+export * from './permission';

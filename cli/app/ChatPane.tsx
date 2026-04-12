@@ -11,6 +11,7 @@ import { Box, Text } from 'ink';
 import type { Message } from '../../src/types';
 import { renderMarkdown } from '../../src/lib/render/markdown';
 import { agentColor } from '../../src/lib/render/theme';
+import { renderMessageWithToolCalls } from '../../src/lib/render/tool-call';
 
 interface ChatPaneProps {
   readonly messages: ReadonlyArray<Message>;
@@ -50,8 +51,10 @@ function MessageItem({ message }: { readonly message: Message }): React.ReactEle
     );
   }
 
-  // Agent / human messages — full markdown rendering.
-  const rendered = renderMarkdown(message.content, 72);
+  // Agent / human messages — mix of markdown and [TOOL:] call blocks.
+  const rendered = renderMessageWithToolCalls(message.content, {
+    renderText: (text) => renderMarkdown(text, 72),
+  });
 
   return (
     <Box flexDirection="column" marginBottom={1}>

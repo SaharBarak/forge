@@ -23,6 +23,44 @@ import { forgeTheme, style } from './theme';
 
 const { bold, dim, italic, strikethrough: strikeStyle } = forgeTheme;
 
+// ---- syntax highlighter cache ----
+//
+// @speed-highlight/core exposes an async highlightText() — we can't await it
+// inside the sync token walker, so we cache highlighted code blocks and
+// fall back to monochrome on first render. Subsequent renders of the same
+// (code, lang) pair return cached ANSI. For streaming LLM output this
+// means the first chunk is plain; the next re-render picks up colors.
+
+const highlightCache = new Map<string, string>();
+let highlighter: ((code: string, lang: string) => Promise<string>) | null = null;
+
+const warmHighlighter = async (): Promise<void> => {
+  if (highlighter) return;
+  try {
+    const mod = await import('@speed-highlight/core/terminal');
+    highlighter = mod.highlightText as (code: string, lang: string) => Promise<string>;
+  } catch {
+    // Keep highlighter null — code blocks stay monochrome.
+  }
+};
+void warmHighlighter();
+
+/**
+ * Returns a syntax-highlighted version of the code synchronously if cached,
+ * otherwise kicks off an async highlight and returns the raw code.
+ */
+const getHighlightedSync = (code: string, lang: string): string => {
+  const key = `${lang}:${code}`;
+  const cached = highlightCache.get(key);
+  if (cached) return cached;
+  if (highlighter) {
+    highlighter(code, lang)
+      .then((result) => { highlightCache.set(key, result); })
+      .catch(() => {});
+  }
+  return code;
+};
+
 // ---- token walker (pure, recursive) ----
 
 const renderToken = (token: Token, depth: number): string => {
@@ -67,9 +105,18 @@ const renderCodeBlock = (token: Tokens.Code): string => {
   const lang = token.lang || '';
   const border = forgeTheme.border.accent;
   const top = style(border, `╭─${lang ? ` ${lang} ` : '─'}${'─'.repeat(Math.max(0, 36 - lang.length))}`) + '\n';
-  const lines = token.text
+
+  // Try to get syntax-highlighted content; falls back to plain code.
+  const highlighted = lang
+    ? getHighlightedSync(token.text, lang)
+    : token.text;
+  const isHighlighted = highlighted !== token.text;
+
+  const lines = highlighted
     .split('\n')
-    .map((line: string) => style(border, '│') + ' ' + style(forgeTheme.text.inlineCode, line))
+    .map((line: string) =>
+      style(border, '│ ') + (isHighlighted ? line : style(forgeTheme.text.inlineCode, line))
+    )
     .join('\n');
   const bottom = '\n' + style(border, `╰${'─'.repeat(40)}`) + '\n\n';
   return top + lines + bottom;
