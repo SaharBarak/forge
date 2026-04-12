@@ -651,18 +651,8 @@ program.action(async () => {
     console.log('');
   }
 
-  // Show help
-  console.log(`${YELLOW}${BOLD}COMMANDS${RESET}`);
-  console.log(`${DIM}─────────────────────${RESET}`);
-  console.log(`  ${GREEN}new${RESET}           - Start new session configuration`);
-  console.log(`  ${GREEN}start${RESET}         - Start configured session`);
-  console.log(`  ${GREEN}sessions${RESET}      - List saved sessions`);
-  console.log(`  ${GREEN}load <name>${RESET}   - Load a saved session`);
-  console.log(`  ${GREEN}token [key]${RESET}   - Set/show API key`);
-  console.log(`  ${GREEN}test${RESET}          - Test API connection`);
-  console.log(`  ${GREEN}agents${RESET}        - List available agents`);
-  console.log(`  ${GREEN}help${RESET}          - Show all commands`);
-  console.log(`  ${GREEN}exit${RESET}          - Exit`);
+  // Quick hint (not full help — type 'help' for that)
+  console.log(`  Type ${GREEN}new${RESET} to start │ ${GREEN}help${RESET} for all commands │ ${GREEN}exit${RESET} to quit`);
   console.log('');
 
   // State
@@ -1563,8 +1553,6 @@ program.action(async () => {
   // Start REPL
   prompt();
 });
-
-program.parse();
 
 // ---- graceful shutdown ----
 
