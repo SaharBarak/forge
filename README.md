@@ -1,176 +1,196 @@
-# Copywrite Think Tank
+# Forge
 
-A multi-agent copywriting orchestrator with an instant messaging interface. Watch AI agents debate, argue, and collaborate to create compelling copy.
+> **Multi-agent deliberation engine.** Stop debating in Slack. Start deciding with structure.
 
-**[View Documentation Site](https://yourusername.github.io/copywrite-think-tank/)**
+Forge runs structured deliberation workflows that turn endless discussions into concrete decisions. Eight battle-tested modes for copywriting, idea validation, feasibility analysis, ideation, business planning, go-to-market strategy, site surveys, and custom workflows. CLI-first, open source, no API key lock-in.
 
-![Think Tank Screenshot](docs/screenshot.png)
+**[→ Landing page](https://saharbarak.github.io/forge/)** · **[Source](https://github.com/SaharBarak/forge)**
 
-## Features
+---
 
-- **5 Distinct Agent Personas**: Each with unique perspectives, biases, and communication styles
-- **5 Researcher Agents**: Specialized agents for data, competitors, audience, examples, and local context
-- **Human Participation**: Join the discussion, guide the debate, or just observe
-- **Methodology Framework**: Structured argumentation and consensus-building methods
-- **Visual & Structure Decision Guides**: Built-in rules for when to use graphs, text, bullets, etc.
-- **Hebrew/English Support**: Full RTL support for Hebrew-first projects
-- **Context Scanning**: Load brand, audience, and research context from files
-- **Session Export**: Save discussions, decisions, and drafts
+## What it does
 
-## Agent Personas
-
-| Agent | Role | Perspective |
-|-------|------|-------------|
-| **Ronit** (רונית) | The Busy Parent | Time-conscious, practical, cuts through BS |
-| **Yossi** (יוסי) | The Burned Veteran | Historical perspective, skeptical, values authenticity |
-| **Noa** (נועה) | The Data Skeptic | Evidence-based, logical, needs proof |
-| **Avi** (אבי) | The Practical Businessman | Results-oriented, direct, ROI-focused |
-| **Michal** (מיכל) | The Burned Activist | Empathetic, protective, values vulnerability |
-
-## Argumentation Methodologies
-
-- **Dialectic**: Thesis → Antithesis → Synthesis
-- **Socratic**: Question-driven exploration
-- **Collaborative**: "Yes, and..." building approach
-- **Adversarial**: Strong opposing viewpoints
-
-## Consensus Methods
-
-- **Unanimous**: All must agree
-- **Supermajority**: 2/3 must agree
-- **Majority**: 50%+ must agree
-- **Consent**: No strong objections
-- **Synthesis**: Combine elements from all
-
-## Quick Start
+You pick a **mode** and give Forge a goal. It runs a deterministic phase state machine — Discovery → Research → Synthesis → Drafting → Finalization — with five reasoning archetypes debating, researching, and producing a structured deliverable. Phase transitions are automatic, loop detection is built in, and sessions always terminate cleanly with the artifact you asked for.
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/copywrite-think-tank.git
-cd copywrite-think-tank
+$ forge start --mode will-it-work \
+    --goal "Migrate 10M-user system from Postgres to Cockroach?"
 
-# Install dependencies
+🔎 PHASE 1/4: DISCOVERY
+  skeptic     ▸ What's the actual failure mode we're solving for?
+  pragmatist  ▸ Wins: horizontal scaling, zero-downtime. Cost: ops complexity.
+  analyst     ▸ Three constraints matter: write latency, backfill window, tooling.
+
+🔍 PHASE 2/4: RESEARCH
+  [RESEARCH: stats-finder] Postgres vs Cockroach latency at 10M users
+  [RESEARCH: context-finder] What does src/lib/db/ look like today?
+
+🧭 PHASE 3/4: SYNTHESIS → ✍️ PHASE 4/4: DRAFTING
+🎉 DRAFTING COMPLETE — 3/3 sections
+  ✓ VERDICT, ✓ CONFIDENCE LEVEL, ✓ KEY FACTORS
+```
+
+## The eight modes
+
+Each mode ships with its own phase sequence, per-phase focus, message limits, success criteria, and loop detection — all defined in [`src/lib/modes/index.ts`](src/lib/modes/index.ts).
+
+| Mode | ID | Phases | Use when |
+|---|---|---|---|
+| **Copywriting** | `copywrite` | discovery → research → ideation → synthesis → drafting | Writing web copy that converts |
+| **Idea Validation** | `idea-validation` | understand → research → stress-test → verdict | Deciding GO/NO-GO/PIVOT on an idea |
+| **Ideation** | `ideation` | scout → pattern → ideate → rank | Finding opportunities in a domain |
+| **Will It Work?** | `will-it-work` | define → evidence → debate → verdict | Forcing a YES/NO/MAYBE-IF answer |
+| **Site Survey & Rewrite** | `site-survey` | analyze → diagnose → research → rewrite | Auditing an existing site |
+| **Business Plan** | `business-plan` | problem → market → model → gtm → synthesis | Building a fundable plan |
+| **Go-to-Market Strategy** | `gtm-strategy` | audience → positioning → channels → tactics | Planning a launch |
+| **Custom** | `custom` | your phases → your outputs | Anything the above doesn't fit |
+
+## Architecture
+
+Forge is a CLI-first Ink TUI with a deterministic phase executor at its core.
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                    EDAOrchestrator                         │
+│  runPhaseMachine() drives the deliberation state machine   │
+└──┬─────────────────────────────────────────────────────────┘
+   │
+   │  Discovery → Research → Synthesis → Drafting → Final
+   │
+   ▼
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
+│ AgentListener│────▶│  MessageBus  │◀────│ ModeController  │
+│  speakNow()  │     │  pub/sub     │     │ success checks  │
+└──────┬───────┘     └──────┬───────┘     └─────────────────┘
+       │                    │
+       ▼                    ▼
+┌──────────────┐     ┌────────────────────┐
+│ ClaudeCode   │     │ ProjectIntrospector│
+│ CLIRunner    │     │ (context-finder)   │
+└──────────────┘     └────────────────────┘
+```
+
+**Key modules:**
+- [`src/lib/eda/EDAOrchestrator.ts`](src/lib/eda/EDAOrchestrator.ts) — phase state machine, agent coordination, session lifecycle
+- [`src/lib/eda/AgentListener.ts`](src/lib/eda/AgentListener.ts) — per-agent message handling, `speakNow()` for turn-taking
+- [`src/lib/eda/MessageBus.ts`](src/lib/eda/MessageBus.ts) — typed pub/sub (`message:new`, `phase:change`, `session:end`, …)
+- [`src/lib/eda/GoalParser.ts`](src/lib/eda/GoalParser.ts) — extracts required sections from the goal string
+- [`src/lib/eda/FloorManager.ts`](src/lib/eda/FloorManager.ts) — floor-request serialization with cooldown
+- [`src/lib/eda/ConversationMemory.ts`](src/lib/eda/ConversationMemory.ts) — bounded summaries + per-agent state
+- [`src/lib/modes/ModeController.ts`](src/lib/modes/ModeController.ts) — mode progression, loop detection, output validation
+- [`src/lib/research/ProjectIntrospector.ts`](src/lib/research/ProjectIntrospector.ts) — walks a project dir and answers questions grounded in real source code
+- [`cli/adapters/ClaudeCodeCLIRunner.ts`](cli/adapters/ClaudeCodeCLIRunner.ts) — shells out to `claude` via `@anthropic-ai/claude-agent-sdk`
+
+## Agent archetypes
+
+Five **generic, culture-neutral** reasoning archetypes ship in the default registry. No names, no personalities — just stances:
+
+| ID | Role | What they bring |
+|---|---|---|
+| `skeptic` | Evidence-demanding critic | Catches weak claims, demands sources, asks "what would falsify this?" |
+| `pragmatist` | Outcome-focused builder | Favors proven over novel, cuts through paralysis, forces closure |
+| `analyst` | Systems thinker | Reasons from first principles, identifies leverage points, traces implications |
+| `advocate` | Mission-driven voice | Centers stakeholders, surfaces ethical concerns, holds the group accountable |
+| `contrarian` | Devil's advocate | Challenges emerging consensus, inverts assumptions, prevents groupthink |
+
+Define your own at runtime via `registerCustomPersonas()`, or generate domain-specific ones via `generatePersonas()`.
+
+## Project introspection
+
+Forge's `context-finder` researcher reads your local codebase to answer grounded questions during Research phases. Agents invoke it with an explicit block:
+
+```
+[RESEARCH: context-finder]
+What deliberation modes are defined in src/lib/modes/? List each mode's
+id, name, and phase structure.
+[/RESEARCH]
+```
+
+The [`ProjectIntrospector`](src/lib/research/ProjectIntrospector.ts) walks the configured `contextDir` (symlink-safe, hard file cap, excludes dev-internal paths like `.planning/`), scores files by keyword match, reads the top 15 candidates, and asks the runner to answer strictly from the source. Every answer comes back with **file citations** so drafting agents can cite real paths instead of hallucinating feature names.
+
+## Install
+
+```bash
+# Clone and set up
+git clone https://github.com/SaharBarak/forge.git
+cd forge
 npm install
 
-# Run in development mode
-npm run electron:dev
+# Authenticate Claude Code (one-time — Forge uses your existing claude CLI auth)
+claude login
 
-# Build for production
-npm run electron:build
+# Run the interactive CLI
+npm run cli
 ```
 
-## CLI Flags
+No `ANTHROPIC_API_KEY` needed — Forge shells out to the authenticated `claude` binary via `@anthropic-ai/claude-agent-sdk`.
 
-When running in development, you can use flags:
+## Build & test
 
 ```bash
-# Run with specific options
-npm run electron:dev -- --project "My Landing Page" --human --methodology dialectic
+# TypeScript typecheck
+npx tsc --noEmit -p tsconfig.json
+
+# Full test suite (898 tests)
+npm test
+
+# Live end-to-end: generate a landing page for Forge itself
+#   writes to output/forge-landing-copy/runs/<timestamp>/
+npx tsx scripts/forge-landing-copy.ts
 ```
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--project` | Project name | "New Project" |
-| `--goal` | Discussion goal | Required |
-| `--agents` | Comma-separated agent IDs | All agents |
-| `--human` | Enable human participation | true |
-| `--methodology` | Argumentation style | mixed |
-| `--consensus` | Consensus method | consent |
-| `--context-dir` | Context files directory | ./context |
-| `--output-dir` | Output files directory | ./output |
+## Live example: Forge writes its own landing page
 
-## Context Directory Structure
+The file you're reading was **generated by Forge running against itself**. The test script at [`scripts/forge-landing-copy.ts`](scripts/forge-landing-copy.ts) spins up a three-agent deliberation with `contextDir` pointed at this repo. During the Research phase, the `context-finder` reads `src/lib/modes/` and `cli/commands/`; during Drafting, agents cite the eight real modes by ID and the real phase structures.
 
-Place your context files in the `context/` directory:
+Run it yourself:
 
-```
-context/
-├── brand/
-│   └── brand.md          # Brand guidelines, tone, values
-├── audience/
-│   └── segments.md       # Target audience descriptions
-├── competitors/
-│   └── analysis.md       # Competitor messaging analysis
-├── research/
-│   └── statistics.md     # Relevant research and data
-└── examples/
-    └── references.md     # Good copywriting examples
+```bash
+npx tsx scripts/forge-landing-copy.ts
 ```
 
-## Output Structure
-
-Sessions are saved to the `output/` directory:
-
-```
-output/
-├── sessions/
-│   └── 2024-01-27-landing-page.md
-├── drafts/
-│   └── hero-v1.md
-│   └── hero-v2.md
-└── final/
-    └── landing-page-copy.md
-```
-
-## Methodology Guides
-
-### When to Use Visuals
-
-| Condition | Recommended Visual |
-|-----------|-------------------|
-| Showing change over time | Chart (line/area) |
-| Comparing quantities | Graph (bar) |
-| Before/after states | Comparison |
-| Abstract concepts | Illustration |
-| Building trust | Photo |
-| Multiple statistics | Infographic |
-| Narrative/emotional | None (text only) |
-
-### When to Use Which Structure
-
-| Condition | Recommended Structure |
-|-----------|----------------------|
-| Explaining a sequence | Numbered list |
-| Listing features/benefits | Bullets |
-| Us vs them comparison | Table/columns |
-| Telling a story | Prose |
-| Showing history | Timeline |
-| Key metrics | Stats display |
-| Multiple equal items | Grid |
+Output lands in `output/forge-landing-copy/runs/<timestamp>/`:
+- `landing-copy.md` — the consolidated draft
+- `transcript.md` — the full deliberation transcript including context-finder citations
 
 ## Development
 
 ```bash
-# Run frontend only (no Electron)
-npm run dev
+# Run tests in watch mode
+npx vitest
 
-# Run with Electron
-npm run electron:dev
-
-# Type checking
-npm run typecheck
-
-# Linting
+# Lint
 npm run lint
 
-# Build
+# Build production bundle
 npm run build
 ```
 
-## Tech Stack
+## Project architecture
 
-- **Electron**: Desktop application framework
-- **React**: UI framework
-- **TypeScript**: Type safety
-- **Vite**: Build tool
-- **Tailwind CSS**: Styling
-- **Zustand**: State management
-- **Anthropic SDK**: AI agent communication
+- **Domain-Driven Design** with bounded contexts under `src/lib/`
+- **Functional TypeScript** with `Result<T, E>` via `neverthrow` for error handling
+- **Event Sourcing** for state changes via `MessageBus`
+- **TDD-first** new code with mock runners for the agent SDK
+- **Clean code**: files under 500 lines where possible, typed interfaces for all public APIs
+
+## Scope & non-goals
+
+**In scope:**
+- Structured multi-agent deliberation with deterministic phases
+- Mode-driven workflows for common decision types
+- Local project introspection via `context-finder`
+- CLI-first UX with an Ink TUI and Electron fallback
+
+**Not in scope:**
+- Hosted SaaS (Forge runs locally, period)
+- Hard-coded personas or locale-specific defaults
+- Dependency on `ANTHROPIC_API_KEY` — always goes through the `claude` CLI
 
 ## License
 
-MIT
+MIT © [SaharBarak](https://github.com/SaharBarak)
 
 ---
 
-Built with ❤️ for better copywriting through structured debate.
+Built with forge itself.
