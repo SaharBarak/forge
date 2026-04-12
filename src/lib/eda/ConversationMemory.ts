@@ -525,7 +525,7 @@ ${conversationText}
 
 Summary:`,
         systemPrompt: 'You are a concise summarizer. Output only the summary, no preamble.',
-        model: 'claude-3-5-haiku-20241022', // Use haiku for fast, cheap summarization (per CONVERSATION_MEMORY.md)
+        model: 'claude-opus-4-6', // Use haiku for fast, cheap summarization (per CONVERSATION_MEMORY.md)
       });
 
       if (result.success && result.content) {

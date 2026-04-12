@@ -189,7 +189,7 @@ export const createCommunityCommand = (): Command => {
       .description('Upvote or downvote a contribution')
       .argument('<id>', 'Contribution ID (or prefix)')
       .option('--down', 'Downvote instead of upvote')
-      .action(async (id: string, opts) => {
+      .action(async (idOrPrefix: string, opts) => {
         await ensureServices();
         const session = await repo.restoreSession();
         const authState = session.match((s) => s, () => null);
@@ -201,18 +201,35 @@ export const createCommunityCommand = (): Command => {
         const keypair = repo.getCurrentKeypair();
         if (!keypair) return;
 
+        // Resolve prefix to full contribution ID by scanning the store.
+        const allResult = await p2p.fetchAll<Contribution | Reaction>();
+        const resolvedId = allResult.match(
+          (docs) => {
+            const match = docs.find(
+              (d) => isContribution(d.payload) && d.id.startsWith(idOrPrefix)
+            );
+            return match?.id ?? null;
+          },
+          () => null
+        );
+
+        if (!resolvedId) {
+          console.error(style(forgeTheme.status.error, `  ✘ No contribution matches "${idOrPrefix}"`));
+          return;
+        }
+
         const vote = opts.down ? 'down' : 'up';
         const reaction: Reaction = {
           v: CONTRIBUTION_SCHEMA_VERSION,
           kind: 'reaction',
-          targetId: id,
+          targetId: resolvedId,
           vote,
         };
-        const voteId = `vote:${keypair.did}:${id}`;
+        const voteId = `vote:${keypair.did}:${resolvedId}`;
 
         const result = await p2p.publish(keypair, { payload: reaction, id: voteId });
         result.match(
-          () => console.log(style(forgeTheme.status.success, `  ✔ ${vote === 'up' ? '▲' : '▼'} Vote cast`)),
+          () => console.log(style(forgeTheme.status.success, `  ✔ ${vote === 'up' ? '▲' : '▼'} Vote cast on ${resolvedId.slice(0, 12)}…`)),
           (err) => console.error(style(forgeTheme.status.error, `  ✘ ${err.message}`))
         );
       })

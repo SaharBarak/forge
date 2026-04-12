@@ -204,21 +204,30 @@ describe('ModeController', () => {
       expect(progress.researchRequests).toBe(1);
     });
 
-    it('detects research requests by @mentions', () => {
-      const researchMentions = [
-        '@stats-finder give me data',
-        '@competitor-analyst check rivals',
-        '@audience-insight who are they',
-        '@copy-explorer find examples',
-        '@local-context check files',
+    it('detects research requests only via explicit [research:] blocks', () => {
+      // Block form triggers (the correct invocation path)
+      const blockRequests = [
+        '[research: stats-finder] give me data',
+        '[research: competitor-analyst] check rivals',
+        '[research: audience-insight] who are they',
+        '[research: copy-explorer] find examples',
+        '[research: context-finder] read the project',
       ];
-
-      for (const content of researchMentions) {
+      for (const content of blockRequests) {
         const ctrl = new ModeController(testMode);
         const msg = createMessage({ content });
         ctrl.processMessage(msg, [msg]);
         expect(ctrl.getProgress().researchRequests).toBe(1);
       }
+
+      // Bare @mentions in prose do NOT trigger research tracking — they
+      // used to, which caused intervention feedback loops because agents
+      // mention researcher IDs in regular conversation.
+      const prose = 'I think we should let @context-finder look at this later';
+      const ctrl = new ModeController(testMode);
+      const msg = createMessage({ content: prose });
+      ctrl.processMessage(msg, [msg]);
+      expect(ctrl.getProgress().researchRequests).toBe(0);
     });
 
     it('detects research requests by [research:] tag', () => {
@@ -253,7 +262,8 @@ describe('ModeController', () => {
       const messages: Message[] = [];
 
       for (let i = 0; i < 3; i++) {
-        const msg = createMessage({ content: '@stats-finder same topic' });
+        // Use explicit block form — bare @mentions no longer trigger tracking.
+        const msg = createMessage({ content: '[research: stats-finder] same topic' });
         messages.push(msg);
         const interventions = ctrl.processMessage(msg, messages);
 
@@ -518,12 +528,20 @@ describe('ModeController', () => {
       messages.push(agreement2);
       controller.processMessage(agreement2, messages);
 
-      // Add required outputs
-      const heroMsg = createMessage({ content: '## Hero\nGreat headline' });
+      // Add required outputs — hardened detector requires real ## headers
+      // with ≥80 char bodies (prevents mentions of "hero" / "cta" in free
+      // text from being counted as produced output).
+      const heroMsg = createMessage({
+        content:
+          '## Hero\nOur hero copy is amazing and converts well because it speaks directly to the user and clearly articulates the value proposition they care about most.',
+      });
       messages.push(heroMsg);
       controller.processMessage(heroMsg, messages);
 
-      const ctaMsg = createMessage({ content: '## CTA\nClick here!' });
+      const ctaMsg = createMessage({
+        content:
+          '## CTA\nClick the button below to start your free trial today — no credit card required, cancel anytime, and get full access to every feature we offer.',
+      });
       messages.push(ctaMsg);
       controller.processMessage(ctaMsg, messages);
 
@@ -534,8 +552,16 @@ describe('ModeController', () => {
   });
 
   describe('output detection', () => {
-    it('detects hero output', () => {
-      const msg = createMessage({ content: '## Hero\nOur amazing product' });
+    // Hardened detector: a section only counts when it's a real `## HEADER`
+    // markdown block whose body is ≥ 80 chars. Free-text mentions of the
+    // section name do NOT count — the old substring-based detector caused
+    // premature success_check interventions.
+
+    it('detects hero output from a real markdown section', () => {
+      const msg = createMessage({
+        content:
+          '## Hero\nOur amazing product saves you twenty hours a week and pays for itself inside a single sprint cycle with zero setup friction or meetings required.',
+      });
       controller.processMessage(msg, [msg]);
 
       const progress = controller.getProgress();
@@ -543,7 +569,10 @@ describe('ModeController', () => {
     });
 
     it('detects value proposition output', () => {
-      const msg = createMessage({ content: '## Value\nWhat makes us great' });
+      const msg = createMessage({
+        content:
+          '## Value\nWhat makes us great is that we deliver end-to-end integration in under ten minutes, with no vendor lock-in, and a proven track record across hundreds of teams.',
+      });
       controller.processMessage(msg, [msg]);
 
       const progress = controller.getProgress();
@@ -551,7 +580,10 @@ describe('ModeController', () => {
     });
 
     it('detects CTA output', () => {
-      const msg = createMessage({ content: 'Our CTA should be compelling' });
+      const msg = createMessage({
+        content:
+          '## CTA\nStart your free trial today and ship faster tomorrow — our onboarding takes two minutes, no credit card required, and you can cancel any time.',
+      });
       controller.processMessage(msg, [msg]);
 
       const progress = controller.getProgress();
@@ -559,11 +591,25 @@ describe('ModeController', () => {
     });
 
     it('detects verdict output', () => {
-      const msg = createMessage({ content: 'Our verdict is: this will work!' });
+      const msg = createMessage({
+        content:
+          '## Verdict\nOur verdict is a cautious GO — the evidence for product-market fit is strong enough to justify committing six months of runway, provided we hit three measurable milestones on the way.',
+      });
       controller.processMessage(msg, [msg]);
 
       const progress = controller.getProgress();
       expect(progress.outputsProduced.has('verdict')).toBe(true);
+    });
+
+    it('does NOT detect output from free-text mentions', () => {
+      const msg = createMessage({
+        content: 'Our CTA should be compelling and the hero section needs work',
+      });
+      controller.processMessage(msg, [msg]);
+
+      const progress = controller.getProgress();
+      expect(progress.outputsProduced.has('cta')).toBe(false);
+      expect(progress.outputsProduced.has('hero')).toBe(false);
     });
   });
 
@@ -606,11 +652,17 @@ describe('ModeController', () => {
       messages.push(agreement2);
       controller.processMessage(agreement2, messages);
 
-      const heroMsg = createMessage({ content: '## Hero section' });
+      const heroMsg = createMessage({
+        content:
+          '## Hero\nOur bold new platform ships faster than anything else on the market and proves it in the first five minutes of any evaluation run.',
+      });
       messages.push(heroMsg);
       controller.processMessage(heroMsg, messages);
 
-      const ctaMsg = createMessage({ content: 'Call to action button' });
+      const ctaMsg = createMessage({
+        content:
+          '## CTA\nClick the button below and start shipping faster today — our onboarding is two minutes and you can cancel any time without friction.',
+      });
       messages.push(ctaMsg);
       const interventions = controller.processMessage(ctaMsg, messages);
 

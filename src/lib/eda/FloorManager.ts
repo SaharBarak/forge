@@ -18,7 +18,7 @@ export class FloorManager {
 
   // Configuration
   private readonly maxQueueSize = 10;
-  private readonly speakerCooldown = 2000; // ms before same agent can speak again
+  private readonly speakerCooldown = 500; // ms before same agent can speak again
   private readonly floorTimeout = 30000; // ms max time on floor
 
   private floorTimeoutId: ReturnType<typeof setTimeout> | null = null;

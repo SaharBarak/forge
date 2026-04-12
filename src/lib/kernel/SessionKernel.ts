@@ -1220,7 +1220,7 @@ export class SessionKernel {
       const client = new Anthropic({ apiKey: this.config.apiKey });
       // Use haiku for API connection test - fast and cost-effective
       const response = await client.messages.create({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-opus-4-6',
         max_tokens: 10,
         messages: [{ role: 'user', content: 'Say "OK"' }],
       });

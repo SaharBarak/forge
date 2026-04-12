@@ -13,6 +13,8 @@ import { getAgentById, getResearcherById } from '../../agents/personas';
 import { generateRoundSynthesis } from '../claude';
 import { ModeController } from '../modes/ModeController';
 import { getModeById, getDefaultMode } from '../modes';
+import { parseGoalSections, extractSection, type RequiredSection } from './GoalParser';
+import { introspectProject } from '../research/ProjectIntrospector';
 
 export type EDAEventType =
   | 'phase_change'
@@ -57,6 +59,22 @@ export type EDACallback = (event: EDAEvent) => void;
 export interface EDAOrchestratorOptions {
   agentRunner?: IAgentRunner;
   fileSystem?: IFileSystem;
+  /**
+   * When true, `start()` also kicks off a deterministic phase executor
+   * (Discovery → Synthesis → Drafting → Finalization) that drives agents
+   * turn-by-turn and produces one section per drafting turn. Default false
+   * because unit tests use mocked runners and don't want the machine to
+   * advance phases behind their backs.
+   */
+  autoRunPhaseMachine?: boolean;
+  /**
+   * Optional override for the minimum interval between phase transitions.
+   * Primarily used by tests to speed up timing assertions.
+   */
+  phaseMachineOptions?: {
+    /** Per-agent speak timeout in ms (default 120_000). */
+    speakTimeoutMs?: number;
+  };
 }
 
 export class EDAOrchestrator {
@@ -69,8 +87,14 @@ export class EDAOrchestrator {
   private eventCallbacks: EDACallback[] = [];
 
   private isRunning = false;
+  private isStopped = false;
   private messageCount = 0;
   private synthesisInterval: ReturnType<typeof setInterval> | null = null;
+  private phaseMachineStarted = false;
+  private autoRunPhaseMachine = false;
+  // 180s per turn — drafting with heavy research context can push Sonnet
+  // past the default 90s, especially for the first section after Research.
+  private speakTimeoutMs = 180_000;
   private unsubscribers: (() => void)[] = [];
 
   // Phase management
@@ -105,6 +129,10 @@ export class EDAOrchestrator {
     this.floorManager = new FloorManager(this.bus);
     this.agentRunner = options?.agentRunner;
     this.fileSystem = options?.fileSystem;
+    this.autoRunPhaseMachine = options?.autoRunPhaseMachine ?? false;
+    if (options?.phaseMachineOptions?.speakTimeoutMs !== undefined) {
+      this.speakTimeoutMs = options.phaseMachineOptions.speakTimeoutMs;
+    }
 
     // Initialize mode controller
     const mode = getModeById(session.config.mode || 'copywrite') || getDefaultMode();
@@ -182,17 +210,27 @@ ${firstPhase?.agentFocus || 'Begin the discussion'}
       listener.start(this.session.config, this.context, combinedSkills);
     }
 
-    // Kick off with a compelling prompt that forces engagement
+    // Load optional brief and inject the kickoff system message. Then,
+    // when `autoRunPhaseMachine` is enabled, hand off to the deterministic
+    // phase executor (Discovery → Synthesis → Drafting → Finalization).
     setTimeout(async () => {
-      // Load brief if available
+      if (this.isStopped) return;
+
       let briefContent = '';
-      try {
-        const brief = await this.readBrief('taru');
-        if (brief) {
-          briefContent = `\n\n**📋 Project Brief:**\n${brief.slice(0, 1500)}...`;
+      const briefName = (this.session.config as { briefName?: string }).briefName
+        ?? this.session.config.projectName
+          ?.toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+      if (briefName) {
+        try {
+          const brief = await this.readBrief(briefName);
+          if (brief) {
+            briefContent = `\n\n**📋 Project Brief:**\n${brief.slice(0, 1500)}...`;
+          }
+        } catch {
+          // No brief available for this project — continue without one
         }
-      } catch {
-        // No brief available
       }
 
       const promptMessage: Message = {
@@ -200,30 +238,32 @@ ${firstPhase?.agentFocus || 'Begin the discussion'}
         timestamp: new Date(),
         agentId: 'system',
         type: 'system',
-        content: `📢 **DISCUSSION STARTS NOW**
+        content: `📢 **SESSION STARTED**
 
 Goal: ${this.session.config.goal}
 ${briefContent}
 
-**Each agent MUST respond with their initial reaction:**
-- What's your FIRST instinct about this project?
-- What concerns you from YOUR persona's perspective?
-- What opportunity do you see?
-
-Ronit - you're up first. Share your initial reaction.`,
+We will work through three phases: Discovery (share perspectives), Synthesis (agree on structure), Drafting (produce the final deliverable, one section at a time).`,
       };
       this.bus.addMessage(promptMessage, 'system');
 
-      // Force first agent to speak after a moment
-      setTimeout(() => {
-        this.forceAgentToSpeak('ronit', 'Opening the discussion as requested');
-      }, 2000);
+      if (this.autoRunPhaseMachine && !this.phaseMachineStarted) {
+        this.phaseMachineStarted = true;
+        this.runPhaseMachine().catch((err) => {
+          console.error('[EDAOrchestrator] Phase machine error:', err);
+        });
+      }
     }, 1000);
 
-    // Setup periodic synthesis
-    this.synthesisInterval = setInterval(() => {
-      this.checkForSynthesis();
-    }, 30000); // Check every 30 seconds
+    // Periodic synthesis is only used by the legacy (Electron, API-key)
+    // code path. The phase machine owns synthesis when enabled, so skip
+    // the interval to avoid noisy auth errors from generateRoundSynthesis
+    // when no API key is configured.
+    if (!this.autoRunPhaseMachine) {
+      this.synthesisInterval = setInterval(() => {
+        this.checkForSynthesis();
+      }, 30000);
+    }
 
     // If human participation, prompt periodically
     if (this.session.config.humanParticipation) {
@@ -316,9 +356,13 @@ Ronit - you're up first. Share your initial reaction.`,
         {
           reactivityThreshold: 0.6,
           minSilenceBeforeReact: 1,
-          evaluationDebounce: 800 + Math.random() * 400, // Stagger evaluations
+          evaluationDebounce: 800 + Math.random() * 400,
+          // Orchestrator drives turn-taking via rolling round-robin —
+          // disable autonomous per-message evaluation to prevent N*Opus
+          // calls per incoming message and unbounded memory growth.
+          skipAutonomousEval: true,
         },
-        this.agentRunner // Pass injected runner
+        this.agentRunner
       );
 
       this.agentListeners.set(agentId, listener);
@@ -497,19 +541,49 @@ Ronit - you're up first. Share your initial reaction.`,
   }
 
   /**
-   * Process mode interventions (goal reminders, loop detection, phase transitions)
+   * Process mode interventions (goal reminders, loop detection, phase transitions).
+   *
+   * Two guards prevent the ModeController from feedback-looping on its own
+   * output:
+   *
+   * 1. System messages are NOT fed back into processMessage — otherwise the
+   *    controller sees its own injected system messages, counts them toward
+   *    thresholds, and fires more interventions.
+   *
+   * 2. When `autoRunPhaseMachine` is true, the phase machine owns flow
+   *    control (phase transitions, drafting, termination). ModeController
+   *    interventions are STILL tracked for stats but NOT injected into the
+   *    bus as system messages — that would confuse agents and the phase
+   *    machine, and cause exactly the "LOOP DETECTED" / "SYNTHESIS REQUIRED"
+   *    spam that tanked the last run. External observers (UI, tests) still
+   *    get the `intervention` event for visibility.
    */
   private processModeInterventions(message: Message): void {
+    if (message.agentId === 'system') return;
+
     const interventions = this.modeController.processMessage(message, this.session.messages);
 
     for (const intervention of interventions) {
-      // Replace {goal} placeholder in goal reminders
       let content = intervention.message;
       if (content.includes('{goal}')) {
         content = content.replace('{goal}', this.session.config.goal);
       }
 
-      // Create system message for the intervention
+      // Always emit the event for external observers
+      this.emit('intervention', {
+        type: intervention.type,
+        message: content,
+        priority: intervention.priority,
+        action: intervention.action,
+      });
+
+      // When the phase machine is driving, don't inject interventions as
+      // system messages — they feedback-loop and confuse the executor.
+      if (this.autoRunPhaseMachine) {
+        continue;
+      }
+
+      // Legacy / manual-flow path: inject the intervention into the bus
       const interventionMessage: Message = {
         id: crypto.randomUUID(),
         timestamp: new Date(),
@@ -521,21 +595,12 @@ Ronit - you're up first. Share your initial reaction.`,
           priority: intervention.priority,
         },
       };
-
-      // Emit intervention event for UI/SessionKernel (per SESSION_KERNEL.md spec)
-      this.emit('intervention', {
-        type: intervention.type,
-        message: content,
-        priority: intervention.priority,
-        action: intervention.action,
-      });
-
-      // Add with a small delay to not interrupt flow
       setTimeout(() => {
         this.bus.addMessage(interventionMessage, 'system');
       }, 500);
-
-      console.log(`[EDAOrchestrator] Mode intervention: ${intervention.type} (${intervention.priority})`);
+      console.log(
+        `[EDAOrchestrator] Mode intervention: ${intervention.type} (${intervention.priority})`,
+      );
     }
   }
 
@@ -546,11 +611,16 @@ Ronit - you're up first. Share your initial reaction.`,
     const content = message.content;
 
     // Pattern: @researcher-id: query
-    const mentionPattern = /@(stats-finder|competitor-analyst|audience-insight|copy-explorer|local-context)[:\s]+["']?([^"'\n]+)["']?/gi;
+    // context-finder is the local-project introspection researcher;
+    // local-context is kept as a legacy alias for backwards compatibility.
+    const mentionPattern = /@(stats-finder|competitor-analyst|audience-insight|copy-explorer|context-finder|local-context)[:\s]+["']?([^"'\n]+?)["']?(?:\n|$)/gi;
     let match;
 
     while ((match = mentionPattern.exec(content)) !== null) {
-      const researcherId = match[1].toLowerCase();
+      let researcherId = match[1].toLowerCase();
+      // Legacy alias: local-context was renamed to context-finder when we
+      // dropped locale-specific researchers.
+      if (researcherId === 'local-context') researcherId = 'context-finder';
       const query = match[2].trim();
       this.processResearchRequest(researcherId, query, message.agentId);
     }
@@ -565,7 +635,10 @@ Ronit - you're up first. Share your initial reaction.`,
   }
 
   /**
-   * Process a research request - HALTS discussion until complete
+   * Process a research request - HALTS discussion until complete.
+   * Serialized: if a research request is already in-flight, subsequent
+   * requests are silently dropped for this message — they'd compound into
+   * parallel filesystem walks and crash the process.
    */
   private async processResearchRequest(
     researcherId: string,
@@ -574,6 +647,12 @@ Ronit - you're up first. Share your initial reaction.`,
   ): Promise<void> {
     const researcher = getResearcherById(researcherId);
     if (!researcher) return;
+    if (this.researchPending) {
+      console.log(
+        `[EDAOrchestrator] Research already pending, dropping new request from ${requestedBy}`,
+      );
+      return;
+    }
 
     // HALT the discussion
     this.researchPending = true;
@@ -600,8 +679,12 @@ Ronit - you're up first. Share your initial reaction.`,
     this.bus.addMessage(announceMessage, 'system');
 
     try {
-      // Use Claude Agent SDK with web search capability
-      const result = await this.runResearchWithWebSearch(researcher, query);
+      // Route: context-finder reads the local project via ProjectIntrospector,
+      // everything else goes through Claude's web search.
+      const result =
+        researcher.id === 'context-finder'
+          ? await this.runLocalContextResearch(researcher, query)
+          : await this.runResearchWithWebSearch(researcher, query);
 
       const resultMessage: Message = {
         id: crypto.randomUUID(),
@@ -643,6 +726,49 @@ Ronit - you're up first. Share your initial reaction.`,
     // RESUME the discussion
     this.researchPending = false;
     this.bus.resume();
+  }
+
+  /**
+   * Run research by introspecting the local project directory. Powered by
+   * `ProjectIntrospector` — walks `session.config.contextDir`, finds files
+   * matching the query, and asks the agent runner to answer from the code
+   * itself. Result is returned as plain markdown so it drops into the
+   * research_result message exactly like web-search results do.
+   */
+  private async runLocalContextResearch(
+    researcher: { id: string; name: string },
+    query: string,
+  ): Promise<string> {
+    if (!this.agentRunner) {
+      return `**${researcher.name}:** Cannot introspect project — no agent runner configured.`;
+    }
+    const projectDir = this.session.config.contextDir;
+    if (!projectDir) {
+      return `**${researcher.name}:** No contextDir configured on the session — cannot read project.`;
+    }
+
+    const result = await introspectProject({
+      projectDir,
+      query,
+      runner: this.agentRunner,
+    });
+
+    const fileList =
+      result.filesRead.length > 0
+        ? `\n\n**📁 Files read (${result.filesRead.length}):**\n${result.filesRead
+            .slice(0, 12)
+            .map((p) => `- \`${p}\``)
+            .join('\n')}${result.filesRead.length > 12 ? `\n- …and ${result.filesRead.length - 12} more` : ''}`
+        : '';
+
+    return [
+      `**🔍 Local project introspection**`,
+      ``,
+      `**Query:** "${query}"`,
+      ``,
+      result.summary,
+      fileList,
+    ].join('\n');
   }
 
   /**
@@ -816,6 +942,7 @@ Provide research findings in Hebrew:
    */
   stop(): void {
     this.isRunning = false;
+    this.isStopped = true;
 
     if (this.synthesisInterval) {
       clearInterval(this.synthesisInterval);
@@ -1159,8 +1286,334 @@ ${draft}
     return [...this.copySections];
   }
 
+  // ===========================================================================
+  // PHASE EXECUTOR — deterministic Discovery → Synthesis → Drafting → Final
+  // ===========================================================================
+
   /**
-   * Force an agent to speak (bypass normal floor request)
+   * Run the deterministic phase machine that produces a complete deliverable.
+   * Discovery and Synthesis each do one round-robin pass; Drafting does one
+   * agent per required section (parsed from the goal). Each turn uses
+   * `AgentListener.speakNow()` which bypasses FloorManager queueing and
+   * resolves with the produced Message — so the loop is fully awaitable.
+   */
+  private async runPhaseMachine(): Promise<void> {
+    if (this.isStopped) return;
+
+    const sections = parseGoalSections(this.session.config.goal);
+    const agentIds = Array.from(this.agentListeners.keys());
+
+    if (agentIds.length === 0) {
+      console.warn('[EDAOrchestrator] PhaseMachine: no agents available');
+      return;
+    }
+
+    console.log(
+      `[EDAOrchestrator] PhaseMachine starting — ${agentIds.length} agents, ${sections.length} sections`,
+    );
+
+    await this.runDiscoveryPhase(agentIds);
+    if (this.isStopped) return;
+
+    await this.runResearchPhase(agentIds);
+    if (this.isStopped) return;
+
+    const synthesisSummary = await this.runSynthesisPhase(agentIds);
+    if (this.isStopped) return;
+
+    await this.runDraftingPhase(agentIds, sections, synthesisSummary);
+    if (this.isStopped) return;
+
+    await this.finalizeByMachine(sections);
+  }
+
+  /**
+   * Discovery: each enabled agent shares their initial perspective once.
+   */
+  private async runDiscoveryPhase(agentIds: string[]): Promise<void> {
+    this.currentPhase = 'brainstorming';
+    this.emit('phase_change', { phase: 'brainstorming' });
+    this.modeController.transitionToPhase('discovery');
+
+    this.pushSystemMessage(
+      `🔎 **PHASE 1/4: DISCOVERY**\n\n` +
+        `Each agent: share your initial perspective on the goal in 2–3 short paragraphs. ` +
+        `What's your first instinct? What concerns you? What opportunity do you see? ` +
+        `Do NOT draft the final deliverable yet — we'll do that in Phase 4.`,
+    );
+
+    for (const agentId of agentIds) {
+      if (this.isStopped) return;
+      await this.forceSpeakAndWait(agentId, 'Discovery: initial perspective');
+    }
+  }
+
+  /**
+   * Research: each agent gets one chance to invoke @context-finder (or
+   * another researcher) to ground themselves in the project. Unlike
+   * Discovery, only ONE round-robin happens — if an agent doesn't need
+   * research, they're told to say "[PASS] no research needed" and the
+   * next agent goes. Research requests halt deliberation via the existing
+   * `processResearchRequest` pause/resume path.
+   */
+  private async runResearchPhase(agentIds: string[]): Promise<void> {
+    if (this.isStopped) return;
+    this.currentPhase = 'research';
+    this.emit('phase_change', { phase: 'research' });
+    this.modeController.transitionToPhase('research');
+
+    const hasContextDir = !!this.session.config.contextDir;
+    const contextDirHint = hasContextDir
+      ? `The session has a local project at \`${this.session.config.contextDir}\` that you can introspect.`
+      : `No local project is attached to this session — skip project introspection and pass.`;
+
+    this.pushSystemMessage(
+      `🔍 **PHASE 2/4: RESEARCH**\n\n` +
+        `${contextDirHint}\n\n` +
+        `To invoke a researcher, emit a research block (this is the ONLY trigger — bare mentions of researcher names in prose are ignored):\n\n` +
+        `\`\`\`\n[RESEARCH: context-finder]\nWhat deliberation modes are defined in src/lib/modes/? List each mode's id, name, and phase structure.\n[/RESEARCH]\n\`\`\`\n\n` +
+        `**Available researchers:**\n` +
+        `- \`context-finder\` — reads files in the local project directory and answers grounded in the source code. Use this to discover what the project actually does.\n` +
+        `- \`stats-finder\` — web search for statistics.\n` +
+        `- \`competitor-analyst\` — web search for competitor analysis.\n` +
+        `- \`audience-insight\` — web search for audience/user pain points.\n` +
+        `- \`copy-explorer\` — web search for exemplary copy patterns.\n\n` +
+        `**Rules:**\n` +
+        `- Each agent emits ONE research block and waits for the answer. No more than one per turn.\n` +
+        `- If you don't need research, reply with \`[PASS] no research needed\` and the next agent goes.\n` +
+        `- Keep your query specific and answerable from code/data (not "is Forge good?" but "what modes exist in src/lib/modes/?").`,
+    );
+
+    for (const agentId of agentIds) {
+      if (this.isStopped) return;
+      await this.forceSpeakAndWait(agentId, 'Research: ask one grounded question');
+      // Research requests are fire-and-forget from the message:new handler
+      // — wait for any pending introspection to complete before moving on,
+      // so the next agent sees the answer in the shared bus context.
+      await this.waitForResearchComplete();
+    }
+  }
+
+  /**
+   * Poll until `researchPending` clears or the timeout hits. Used by the
+   * research phase to serialize research turns (the processResearchRequest
+   * path is fire-and-forget from the message bus subscriber).
+   */
+  private async waitForResearchComplete(timeoutMs = 180_000): Promise<void> {
+    const start = Date.now();
+    while (this.researchPending && Date.now() - start < timeoutMs) {
+      if (this.isStopped) return;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+
+  /**
+   * Synthesis: each agent proposes structure and key messages. Returns a
+   * concise summary string (used as context in the drafting phase).
+   */
+  private async runSynthesisPhase(agentIds: string[]): Promise<string> {
+    if (this.isStopped) return '';
+    this.currentPhase = 'synthesis';
+    this.emit('phase_change', { phase: 'synthesis' });
+    this.modeController.transitionToPhase('synthesis');
+
+    this.pushSystemMessage(
+      `🧭 **PHASE 3/4: SYNTHESIS**\n\n` +
+        `Each agent: propose the structure, tone, and key messages for the final deliverable. ` +
+        `Reference what the others said in Discovery AND what was found in Research. ` +
+        `Still no drafting — just align on what we're going to write.`,
+    );
+
+    const synthesisMessages: Message[] = [];
+    for (const agentId of agentIds) {
+      if (this.isStopped) return '';
+      const msg = await this.forceSpeakAndWait(agentId, 'Synthesis: propose structure');
+      if (msg) synthesisMessages.push(msg);
+    }
+
+    return synthesisMessages
+      .map((m) => `[${m.agentId}]: ${m.content.slice(0, 800)}`)
+      .join('\n\n');
+  }
+
+  /**
+   * Drafting: one agent per required section. Each turn gets a bounded,
+   * focused context (goal + synthesis summary + already-drafted sections)
+   * and an instruction to emit ONLY the `## <SECTION_NAME>` block.
+   */
+  private async runDraftingPhase(
+    agentIds: string[],
+    sections: RequiredSection[],
+    synthesisSummary: string,
+  ): Promise<void> {
+    if (this.isStopped) return;
+    this.currentPhase = 'drafting';
+    this.emit('phase_change', { phase: 'drafting' });
+    this.modeController.transitionToPhase('drafting');
+
+    this.pushSystemMessage(
+      `✍️ **PHASE 4/4: DRAFTING** — ${sections.length} sections\n\n` +
+        `We will now draft the final deliverable one section at a time. ` +
+        `For each section, the assigned agent writes ONLY that section. ` +
+        `Output MUST start with \`## <SECTION_NAME>\` on its own line and contain the full, finished copy — no meta-commentary, no evidence notes, no questions to the team.\n\n` +
+        `**GROUNDING RULE (strict):** You may ONLY name features, modes, commands, files, or technical claims that were explicitly verified during the Research phase. If Research found the mode is called \`copywrite\`, you write "Copywrite" — NOT "Architecture Review" or "Copywriting Assistant" or any other plausible-sounding name you might prefer. If Research did not cover a feature, omit it entirely rather than inventing it. Plausible-sounding fabrications (made-up commands, made-up modes, made-up flag names) are the single biggest failure mode — do not commit them.\n\n` +
+        `**Concreteness rule:** every section that describes capability or value must include at least one named, specific example drawn from what Research actually found. Abstract phrasing like "complex decisions" is not acceptable — name the feature, mode, file, or scenario that Research returned. Hero and Footer are exempt from the concreteness rule but NOT from the grounding rule.`,
+    );
+
+    // Build drafting state with per-section agent assignment
+    this.copySections = sections.map((s, i) => ({
+      id: s.id,
+      name: s.name,
+      nameHe: s.name,
+      status: 'pending' as const,
+      assignedAgent: agentIds[i % agentIds.length],
+    }));
+
+    for (let i = 0; i < this.copySections.length; i++) {
+      if (this.isStopped) return;
+      const section = this.copySections[i];
+      section.status = 'in_progress';
+      this.emit('draft_section', { section, sectionIndex: i });
+
+      const alreadyDrafted = this.copySections
+        .filter((s) => s.content && s.content.length > 0)
+        .map((s) => `## ${s.name}\n${s.content}`)
+        .join('\n\n');
+
+      const exemptFromExamples =
+        section.id === 'hero' || section.id === 'footer' || section.id === 'final_cta';
+
+      // Pull every research_result message from the bus — this is the
+      // authoritative "ground truth" the agents discovered about the subject.
+      // It's the ONLY material the drafting agent is allowed to cite for
+      // technical/feature claims.
+      const researchFindings = this.bus
+        .getAllMessages()
+        .filter((m) => m.type === 'research_result')
+        .map((m) => m.content)
+        .join('\n\n---\n\n')
+        .slice(0, 6000);
+
+      const draftContext = [
+        `## GOAL`,
+        this.session.config.goal.slice(0, 2000),
+        ``,
+        researchFindings
+          ? `## RESEARCH FINDINGS (authoritative — cite ONLY from here for technical facts)\n\n${researchFindings}`
+          : `## RESEARCH FINDINGS\n\n_(no research was conducted — do not make specific technical claims)_`,
+        ``,
+        `## SYNTHESIS (what the team agreed on)`,
+        synthesisSummary.slice(0, 2000),
+        alreadyDrafted
+          ? `\n## ALREADY DRAFTED (for reference — do NOT rewrite these)\n\n${alreadyDrafted.slice(0, 2500)}`
+          : '',
+        ``,
+        `## YOUR TASK`,
+        `Draft ONLY the **${section.name}** section (section ${i + 1} of ${this.copySections.length}).`,
+        ``,
+        `Requirements:`,
+        `- Start your response with: \`## ${section.name}\``,
+        `- Follow with the FULL, finished copy for this section — ready to ship.`,
+        `- No meta-commentary, no outlines, no evidence notes, no "here is my draft" preambles, no questions to the team.`,
+        `- **GROUNDING RULE (strict):** every feature, mode name, command, file, or technical claim in this section MUST appear verbatim (or as a direct paraphrase) in the RESEARCH FINDINGS above. If Research says the mode is \`copywrite\`, write "Copywrite" — NOT "Copywriting Assistant". If Research didn't cover something, do not mention it. Plausible-sounding fabrications are forbidden.`,
+        exemptFromExamples
+          ? `- This section is short-form — no example needed, just punchy copy grounded in Research.`
+          : `- **Concreteness rule:** include at least one named, specific example drawn from Research. Name the user ("a 20-person eng team choosing between monolith and microservices"), the decision, or the workflow. The example must be consistent with what Research actually returned — don't invent scenarios.`,
+        `- Keep it concise but complete — the reader should not need a second pass.`,
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      const msg = await this.forceSpeakAndWait(
+        section.assignedAgent!,
+        `Drafting: ${section.name}`,
+        draftContext,
+      );
+
+      if (msg) {
+        const extracted = extractSection(msg.content, section.name);
+        section.content = (extracted || msg.content).trim();
+      } else {
+        section.content = `## ${section.name}\n\n_(agent did not respond in time)_`;
+      }
+      section.status = 'complete';
+    }
+  }
+
+  /**
+   * Finalize: emit consolidated draft, push completion system message, and
+   * signal `session:end` so the CLI / test harness exits cleanly.
+   */
+  private async finalizeByMachine(sections: RequiredSection[]): Promise<void> {
+    if (this.isStopped) return;
+    this.currentPhase = 'finalization';
+    this.emit('phase_change', { phase: 'finalization' });
+
+    const draft = await this.getConsolidatedDraft();
+    const completed = this.copySections.filter(
+      (s) => s.content && !s.content.includes('_(agent did not respond in time)_'),
+    ).length;
+
+    this.pushSystemMessage(
+      `🎉 **DRAFTING COMPLETE** — ${completed}/${sections.length} sections\n\n${draft}`,
+    );
+
+    this.bus.emit('session:end', {
+      reason: `completed:${completed}/${sections.length}`,
+    });
+  }
+
+  /**
+   * Drive one agent to speak with an optional focused context, waiting up to
+   * `speakTimeoutMs` for the message. Returns the produced Message or null.
+   */
+  private async forceSpeakAndWait(
+    agentId: string,
+    reason: string,
+    contextOverride?: string,
+  ): Promise<Message | null> {
+    const listener = this.agentListeners.get(agentId);
+    if (!listener) {
+      console.warn(`[EDAOrchestrator] forceSpeakAndWait: ${agentId} not found`);
+      return null;
+    }
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), this.speakTimeoutMs);
+    });
+
+    try {
+      const result = await Promise.race([
+        listener.speakNow(reason, contextOverride),
+        timeout,
+      ]);
+      return result;
+    } catch (err) {
+      console.error(`[EDAOrchestrator] forceSpeakAndWait error for ${agentId}:`, err);
+      return null;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Inject a system message into the bus (helper for phase headers).
+   */
+  private pushSystemMessage(content: string): void {
+    const msg: Message = {
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+      agentId: 'system',
+      type: 'system',
+      content,
+    };
+    this.bus.addMessage(msg, 'system');
+  }
+
+  /**
+   * Force an agent to speak (bypass normal floor request) — legacy API used
+   * by manual transition methods (transitionToArgumentation/Synthesis/Drafting).
    */
   private forceAgentToSpeak(agentId: string, reason: string): void {
     const listener = this.agentListeners.get(agentId);

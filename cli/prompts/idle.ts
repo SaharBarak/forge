@@ -537,7 +537,7 @@ async function handleApiTest() {
     const q = claudeQuery({
       prompt: 'Say "OK"',
       options: {
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-opus-4-6',
         tools: [],
         permissionMode: 'dontAsk',
         persistSession: false,

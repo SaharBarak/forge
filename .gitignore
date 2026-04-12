@@ -25,9 +25,15 @@ npm-debug.log*
 output/sessions/*
 output/drafts/*
 output/final/*
+output/forge-landing-copy/runs/
+output/forge-landing-copy/latest
 !output/sessions/.gitkeep
 !output/drafts/.gitkeep
 !output/final/.gitkeep
+
+# Claude Code runtime state
+.claude/scheduled_tasks.lock
+.claude/projects/
 
 # Temporary
 *.tmp

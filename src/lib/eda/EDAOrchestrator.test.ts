@@ -45,7 +45,7 @@ function createMockSessionConfig(overrides: Partial<SessionConfig> = {}): Sessio
     id: 'test-session',
     projectName: 'Test Project',
     goal: 'Test Goal',
-    enabledAgents: ['ronit', 'yossi', 'noa'],
+    enabledAgents: ['skeptic', 'pragmatist', 'analyst'],
     humanParticipation: false,
     maxRounds: 10,
     consensusThreshold: 0.6,
@@ -680,7 +680,7 @@ describe('EDAOrchestrator consensus calculation', () => {
     vi.useFakeTimers();
     session = createMockSession({
       config: createMockSessionConfig({
-        enabledAgents: ['ronit', 'yossi'],
+        enabledAgents: ['skeptic', 'pragmatist'],
       }),
     });
     orchestrator = new EDAOrchestrator(session);
@@ -778,7 +778,7 @@ describe('EDAOrchestrator speaker selection', () => {
     vi.useFakeTimers();
     session = createMockSession({
       config: createMockSessionConfig({
-        enabledAgents: ['ronit', 'yossi', 'michal'],
+        enabledAgents: ['skeptic', 'pragmatist', 'advocate'],
       }),
     });
     orchestrator = new EDAOrchestrator(session);
@@ -795,9 +795,9 @@ describe('EDAOrchestrator speaker selection', () => {
     vi.advanceTimersByTime(100);
 
     const states = orchestrator.getAgentStates();
-    expect(states.has('ronit')).toBe(true);
-    expect(states.has('yossi')).toBe(true);
-    expect(states.has('michal')).toBe(true);
+    expect(states.has('skeptic')).toBe(true);
+    expect(states.has('pragmatist')).toBe(true);
+    expect(states.has('advocate')).toBe(true);
   });
 
   it('handles missing agents gracefully', async () => {

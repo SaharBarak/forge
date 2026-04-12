@@ -246,7 +246,7 @@ export async function evaluateAgentReaction(
 
   // Use haiku for evaluations - fast and cost-effective per ADAPTERS.md spec
   const response = await client.messages.create({
-    model: 'claude-3-5-haiku-20241022',
+    model: 'claude-opus-4-6',
     max_tokens: 200,
     system: `You are ${agent.name} (${agent.nameHe}), listening to a discussion.
 Your role: ${agent.role}
@@ -532,7 +532,7 @@ export async function checkConsensus(
 
   // Use haiku for consensus detection - fast and cost-effective per ADAPTERS.md spec
   const response = await client.messages.create({
-    model: 'claude-3-5-haiku-20241022',
+    model: 'claude-opus-4-6',
     max_tokens: 512,
     system: `You are analyzing a discussion to determine if consensus has been reached.
 

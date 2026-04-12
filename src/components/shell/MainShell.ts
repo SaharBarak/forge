@@ -793,7 +793,7 @@ export class MainShell {
       const result = await window.electronAPI?.claudeAgentQuery?.({
         prompt: 'Say "Hello! API connection successful." in exactly those words.',
         systemPrompt: 'You are a helpful assistant. Respond concisely.',
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-opus-4-6',
       });
 
       if (!result) {

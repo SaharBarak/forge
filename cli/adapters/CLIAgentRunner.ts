@@ -56,7 +56,7 @@ export class CLIAgentRunner implements IAgentRunner {
     try {
       // Use haiku for evaluations - fast and cost-effective per ADAPTERS.md spec
       const response = await this.client.messages.create({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-opus-4-6',
         max_tokens: 200,
         messages: [
           {

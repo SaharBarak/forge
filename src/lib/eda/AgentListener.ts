@@ -18,14 +18,19 @@ interface AgentListenerConfig {
   evaluationDebounce: number;    // ms to debounce evaluations
   maxEvaluationMessages: number; // context messages for evaluation
   maxResponseMessages: number;   // context messages for response generation
+  skipAutonomousEval: boolean;   // if true, only speak when force-spoken (no autonomous eval)
 }
 
 const DEFAULT_CONFIG: AgentListenerConfig = {
-  reactivityThreshold: 0.5,
+  reactivityThreshold: 0.95,
   minSilenceBeforeReact: 1,
-  evaluationDebounce: 500,
-  maxEvaluationMessages: 8,  // Messages used when evaluating whether to respond
-  maxResponseMessages: 15,    // Messages used when generating actual response
+  evaluationDebounce: 150,
+  maxEvaluationMessages: 6,
+  // Drafting phases pass context explicitly via `speakNow(contextOverride)`,
+  // so autonomous speaking only needs a short recent window — bounds O(N²)
+  // prompt growth in long sessions.
+  maxResponseMessages: 6,
+  skipAutonomousEval: false, // tests rely on autonomous eval
 };
 
 export class AgentListener {
@@ -124,10 +129,10 @@ export class AgentListener {
         // Re-evaluate after resume if there are messages we haven't responded to
         // This fixes the bug where agents don't react after session resume (#31)
         if (this.messagesSinceSpoke > 0 && this.state === 'listening') {
-          // Schedule evaluation with debounce to allow other agents to also resume
+          // Schedule evaluation with debounce to allow other agents to also react
           this.pendingEvaluation = setTimeout(() => {
             this.evaluateAndReact();
-          }, this.config.evaluationDebounce + Math.random() * 500);
+          }, this.config.evaluationDebounce + Math.random() * 100);
         }
       }, this.id)
     );
@@ -161,6 +166,13 @@ export class AgentListener {
     }
 
     this.messagesSinceSpoke++;
+
+    // Skip autonomous evaluation — orchestrator drives speaking via
+    // round-robin force-speak. Saves ~3 Claude SDK calls per message and
+    // prevents unbounded memory growth in long sessions.
+    if (this.config.skipAutonomousEval) {
+      return;
+    }
 
     // Don't evaluate if already speaking or thinking
     if (this.state === 'speaking' || this.state === 'thinking') {
@@ -286,6 +298,60 @@ export class AgentListener {
       console.error(`[AgentListener:${this.id}] Response error:`, error);
       this.bus.emit('floor:released', { agentId: this.id });
       this.state = 'listening';
+    }
+  }
+
+  /**
+   * Speak now — bypass FloorManager, used by the orchestrator's deterministic
+   * phase executor to drive discovery/synthesis/drafting turn-by-turn.
+   *
+   * When `contextOverride` is provided, the agent receives exactly that string
+   * as its conversation context (no bus history merge). The drafting phase
+   * passes a synthesized summary + already-drafted sections here to keep the
+   * per-turn prompt small and focused.
+   *
+   * Returns the produced Message, or null on failure.
+   */
+  async speakNow(reason: string, contextOverride?: string): Promise<Message | null> {
+    if (!this.sessionConfig || !this.claudeAgent) return null;
+    if (this.state === 'speaking') return null;
+
+    this.state = 'speaking';
+    try {
+      let fullContext: string;
+      if (contextOverride !== undefined) {
+        fullContext = contextOverride;
+      } else {
+        const recentMessages = this.bus.getRecentMessages(this.config.maxResponseMessages);
+        const conversationHistory = this.formatConversation(recentMessages);
+        const memoryContext = this.bus.getMemoryContext(this.id);
+        fullContext = memoryContext
+          ? `${memoryContext}\n\n---\nRecent Discussion:\n${conversationHistory}`
+          : conversationHistory;
+      }
+
+      const response = await this.claudeAgent.generateResponse(fullContext, reason);
+
+      const message: Message = {
+        id: crypto.randomUUID(),
+        timestamp: new Date(),
+        agentId: this.id,
+        type: response.type as Message['type'],
+        content: response.content,
+        metadata: {
+          triggerReason: reason,
+          poweredBy: this.agentRunner ? 'cli-runner' : 'electron-runner',
+        },
+      };
+
+      this.bus.addMessage(message, this.id);
+      this.state = 'listening';
+      this.messagesSinceSpoke = 0;
+      return message;
+    } catch (error) {
+      console.error(`[AgentListener:${this.id}] speakNow error:`, error);
+      this.state = 'listening';
+      return null;
     }
   }
 

@@ -1136,7 +1136,7 @@ ipcMain.handle('claude-agent:evaluate', async (_, { evalPrompt }) => {
       prompt: evalPrompt,
       options: {
         systemPrompt: 'You are evaluating whether to speak in a discussion. Respond only with JSON.',
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-opus-4-6',
         tools: [],
         permissionMode: 'dontAsk',
         persistSession: false,

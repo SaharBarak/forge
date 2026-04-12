@@ -160,8 +160,11 @@ export class MessageBus {
   emit<T extends MessageBusEvent>(event: T, payload: MessageBusPayload[T]): void {
     if (!this.isActive && !event.startsWith('session:')) return;
 
-    // Log event for debugging
-    console.log(`[MessageBus] ${event}`, payload);
+    // Log event for debugging (compact — NEVER dump payloads; they contain
+    // full message content and grow unboundedly).
+    if (process.env.FORGE_DEBUG_BUS) {
+      console.log(`[MessageBus] ${event}`);
+    }
 
     // Notify all subscribers of this event
     const relevantSubs = this.subscriptions.filter((s) => s.event === event);

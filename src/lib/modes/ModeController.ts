@@ -12,6 +12,7 @@
 import type { Message } from '../../types';
 import type { SessionMode, ModePhaseConfig, ExitCriteria } from './index';
 import { getDefaultMode } from './index';
+import { findProducedSections } from '../eda/GoalParser';
 
 export interface ModeProgress {
   currentPhase: string;
@@ -159,13 +160,12 @@ export class ModeController {
    */
   private isResearchRequest(message: Message): boolean {
     const content = message.content.toLowerCase();
+    // Only count actual research invocations — the `[research: xxx]` block
+    // form or a typed research_request message. Bare `@context-finder`
+    // mentions in prose get counted as real requests and cause runaway
+    // intervention feedback loops.
     return (
       message.type === 'research_request' ||
-      content.includes('@stats-finder') ||
-      content.includes('@competitor-analyst') ||
-      content.includes('@audience-insight') ||
-      content.includes('@copy-explorer') ||
-      content.includes('@local-context') ||
       content.includes('[research:')
     );
   }
@@ -176,14 +176,13 @@ export class ModeController {
   private trackResearchRequest(message: Message): void {
     this.progress.researchRequests++;
 
-    // Extract topic (simple heuristic)
+    // Extract topic (researcher id). Handles hyphenated IDs in both
+    // @mention form (`@stats-finder`) and block form (`[research: stats-finder]`).
     const content = message.content.toLowerCase();
-    const topicMatch = content.match(/@(\w+-\w+)|(\[research:\s*(\w+)\])/);
-    if (topicMatch) {
-      const topic = topicMatch[1] || topicMatch[3] || 'general';
-      const count = this.progress.researchByTopic.get(topic) || 0;
-      this.progress.researchByTopic.set(topic, count + 1);
-    }
+    const topicMatch = content.match(/@([a-z]+-[a-z]+)|\[research:\s*([a-z\-]+)\s*\]/);
+    const topic = topicMatch ? topicMatch[1] || topicMatch[2] || 'general' : 'general';
+    const count = this.progress.researchByTopic.get(topic) || 0;
+    this.progress.researchByTopic.set(topic, count + 1);
   }
 
   /**
@@ -507,28 +506,31 @@ The session can now be finalized. Review the outputs and confirm completion.`
   }
 
   /**
-   * Detect outputs produced (copy sections, verdicts, etc.)
+   * Detect outputs produced. A section only counts when it is a real
+   * markdown `## HEADER` block whose body is ≥ 80 chars — prevents false
+   * positives where an agent merely mentions "hero" or "CTA" in passing
+   * and the mode controller prematurely fires `success_check`.
+   *
+   * Known aliases (hero, value_proposition, cta, verdict, next_steps) are
+   * added alongside the slug so legacy mode success criteria keep working.
    */
   private detectOutputs(message: Message): void {
-    const content = message.content.toLowerCase();
+    const produced = findProducedSections(message.content, 80);
+    if (produced.length === 0) return;
 
-    // Copywrite outputs
-    if (content.includes('## hero') || content.includes('hero:') || content.includes('headline:')) {
-      this.progress.outputsProduced.add('hero');
-    }
-    if (content.includes('value prop') || content.includes('## benefits') || content.includes('## value')) {
-      this.progress.outputsProduced.add('value_proposition');
-    }
-    if (content.includes('cta') || content.includes('call to action') || content.includes('## cta')) {
-      this.progress.outputsProduced.add('cta');
-    }
+    for (const section of produced) {
+      this.progress.outputsProduced.add(section.id);
 
-    // Validation outputs
-    if (content.includes('verdict:') || content.includes('our verdict') || content.includes('final decision')) {
-      this.progress.outputsProduced.add('verdict');
-    }
-    if (content.includes('next steps') || content.includes('## next')) {
-      this.progress.outputsProduced.add('next_steps');
+      // Known aliases — preserve compatibility with mode successCriteria
+      // which historically used short ids ('hero', 'cta', etc.).
+      const id = section.id;
+      if (id.includes('hero')) this.progress.outputsProduced.add('hero');
+      if (id.includes('value') || id.includes('benefit')) {
+        this.progress.outputsProduced.add('value_proposition');
+      }
+      if (id.includes('cta') || id.includes('call')) this.progress.outputsProduced.add('cta');
+      if (id.includes('verdict')) this.progress.outputsProduced.add('verdict');
+      if (id.includes('next')) this.progress.outputsProduced.add('next_steps');
     }
   }
 
