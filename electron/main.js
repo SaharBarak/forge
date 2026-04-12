@@ -4,6 +4,24 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import { glob } from 'glob';
 import { query as claudeQuery } from '@anthropic-ai/claude-agent-sdk';
+import {
+  startNode as startP2PNode,
+  stopNode as stopP2PNode,
+  getStatus as getP2PStatus,
+  putDoc as p2pPutDoc,
+  getDoc as p2pGetDoc,
+  allDocs as p2pAllDocs,
+  deleteDoc as p2pDeleteDoc,
+  onUpdate as p2pOnUpdate,
+} from './p2p/node.js';
+import {
+  startService as startConnectionsService,
+  stopService as stopConnectionsService,
+  indexContribution as connectionsIndexContribution,
+  deindexContribution as connectionsDeindexContribution,
+  findSimilarByText as connectionsFindSimilar,
+  status as connectionsStatus,
+} from './connections/service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,7 +52,49 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  createWindow();
+  const userDataDir = app.getPath('userData');
+
+  // Start the P2P node in the background. We don't block window creation on
+  // it — the UI is usable immediately, and P2P becomes available as soon as
+  // Helia + OrbitDB finish warming up (typically 1-3 seconds).
+  const p2pDataDir = path.join(userDataDir, 'p2p');
+  startP2PNode({ dataDir: p2pDataDir })
+    .then(({ peerId, dbAddress }) => {
+      console.log('[main] P2P ready:', peerId, dbAddress);
+      p2pOnUpdate((evt) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('p2p:update', evt);
+        }
+      });
+    })
+    .catch((err) => {
+      console.error('[main] P2P failed to start:', err);
+    });
+
+  // Start the connections service — embeddings + HNSW index. Model download
+  // (~22 MB on first run) happens in the background; the index loads
+  // instantly from disk if it exists.
+  startConnectionsService({ dataDir: userDataDir }).catch((err) => {
+    console.error('[main] connections service failed to start:', err);
+  });
+});
+
+app.on('before-quit', async (evt) => {
+  evt.preventDefault();
+  try {
+    await stopConnectionsService();
+  } catch (err) {
+    console.error('[main] connections shutdown error:', err);
+  }
+  try {
+    await stopP2PNode();
+  } catch (err) {
+    console.error('[main] P2P shutdown error:', err);
+  }
+  app.exit(0);
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -864,6 +924,141 @@ function generateHTMLTranscript(metadata, messages) {
   html += `</body></html>`;
   return html;
 }
+
+// ============================================================================
+// AUTH HANDLERS (keyless did:key identity)
+// ============================================================================
+
+const AUTH_FILE = path.join(app.getPath('userData'), 'forge-auth.json');
+
+/**
+ * Persist the auth bundle {keypair, credential} to userData.
+ *
+ * Note: Ed25519 private keys are stored in plaintext on disk. The userData
+ * directory is OS-protected (only the current user can read it) which is the
+ * same threat model as VS Code credentials, Chrome profile data, etc. A
+ * future iteration should wrap this with OS keychain (keytar) for defense
+ * in depth.
+ */
+ipcMain.handle('auth:save', async (_, payload) => {
+  try {
+    await fs.writeFile(AUTH_FILE, JSON.stringify(payload, null, 2), {
+      encoding: 'utf-8',
+      mode: 0o600,
+    });
+    return true;
+  } catch (error) {
+    console.error('[auth:save] error:', error);
+    return false;
+  }
+});
+
+ipcMain.handle('auth:load', async () => {
+  try {
+    const data = await fs.readFile(AUTH_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('auth:clear', async () => {
+  try {
+    await fs.unlink(AUTH_FILE);
+    return true;
+  } catch {
+    return true; // already gone is fine
+  }
+});
+
+// ============================================================================
+// P2P HANDLERS (Helia + OrbitDB)
+// ============================================================================
+
+ipcMain.handle('p2p:status', async () => {
+  try {
+    return { success: true, status: await getP2PStatus() };
+  } catch (error) {
+    console.error('[p2p:status] error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('p2p:put', async (_, doc) => {
+  try {
+    return { success: true, result: await p2pPutDoc(doc) };
+  } catch (error) {
+    console.error('[p2p:put] error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('p2p:get', async (_, id) => {
+  try {
+    return { success: true, doc: await p2pGetDoc(id) };
+  } catch (error) {
+    console.error('[p2p:get] error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('p2p:all', async () => {
+  try {
+    return { success: true, docs: await p2pAllDocs() };
+  } catch (error) {
+    console.error('[p2p:all] error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('p2p:delete', async (_, id) => {
+  try {
+    return { success: true, hash: await p2pDeleteDoc(id) };
+  } catch (error) {
+    console.error('[p2p:delete] error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ============================================================================
+// CONNECTIONS HANDLERS (local embeddings + HNSW vector search)
+// ============================================================================
+
+ipcMain.handle('connections:status', async () => {
+  try {
+    return { success: true, status: connectionsStatus() };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('connections:indexContribution', async (_, { id, text }) => {
+  try {
+    const result = await connectionsIndexContribution(id, text);
+    return { success: true, ...result };
+  } catch (error) {
+    console.error('[connections:indexContribution] error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('connections:deindexContribution', async (_, { id }) => {
+  try {
+    return { success: true, ...connectionsDeindexContribution(id) };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('connections:findSimilar', async (_, { text, k, excludeId }) => {
+  try {
+    const matches = await connectionsFindSimilar(text, k ?? 10, excludeId ?? null);
+    return { success: true, matches };
+  } catch (error) {
+    console.error('[connections:findSimilar] error:', error);
+    return { success: false, error: error.message };
+  }
+});
 
 // ============================================================================
 // CLAUDE AGENT SDK HANDLERS (runs in main process)

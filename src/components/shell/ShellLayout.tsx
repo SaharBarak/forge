@@ -17,6 +17,7 @@ import { messageBus } from '../../lib/eda/MessageBus';
 import { initializeClient, setLoadedSkills } from '../../lib/claude';
 import type { Session, SessionConfig, Message } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
+import { CommunityPanel } from '../community/CommunityPanel';
 
 // Empty - scroll padding handled programmatically
 const SCROLL_PADDING_STYLES = ``;
@@ -46,6 +47,7 @@ export function ShellLayout() {
   const [sessionRunning, setSessionRunning] = useState(false);
   const [currentPersonas, setCurrentPersonas] = useState<typeof AGENT_PERSONAS>([]); // Empty until session configured
   const [, setLoadedMessages] = useState<Message[]>([]); // Stored for potential replay
+  const [communityOpen, setCommunityOpen] = useState(false);
 
   // Create terminal for main shell
   const createMainTerminal = useCallback(() => {
@@ -554,7 +556,7 @@ export function ShellLayout() {
     }}>
       {/* Inject scroll padding styles */}
       <style>{SCROLL_PADDING_STYLES}</style>
-      {/* Status Bar */}
+      {/* Status Bar — context-aware */}
       <div style={{
         height: '24px',
         backgroundColor: '#161b22',
@@ -565,17 +567,44 @@ export function ShellLayout() {
         fontSize: '12px',
         fontFamily: 'monospace',
         color: '#8b949e',
+        gap: 0,
       }}>
         <span style={{ color: sessionRunning ? '#3fb950' : '#8b949e' }}>
           {sessionRunning ? '● RUNNING' : '○ IDLE'}
         </span>
-        <span style={{ margin: '0 12px' }}>│</span>
-        <span>COPYWRITE THINK TANK</span>
-        <span style={{ margin: '0 12px' }}>│</span>
+        <span style={{ margin: '0 8px', color: '#30363d' }}>│</span>
+        <span style={{ color: '#58a6ff' }}>FORGE</span>
+        <span style={{ margin: '0 8px', color: '#30363d' }}>│</span>
         <span>Agents: {activeAgents.length || currentPersonas.length}</span>
+        {sessionRunning && (
+          <>
+            <span style={{ margin: '0 8px', color: '#30363d' }}>│</span>
+            <span style={{ color: '#bc8cff' }}>Phase: deliberation</span>
+          </>
+        )}
         <div style={{ flex: 1 }} />
-        <span style={{ color: '#58a6ff' }}>EDA v1.0</span>
+        <button
+          onClick={() => setCommunityOpen(true)}
+          title="Open community feed (P2P)"
+          style={{
+            background: 'transparent',
+            border: '1px solid #30363d',
+            color: '#58a6ff',
+            padding: '1px 8px',
+            borderRadius: 3,
+            fontSize: 11,
+            fontFamily: 'monospace',
+            cursor: 'pointer',
+            marginRight: 8,
+          }}
+        >
+          COMMUNITY
+        </button>
+        <span style={{ color: '#6e7681', fontSize: 10 }}>did:key</span>
+        <span style={{ margin: '0 8px', color: '#30363d' }}>│</span>
+        <span style={{ color: '#58a6ff' }}>EDA v2.0</span>
       </div>
+      {communityOpen && <CommunityPanel onClose={() => setCommunityOpen(false)} />}
 
       {/* Main Content */}
       <div style={{
@@ -694,7 +723,7 @@ export function ShellLayout() {
         </div>
       </div>
 
-      {/* Bottom Status */}
+      {/* Bottom Status — context-aware keyboard hints */}
       <div style={{
         height: '20px',
         backgroundColor: '#161b22',
@@ -706,9 +735,18 @@ export function ShellLayout() {
         fontFamily: 'monospace',
         color: '#6e7681',
       }}>
-        <span>Type 'help' for commands</span>
+        {sessionRunning ? (
+          <>
+            <span style={{ color: '#58a6ff' }}>[s]</span><span>ay </span>
+            <span style={{ color: '#58a6ff' }}>[syn]</span><span>thesize </span>
+            <span style={{ color: '#58a6ff' }}>[p]</span><span>ause </span>
+            <span style={{ color: '#58a6ff' }}>[stop]</span>
+          </>
+        ) : (
+          <span>Type <span style={{ color: '#58a6ff' }}>help</span> │ <span style={{ color: '#58a6ff' }}>new</span> to start</span>
+        )}
         <div style={{ flex: 1 }} />
-        <span>Ctrl+C: Cancel │ Enter: Execute</span>
+        <span style={{ color: '#30363d' }}>Ctrl+C: Cancel │ Enter: Execute</span>
       </div>
     </div>
   );

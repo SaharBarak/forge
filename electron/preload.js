@@ -55,4 +55,69 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Export (export sessions)
   exportSession: (params) => ipcRenderer.invoke('export:session', params),
   saveSession: (params) => ipcRenderer.invoke('export:saveSession', params),
+
+  // Auth (keyless did:key identity)
+  auth: {
+    save: (payload) => ipcRenderer.invoke('auth:save', payload),
+    load: () => ipcRenderer.invoke('auth:load'),
+    clear: () => ipcRenderer.invoke('auth:clear'),
+  },
+
+  // Connections (local embeddings + HNSW vector search)
+  connections: {
+    status: async () => {
+      const r = await ipcRenderer.invoke('connections:status');
+      if (!r.success) throw new Error(r.error || 'connections:status failed');
+      return r.status;
+    },
+    indexContribution: async (id, text) => {
+      const r = await ipcRenderer.invoke('connections:indexContribution', { id, text });
+      if (!r.success) throw new Error(r.error || 'connections:indexContribution failed');
+      return { skipped: r.skipped, reason: r.reason };
+    },
+    deindexContribution: async (id) => {
+      const r = await ipcRenderer.invoke('connections:deindexContribution', { id });
+      if (!r.success) throw new Error(r.error || 'connections:deindexContribution failed');
+      return { skipped: r.skipped };
+    },
+    findSimilar: async (text, k, excludeId) => {
+      const r = await ipcRenderer.invoke('connections:findSimilar', { text, k, excludeId });
+      if (!r.success) throw new Error(r.error || 'connections:findSimilar failed');
+      return r.matches;
+    },
+  },
+
+  // P2P (Helia + OrbitDB)
+  p2p: {
+    status: async () => {
+      const r = await ipcRenderer.invoke('p2p:status');
+      if (!r.success) throw new Error(r.error || 'p2p:status failed');
+      return r.status;
+    },
+    put: async (doc) => {
+      const r = await ipcRenderer.invoke('p2p:put', doc);
+      if (!r.success) throw new Error(r.error || 'p2p:put failed');
+      return r.result;
+    },
+    get: async (id) => {
+      const r = await ipcRenderer.invoke('p2p:get', id);
+      if (!r.success) throw new Error(r.error || 'p2p:get failed');
+      return r.doc;
+    },
+    all: async () => {
+      const r = await ipcRenderer.invoke('p2p:all');
+      if (!r.success) throw new Error(r.error || 'p2p:all failed');
+      return r.docs;
+    },
+    delete: async (id) => {
+      const r = await ipcRenderer.invoke('p2p:delete', id);
+      if (!r.success) throw new Error(r.error || 'p2p:delete failed');
+      return r.hash;
+    },
+    onUpdate: (callback) => {
+      const listener = (_, evt) => callback(evt);
+      ipcRenderer.on('p2p:update', listener);
+      return () => ipcRenderer.off('p2p:update', listener);
+    },
+  },
 });

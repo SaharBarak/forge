@@ -73,15 +73,23 @@ export function InputPane({
 export function CommandHelp(): React.ReactElement {
   return (
     <Box flexDirection="column" paddingX={1}>
-      <Text dimColor>Commands:</Text>
-      <Text dimColor>  /pause     - Pause debate</Text>
-      <Text dimColor>  /resume    - Resume debate</Text>
-      <Text dimColor>  /status    - Show status</Text>
-      <Text dimColor>  /synthesize - Move to synthesis</Text>
-      <Text dimColor>  /export    - Export transcript</Text>
-      <Text dimColor>  /quit      - Save and exit</Text>
-      <Text dimColor>  Ctrl+S     - Quick synthesize</Text>
-      <Text dimColor>  Ctrl+E     - Quick export</Text>
+      <Text dimColor bold>Session:</Text>
+      <Text dimColor>  /pause       Pause debate</Text>
+      <Text dimColor>  /resume      Resume debate</Text>
+      <Text dimColor>  /status      Show consensus status</Text>
+      <Text dimColor>  /synthesize  Move to synthesis phase</Text>
+      <Text dimColor>  /export      Export transcript</Text>
+      <Text dimColor>  /quit        Save and exit</Text>
+      <Text> </Text>
+      <Text dimColor bold>Community (P2P):</Text>
+      <Text dimColor>  /community   List community contributions</Text>
+      <Text dimColor>  /connections  Search similar contributions</Text>
+      <Text dimColor>  /did         Show your DID identity</Text>
+      <Text> </Text>
+      <Text dimColor bold>Shortcuts:</Text>
+      <Text dimColor>  Ctrl+S  Quick synthesize</Text>
+      <Text dimColor>  Ctrl+E  Quick export</Text>
+      <Text dimColor>  ?       Toggle this help</Text>
     </Box>
   );
 }

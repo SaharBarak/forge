@@ -6,6 +6,7 @@
 import { messageBus } from '../../lib/eda/MessageBus';
 import { AGENT_PERSONAS, getActivePersonas, registerCustomPersonas, clearCustomPersonas } from '../../agents/personas';
 import type { AgentPersona } from '../../types';
+import { forgeTheme } from '../../lib/render/theme';
 
 type WriteFunction = (text: string) => void;
 type WriteLineFunction = (text: string) => void;
@@ -23,14 +24,15 @@ interface SessionConfig {
 type PhaseCallback = (force?: boolean) => Promise<{ success: boolean; message: string } | void>;
 type ConsensusCallback = () => { ready: boolean; recommendation: string; consensusPoints: number; conflictPoints: number } | null;
 
-const RESET = '\x1b[0m';
-const BOLD = '\x1b[1m';
-const DIM = '\x1b[2m';
-const GREEN = '\x1b[32m';
-const YELLOW = '\x1b[33m';
-const CYAN = '\x1b[36m';
-const RED = '\x1b[31m';
-const MAGENTA = '\x1b[35m';
+// Aliases for backward compatibility — all theme-backed.
+const RESET = forgeTheme.reset;
+const BOLD = forgeTheme.bold;
+const DIM = forgeTheme.dim;
+const GREEN = forgeTheme.status.success;
+const YELLOW = forgeTheme.status.warning;
+const CYAN = forgeTheme.status.info;
+const RED = forgeTheme.status.error;
+const MAGENTA = forgeTheme.text.emphasis;
 
 export class MainShell {
   private write: WriteFunction;

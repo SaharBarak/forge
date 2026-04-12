@@ -1,52 +1,63 @@
 /**
- * FloorManagerShell - Terminal shell for Floor Manager status
- * Displays who has the floor, queue status, and floor events
+ * FloorManagerShell — terminal pane for Floor Manager status.
+ *
+ * Displays who has the floor, queue status, floor events, and — when
+ * proposals are active — a consensus thermometer showing agree/disagree
+ * balance and debate intensity sparkline.
  */
 
 import { messageBus } from '../../lib/eda/MessageBus';
 import { getAgentById } from '../../agents/personas';
+import {
+  forgeTheme,
+  style,
+  agentColor,
+} from '../../lib/render/theme';
+import { separator } from '../../lib/render/borders';
+import {
+  consensusThermometer,
+  debateIntensity,
+  type ConsensusSnapshot,
+} from '../../lib/render/consensus';
 
-type WriteLineFunction = (text: string) => void;
-
-const RESET = '\x1b[0m';
-const BOLD = '\x1b[1m';
-const DIM = '\x1b[2m';
-const GREEN = '\x1b[32m';
-const YELLOW = '\x1b[33m';
-const RED = '\x1b[31m';
-const CYAN = '\x1b[36m';
-const MAGENTA = '\x1b[35m';
-
-const AGENT_COLORS: Record<string, string> = {
-  ronit: '\x1b[35m',
-  yossi: '\x1b[32m',
-  noa: '\x1b[34m',
-  avi: '\x1b[33m',
-  michal: '\x1b[36m',
-  system: '\x1b[90m',
-  human: '\x1b[37m',
-};
+type WriteLineFn = (text: string) => void;
 
 export class FloorManagerShell {
-  private writeLine: WriteLineFunction;
+  private writeLine: WriteLineFn;
   private unsubscribers: (() => void)[] = [];
   private currentSpeaker: string | null = null;
   private queue: string[] = [];
+  /** Rolling window of message counts per 30-second bucket for the sparkline. */
+  private messageVelocity: number[] = [];
+  private velocityBucket = 0;
+  private velocityTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(writeLine: WriteLineFunction) {
+  constructor(writeLine: WriteLineFn) {
     this.writeLine = writeLine;
   }
 
-  /**
-   * Start listening to floor events
-   */
   start(): void {
-    this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${CYAN}Floor Manager initialized${RESET}`);
-    this.writeLine(`${DIM}State: MONITORING${RESET}`);
+    this.writeLine(
+      style(forgeTheme.dim, `[${this.ts()}]`) + ' ' +
+      style(forgeTheme.status.info, 'Floor Manager initialized')
+    );
+    this.writeLine(style(forgeTheme.dim, 'State: MONITORING'));
     this.writeLine('');
     this.renderStatus();
 
-    // Subscribe to floor events
+    // Track message velocity for debate intensity sparkline.
+    this.velocityTimer = setInterval(() => {
+      this.messageVelocity.push(this.velocityBucket);
+      if (this.messageVelocity.length > 30) this.messageVelocity.shift();
+      this.velocityBucket = 0;
+    }, 30_000);
+
+    this.unsubscribers.push(
+      messageBus.subscribe('message:new', () => {
+        this.velocityBucket++;
+      }, 'floor-shell-velocity')
+    );
+
     this.unsubscribers.push(
       messageBus.subscribe('floor:request', (payload) => {
         this.onFloorRequest(payload.agentId, payload.urgency, payload.reason);
@@ -73,108 +84,148 @@ export class FloorManagerShell {
 
     this.unsubscribers.push(
       messageBus.subscribe('session:start', () => {
-        this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${GREEN}Session started - monitoring floor${RESET}`);
+        this.writeLine(
+          style(forgeTheme.dim, `[${this.ts()}]`) + ' ' +
+          style(forgeTheme.status.success, 'Session started — monitoring floor')
+        );
         this.currentSpeaker = null;
         this.queue = [];
+        this.messageVelocity = [];
+        this.velocityBucket = 0;
         this.renderStatus();
       }, 'floor-shell')
     );
 
     this.unsubscribers.push(
       messageBus.subscribe('session:end', () => {
-        this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${YELLOW}Session ended${RESET}`);
+        this.writeLine(
+          style(forgeTheme.dim, `[${this.ts()}]`) + ' ' +
+          style(forgeTheme.status.warning, 'Session ended')
+        );
         this.currentSpeaker = null;
         this.queue = [];
       }, 'floor-shell')
     );
   }
 
-  /**
-   * Stop listening
-   */
   stop(): void {
-    this.unsubscribers.forEach((unsub) => unsub());
+    if (this.velocityTimer) clearInterval(this.velocityTimer);
+    this.unsubscribers.forEach((u) => u());
     this.unsubscribers = [];
-    this.writeLine(`${DIM}[${this.getTimestamp()}] Floor Manager stopped${RESET}`);
+    this.writeLine(style(forgeTheme.dim, `[${this.ts()}] Floor Manager stopped`));
   }
 
-  private onFloorRequest(agentId: string, urgency: string, reason: string): void {
-    const color = AGENT_COLORS[agentId] || '\x1b[37m';
-    const urgencyColor = urgency === 'high' ? RED : urgency === 'medium' ? YELLOW : GREEN;
-    const name = this.getAgentName(agentId);
+  /**
+   * Inject a live consensus snapshot. Called by the orchestrator when a
+   * proposal is active. The shell renders a thermometer + stance summary.
+   */
+  renderConsensus(snapshot: ConsensusSnapshot): void {
+    this.writeLine(consensusThermometer(snapshot, 36));
+  }
 
-    this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${color}${BOLD}REQUEST${RESET} ${name}`);
-    this.writeLine(`  ${DIM}Urgency:${RESET} ${urgencyColor}${urgency.toUpperCase()}${RESET}`);
-    this.writeLine(`  ${DIM}Reason:${RESET} ${reason}`);
-
-    // Add to queue display
-    if (!this.queue.includes(agentId)) {
-      this.queue.push(agentId);
+  /**
+   * Render the debate intensity sparkline (message velocity over time).
+   */
+  renderDebateIntensity(): void {
+    if (this.messageVelocity.length > 2) {
+      this.writeLine(debateIntensity(this.messageVelocity, 20));
     }
+  }
+
+  // ---- event handlers ----
+
+  private onFloorRequest(agentId: string, urgency: string, reason: string): void {
+    const color = agentColor(agentId);
+    const urgencyColor =
+      urgency === 'high' ? forgeTheme.status.error
+        : urgency === 'medium' ? forgeTheme.status.warning
+          : forgeTheme.status.success;
+    const name = this.agentName(agentId);
+
+    this.writeLine(
+      style(forgeTheme.dim, `[${this.ts()}]`) + ' ' +
+      style(`${forgeTheme.bold}${color}`, 'REQUEST') + ' ' + name
+    );
+    this.writeLine(`  ${style(forgeTheme.dim, 'Urgency:')} ${style(urgencyColor, urgency.toUpperCase())}`);
+    this.writeLine(`  ${style(forgeTheme.dim, 'Reason:')} ${reason}`);
+
+    if (!this.queue.includes(agentId)) this.queue.push(agentId);
     this.renderStatus();
   }
 
   private onFloorGranted(agentId: string, reason: string): void {
-    const color = AGENT_COLORS[agentId] || '\x1b[37m';
-    const name = this.getAgentName(agentId);
-
+    const color = agentColor(agentId);
+    const name = this.agentName(agentId);
     this.currentSpeaker = agentId;
-    this.queue = this.queue.filter(id => id !== agentId);
+    this.queue = this.queue.filter((id) => id !== agentId);
 
     this.writeLine('');
-    this.writeLine(`${color}${BOLD}┌────────────────────────────────────┐${RESET}`);
-    this.writeLine(`${color}${BOLD}│${RESET} ${GREEN}GRANTED${RESET} ${color}${BOLD}${name.padEnd(25)}${RESET}${color}${BOLD}│${RESET}`);
-    this.writeLine(`${color}${BOLD}└────────────────────────────────────┘${RESET}`);
-    this.writeLine(`  ${DIM}${reason}${RESET}`);
+    this.writeLine(separator(36));
+    this.writeLine(
+      ' ' + style(forgeTheme.status.success, 'GRANTED') + ' ' +
+      style(`${forgeTheme.bold}${color}`, name)
+    );
+    this.writeLine(separator(36));
+    this.writeLine(`  ${style(forgeTheme.dim, reason)}`);
     this.renderStatus();
   }
 
   private onFloorReleased(agentId: string): void {
-    const color = AGENT_COLORS[agentId] || '\x1b[37m';
-    const name = this.getAgentName(agentId);
-
+    const name = this.agentName(agentId);
     this.currentSpeaker = null;
 
-    this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${color}${DIM}RELEASED${RESET} ${name}`);
+    this.writeLine(
+      style(forgeTheme.dim, `[${this.ts()}]`) + ' ' +
+      style(forgeTheme.dim, `RELEASED ${name}`)
+    );
     this.writeLine('');
     this.renderStatus();
+    this.renderDebateIntensity();
   }
 
   private onFloorDenied(agentId: string, reason: string): void {
-    const color = AGENT_COLORS[agentId] || '\x1b[37m';
-    const name = this.getAgentName(agentId);
+    const color = agentColor(agentId);
+    const name = this.agentName(agentId);
+    this.queue = this.queue.filter((id) => id !== agentId);
 
-    this.queue = this.queue.filter(id => id !== agentId);
-
-    this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${RED}DENIED${RESET} ${color}${name}${RESET}`);
-    this.writeLine(`  ${DIM}Reason: ${reason}${RESET}`);
+    this.writeLine(
+      style(forgeTheme.dim, `[${this.ts()}]`) + ' ' +
+      style(forgeTheme.status.error, 'DENIED') + ' ' +
+      style(color, name)
+    );
+    this.writeLine(`  ${style(forgeTheme.dim, `Reason: ${reason}`)}`);
   }
+
+  // ---- status display ----
 
   private renderStatus(): void {
-    const speakerName = this.currentSpeaker ? this.getAgentName(this.currentSpeaker) : 'None';
-    const speakerColor = this.currentSpeaker ? (AGENT_COLORS[this.currentSpeaker] || '\x1b[37m') : DIM;
+    const speakerName = this.currentSpeaker ? this.agentName(this.currentSpeaker) : 'None';
+    const speakerColor = this.currentSpeaker
+      ? `${forgeTheme.bold}${agentColor(this.currentSpeaker)}`
+      : forgeTheme.dim;
 
-    this.writeLine(`${MAGENTA}───────────────────────────────────${RESET}`);
-    this.writeLine(`${DIM}Speaker:${RESET} ${speakerColor}${BOLD}${speakerName}${RESET}`);
+    this.writeLine(separator(36));
+    this.writeLine(`${style(forgeTheme.dim, 'Speaker:')} ${style(speakerColor, speakerName)}`);
 
     if (this.queue.length > 0) {
-      const queueNames = this.queue.map(id => this.getAgentName(id)).join(' → ');
-      this.writeLine(`${DIM}Queue (${this.queue.length}):${RESET} ${queueNames}`);
+      const names = this.queue.map((id) => this.agentName(id)).join(' → ');
+      this.writeLine(`${style(forgeTheme.dim, `Queue (${this.queue.length}):`)} ${names}`);
     } else {
-      this.writeLine(`${DIM}Queue: empty${RESET}`);
+      this.writeLine(style(forgeTheme.dim, 'Queue: empty'));
     }
-    this.writeLine(`${MAGENTA}───────────────────────────────────${RESET}`);
+    this.writeLine(separator(36));
   }
 
-  private getAgentName(agentId: string): string {
-    if (agentId === 'human') return 'Human';
-    if (agentId === 'system') return 'System';
-    const agent = getAgentById(agentId);
-    return agent ? agent.name : agentId;
+  // ---- helpers ----
+
+  private agentName(id: string): string {
+    if (id === 'human') return 'Human';
+    if (id === 'system') return 'System';
+    return getAgentById(id)?.name ?? id;
   }
 
-  private getTimestamp(): string {
-    const now = new Date();
-    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+  private ts(): string {
+    const n = new Date();
+    return `${n.getHours().toString().padStart(2, '0')}:${n.getMinutes().toString().padStart(2, '0')}:${n.getSeconds().toString().padStart(2, '0')}`;
   }
 }

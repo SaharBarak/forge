@@ -1,4 +1,6 @@
 import { Suspense, lazy } from 'react';
+import { useAuth } from './hooks/useAuth';
+import { LoginView } from './components/auth/LoginView';
 
 /**
  * Issue #23: Lazy loading - Code split the heavy ShellLayout component
@@ -13,7 +15,7 @@ const LazyShellLayout = lazy(() =>
 // Full-page loading state
 function AppLoadingFallback() {
   return (
-    <div 
+    <div
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -26,7 +28,7 @@ function AppLoadingFallback() {
         fontFamily: '"JetBrains Mono", "Fira Code", monospace',
       }}
     >
-      <div 
+      <div
         style={{
           width: '40px',
           height: '40px',
@@ -49,6 +51,16 @@ function AppLoadingFallback() {
 }
 
 export default function App() {
+  const { status, setAuthState } = useAuth();
+
+  if (status === 'loading') {
+    return <AppLoadingFallback />;
+  }
+
+  if (status === 'unauthenticated') {
+    return <LoginView onLoggedIn={setAuthState} />;
+  }
+
   return (
     <Suspense fallback={<AppLoadingFallback />}>
       <LazyShellLayout />

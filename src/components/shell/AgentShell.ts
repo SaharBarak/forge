@@ -1,79 +1,64 @@
 /**
- * AgentShell - Terminal shell for a single agent
- * Connects to the EDA MessageBus and displays agent's activity
+ * AgentShell — terminal pane for a single debate agent.
+ *
+ * Connects to the EDA MessageBus and renders the agent's activity using the
+ * Forge rendering pipeline: markdown → ANSI, semantic theme, spinner during
+ * generation, styled floor grant/release indicators.
  */
 
 import type { Message } from '../../types';
 import { messageBus } from '../../lib/eda/MessageBus';
 import { getAgentById } from '../../agents/personas';
+import { renderMarkdown } from '../../lib/render/markdown';
+import { createSpinner, type Spinner } from '../../lib/render/spinner';
+import {
+  forgeTheme,
+  style,
+  agentColor,
+} from '../../lib/render/theme';
+import { separator } from '../../lib/render/borders';
 
-type WriteFunction = (text: string) => void;
-type WriteLineFunction = (text: string) => void;
-
-const AGENT_COLORS: Record<string, string> = {
-  ronit: '\x1b[35m',   // magenta/pink
-  yossi: '\x1b[32m',   // green
-  noa: '\x1b[34m',     // blue
-  avi: '\x1b[33m',     // yellow/orange
-  michal: '\x1b[36m',  // cyan
-  system: '\x1b[90m',  // gray
-  human: '\x1b[37m',   // white
-};
-
-const RESET = '\x1b[0m';
-const BOLD = '\x1b[1m';
-const DIM = '\x1b[2m';
+type WriteFn = (text: string) => void;
 
 export class AgentShell {
-  private agentId: string;
-  private writeLine: WriteLineFunction;
+  private readonly agentId: string;
+  private readonly write: WriteFn;
   private unsubscribers: (() => void)[] = [];
   private isListening = false;
+  private spinner: Spinner | null = null;
+  private spinnerInterval: ReturnType<typeof setInterval> | null = null;
 
-  constructor(
-    agentId: string,
-    _write: WriteFunction,
-    writeLine: WriteLineFunction
-  ) {
+  constructor(agentId: string, write: WriteFn, _writeLine: WriteFn) {
     this.agentId = agentId;
-    this.writeLine = writeLine;
+    // Normalize: always use write (with \r\n appended by callers as needed).
+    // xterm.js needs \r\n, not just \n.
+    this.write = write;
   }
 
-  /**
-   * Start listening to the message bus
-   */
   start(): void {
     if (this.isListening) return;
     this.isListening = true;
 
-    const color = AGENT_COLORS[this.agentId] || '\x1b[37m';
+    const color = agentColor(this.agentId);
+    this.writeLn(style(forgeTheme.dim, `[${this.ts()}]`) + ' ' + style(`${forgeTheme.bold}${color}`, 'Agent initialized'));
+    this.writeLn(style(forgeTheme.dim, 'State: LISTENING'));
+    this.writeLn('');
 
-    // Initial status
-    this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${color}${BOLD}Agent initialized${RESET}`);
-    this.writeLine(`${DIM}State: LISTENING${RESET}`);
-    this.writeLine('');
-
-    // Subscribe to messages
     this.unsubscribers.push(
       messageBus.subscribe('message:new', (payload) => {
         this.onMessage(payload.message, payload.fromAgent);
       }, `shell-${this.agentId}`)
     );
 
-    // Subscribe to floor events
     this.unsubscribers.push(
       messageBus.subscribe('floor:granted', (payload) => {
-        if (payload.agentId === this.agentId) {
-          this.onFloorGranted();
-        }
+        if (payload.agentId === this.agentId) this.onFloorGranted();
       }, `shell-${this.agentId}`)
     );
 
     this.unsubscribers.push(
       messageBus.subscribe('floor:released', (payload) => {
-        if (payload.agentId === this.agentId) {
-          this.onFloorReleased();
-        }
+        if (payload.agentId === this.agentId) this.onFloorReleased();
       }, `shell-${this.agentId}`)
     );
 
@@ -87,118 +72,126 @@ export class AgentShell {
 
     this.unsubscribers.push(
       messageBus.subscribe('session:start', () => {
-        this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${color}Session started - listening...${RESET}`);
+        this.writeLn(style(forgeTheme.dim, `[${this.ts()}]`) + ' ' + style(agentColor(this.agentId), 'Session started — listening…'));
       }, `shell-${this.agentId}`)
     );
 
     this.unsubscribers.push(
       messageBus.subscribe('session:end', () => {
-        this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${color}Session ended${RESET}`);
+        this.stopSpinner();
+        this.writeLn(style(forgeTheme.dim, `[${this.ts()}]`) + ' ' + style(agentColor(this.agentId), 'Session ended'));
       }, `shell-${this.agentId}`)
     );
   }
 
-  /**
-   * Stop listening
-   */
   stop(): void {
-    this.unsubscribers.forEach((unsub) => unsub());
+    this.stopSpinner();
+    this.unsubscribers.forEach((u) => u());
     this.unsubscribers = [];
     this.isListening = false;
-    this.writeLine(`${DIM}[${this.getTimestamp()}] Agent stopped${RESET}`);
+    this.writeLn(style(forgeTheme.dim, `[${this.ts()}] Agent stopped`));
   }
 
-  /**
-   * Handle incoming message
-   */
+  // ---- event handlers ----
+
   private onMessage(message: Message, fromAgent: string): void {
-    const isOwnMessage = fromAgent === this.agentId;
-    const color = AGENT_COLORS[fromAgent] || '\x1b[37m';
-    const senderName = this.getSenderName(fromAgent);
+    this.stopSpinner();
+    const isOwn = fromAgent === this.agentId;
+    const color = agentColor(fromAgent);
 
-    if (isOwnMessage) {
-      // Own message - show what was said
-      this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${color}${BOLD}>>> SPEAKING${RESET}`);
-      this.formatAndWriteMessage(message.content, color);
-      this.writeLine('');
+    if (isOwn) {
+      this.writeLn(
+        style(forgeTheme.dim, `[${this.ts()}]`) + ' ' +
+        style(`${forgeTheme.bold}${color}`, '>>> SPEAKING')
+      );
+      // Render the agent's markdown output with full formatting.
+      const rendered = renderMarkdown(message.content, 72);
+      this.writeRaw(rendered);
+      this.writeLn('');
     } else {
-      // Others' messages - show listening
-      this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${DIM}Heard ${senderName}:${RESET}`);
-      this.writePreview(message.content);
+      const name = this.senderName(fromAgent);
+      this.writeLn(
+        style(forgeTheme.dim, `[${this.ts()}]`) + ' ' +
+        style(forgeTheme.dim, `Heard ${name}:`)
+      );
+      // Others' messages: render markdown but dimmed, truncated preview.
+      const preview = message.content.slice(0, 200) + (message.content.length > 200 ? '…' : '');
+      const rendered = renderMarkdown(preview, 72);
+      this.writeRaw(style(forgeTheme.dim, rendered));
     }
   }
 
-  /**
-   * Handle floor granted
-   */
   private onFloorGranted(): void {
-    const color = AGENT_COLORS[this.agentId] || '\x1b[37m';
-    this.writeLine(`${color}${BOLD}┌──────────────────────────────────┐${RESET}`);
-    this.writeLine(`${color}${BOLD}│  FLOOR GRANTED - SPEAKING NOW   │${RESET}`);
-    this.writeLine(`${color}${BOLD}└──────────────────────────────────┘${RESET}`);
+    const color = agentColor(this.agentId);
+    this.writeLn(separator(36));
+    this.writeLn(style(`${forgeTheme.bold}${color}`, '  ● FLOOR GRANTED — SPEAKING NOW'));
+    this.writeLn(separator(36));
+    this.startSpinner('Generating response…');
   }
 
-  /**
-   * Handle floor released
-   */
   private onFloorReleased(): void {
-    const color = AGENT_COLORS[this.agentId] || '\x1b[37m';
-    this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${color}Floor released. Returning to listening...${RESET}`);
-    this.writeLine('');
+    this.stopSpinner();
+    this.writeLn(
+      style(forgeTheme.dim, `[${this.ts()}]`) + ' ' +
+      style(agentColor(this.agentId), 'Floor released. Listening…')
+    );
+    this.writeLn('');
   }
 
-  /**
-   * Handle floor request
-   */
   private onFloorRequested(urgency: string, reason: string): void {
-    const color = AGENT_COLORS[this.agentId] || '\x1b[37m';
-    const urgencyColor = urgency === 'high' ? '\x1b[31m' : urgency === 'medium' ? '\x1b[33m' : '\x1b[32m';
-    this.writeLine(`${DIM}[${this.getTimestamp()}]${RESET} ${color}Requesting floor...${RESET}`);
-    this.writeLine(`${DIM}  Urgency: ${urgencyColor}${urgency.toUpperCase()}${RESET}`);
-    this.writeLine(`${DIM}  Reason: ${reason}${RESET}`);
+    const color = agentColor(this.agentId);
+    const urgencyColor =
+      urgency === 'high' ? forgeTheme.status.error
+        : urgency === 'medium' ? forgeTheme.status.warning
+          : forgeTheme.status.success;
+
+    this.writeLn(style(forgeTheme.dim, `[${this.ts()}]`) + ' ' + style(color, 'Requesting floor…'));
+    this.writeLn(`  Urgency: ${style(urgencyColor, urgency.toUpperCase())}`);
+    this.writeLn(style(forgeTheme.dim, `  Reason: ${reason}`));
   }
 
-  /**
-   * Format and write a full message
-   */
-  private formatAndWriteMessage(content: string, color: string): void {
-    const lines = content.split('\n');
-    for (const line of lines) {
-      if (line.startsWith('#')) {
-        this.writeLine(`${BOLD}${color}${line}${RESET}`);
-      } else if (line.startsWith('**') || line.startsWith('[')) {
-        this.writeLine(`${color}${line}${RESET}`);
-      } else {
-        this.writeLine(`  ${line}`);
+  // ---- spinner ----
+
+  private startSpinner(label: string): void {
+    this.stopSpinner();
+    this.spinner = createSpinner();
+    this.spinnerInterval = setInterval(() => {
+      if (this.spinner) {
+        this.write(this.spinner.tick(label));
       }
+    }, 80);
+  }
+
+  private stopSpinner(): void {
+    if (this.spinnerInterval) {
+      clearInterval(this.spinnerInterval);
+      this.spinnerInterval = null;
+    }
+    if (this.spinner) {
+      this.write(this.spinner.finish(''));
+      this.spinner = null;
     }
   }
 
-  /**
-   * Write a preview of a message (full content)
-   */
-  private writePreview(content: string): void {
-    const lines = content.split('\n');
-    for (const line of lines) {
-      this.writeLine(`${DIM}  ${line}${RESET}`);
-    }
+  // ---- helpers ----
+
+  private writeLn(text: string): void {
+    this.write(text + '\r\n');
   }
 
-  /**
-   * Get sender display name
-   */
-  private getSenderName(agentId: string): string {
+  private writeRaw(text: string): void {
+    // markdansi output uses \n — normalize to \r\n for xterm.js.
+    this.write(text.replace(/\n/g, '\r\n'));
+  }
+
+  private senderName(agentId: string): string {
     if (agentId === 'human') return 'Human';
     if (agentId === 'system') return 'System';
-    const agent = getAgentById(agentId);
-    return agent ? agent.name : agentId;
+    return getAgentById(agentId)?.name ?? agentId;
   }
 
-  /**
-   * Get timestamp string
-   */
-  private getTimestamp(): string {
-    const now = new Date();
-    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+  private ts(): string {
+    const n = new Date();
+    return `${n.getHours().toString().padStart(2, '0')}:${n.getMinutes().toString().padStart(2, '0')}:${n.getSeconds().toString().padStart(2, '0')}`;
   }
 }
