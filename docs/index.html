@@ -1941,11 +1941,11 @@ footer {
 
       <div class="mode-stage">
         <div class="demo-frame">
-          <img id="mode-gif"
-               src="demo/modes/copywrite.gif"
-               alt="Forge copywrite mode — real deliberation session"
-               loading="lazy"
-               width="1280" height="820">
+          <video id="mode-video"
+                 src="demo/modes/copywrite.mp4"
+                 autoplay muted loop playsinline preload="metadata"
+                 width="1280" height="820"
+                 style="display:block; width:100%; height:auto; background:var(--k-black);"></video>
           <div class="demo-meta">
             <span class="tag" id="mode-tag">▶ recorded · forge start -m copywrite</span>
             <h4 id="mode-title">Copywriting — section-by-section drafting.</h4>
@@ -2019,7 +2019,7 @@ footer {
     }
   };
 
-  var gif = document.getElementById('mode-gif');
+  var video = document.getElementById('mode-video');
   var title = document.getElementById('mode-title');
   var tag = document.getElementById('mode-tag');
   var description = document.getElementById('mode-description');
@@ -2031,10 +2031,11 @@ footer {
     var info = MODES[mode];
     if (!info) return;
     stage.classList.add('loading');
-    // Cache-bust on swap so the gif restarts from frame 0
-    var cacheBust = '?t=' + Date.now();
-    gif.src = 'demo/modes/' + mode + '.gif' + cacheBust;
-    gif.alt = 'Forge ' + mode + ' mode — real deliberation session';
+    // Swap the video source — cache-bust so it restarts from frame 0
+    video.pause();
+    video.src = 'demo/modes/' + mode + '.mp4?t=' + Date.now();
+    video.load();
+    video.play().catch(function() {}); // autoplay may be blocked until interaction
     title.textContent = info.title;
     tag.textContent = info.tag;
     description.textContent = info.description;
@@ -2044,9 +2045,9 @@ footer {
       t.classList.toggle('active', active);
       t.setAttribute('aria-selected', active ? 'true' : 'false');
     });
-    gif.addEventListener('load', function onload() {
+    video.addEventListener('loadeddata', function onload() {
       stage.classList.remove('loading');
-      gif.removeEventListener('load', onload);
+      video.removeEventListener('loadeddata', onload);
     });
   }
 
