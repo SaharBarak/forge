@@ -1001,32 +1001,51 @@ h2.display {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   MODE GALLERY — interactive mode selector + shared gif stage
+   MODE GALLERY — viewport-constrained: header + tabs + video +
+   meta all fit inside a single 100vh screen on desktop.
+   Layout: 2-col grid (left: title + tabs + meta, right: video).
    ───────────────────────────────────────────────────────────── */
-.mode-gallery { margin-top: 32px; }
+#demos {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 32px !important;
+  padding-bottom: 32px !important;
+}
+.mode-gallery {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 1.6fr);
+  gap: 24px;
+  align-items: stretch;
+}
+@media (max-width: 960px) {
+  .mode-gallery { grid-template-columns: 1fr; gap: 16px; }
+  #demos { min-height: auto; }
+}
 .mode-tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 6px;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
   background: var(--k-brick);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: 22px;
+  margin-bottom: 14px;
 }
-@media (max-width: 880px) { .mode-tabs { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 480px) { .mode-tabs { grid-template-columns: 1fr; } }
 .mode-tab {
   font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--k-text-dim);
   background: transparent;
   border: 1px solid transparent;
-  padding: 10px 12px;
+  padding: 7px 10px;
   cursor: pointer;
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 1px;
   transition: color 140ms ease-out, background-color 140ms ease-out, border-color 140ms ease-out;
 }
 .mode-tab:hover {
@@ -1048,23 +1067,85 @@ h2.display {
 }
 .mode-tab-name {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 0;
   color: var(--k-cream);
 }
 .mode-tab-id {
-  font-size: 10px;
+  font-size: 9px;
   opacity: 0.75;
   color: var(--k-text-dim);
 }
+.mode-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+.mode-meta-block {
+  margin-top: 8px;
+  padding: 14px 16px;
+  background: var(--k-brick);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.mode-meta-block .tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 10px;
+  color: var(--k-neon-lime);
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.mode-meta-block h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin: 0 0 8px;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+.mode-meta-block h4 em { color: var(--k-neon-pink); font-style: normal; }
+.mode-meta-block p {
+  font-size: 0.86rem;
+  color: var(--k-text);
+  line-height: 1.55;
+  margin: 0;
+}
+.mode-meta-block .mode-phases {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--k-text-dim);
+  line-height: 1.55;
+}
 .mode-stage {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  align-self: start;
 }
 .mode-stage .demo-frame {
   transition: opacity 180ms ease-out;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
 }
 .mode-stage.loading .demo-frame {
   opacity: 0.35;
+}
+.mode-stage video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  object-fit: contain;
+  background: var(--k-black);
 }
 .demo-frame img {
   display: block;
@@ -1885,84 +1966,71 @@ footer {
   <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
   <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
   <div class="grid">
-
-    <div class="col-1-7">
-      <div class="section-head">
-        <span class="section-num">§ 02</span>
-        <span class="kicker">see forge run</span>
-      </div>
-      <h2 class="display h2-neon">
-        Real terminal sessions.<br><em>Pick a mode.</em>
-      </h2>
-    </div>
-    <div class="col-9-12" style="align-self: end; padding-bottom: 6px;">
-      <p class="prose">
-        Each tab below is a <strong>live <code>forge</code> run</strong> against a real deliberation mode.
-        No mocks, no staged dashboards — five archetypes burning through a deterministic phase machine.
-        Tap a mode to swap the demo.
-      </p>
-    </div>
-
     <div class="col-full mode-gallery" id="mode-gallery">
-      <div class="mode-tabs" role="tablist" aria-label="Forge deliberation modes">
-        <button class="mode-tab active" role="tab" aria-selected="true" data-mode="copywrite">
-          <span class="mode-tab-name">Copywriting</span>
-          <span class="mode-tab-id">forge -m copywrite</span>
-        </button>
-        <button class="mode-tab" role="tab" aria-selected="false" data-mode="will-it-work">
-          <span class="mode-tab-name">Will It Work?</span>
-          <span class="mode-tab-id">forge -m will-it-work</span>
-        </button>
-        <button class="mode-tab" role="tab" aria-selected="false" data-mode="idea-validation">
-          <span class="mode-tab-name">Idea Validation</span>
-          <span class="mode-tab-id">forge -m idea-validation</span>
-        </button>
-        <button class="mode-tab" role="tab" aria-selected="false" data-mode="ideation">
-          <span class="mode-tab-name">Ideation</span>
-          <span class="mode-tab-id">forge -m ideation</span>
-        </button>
-        <button class="mode-tab" role="tab" aria-selected="false" data-mode="business-plan">
-          <span class="mode-tab-name">Business Plan</span>
-          <span class="mode-tab-id">forge -m business-plan</span>
-        </button>
-        <button class="mode-tab" role="tab" aria-selected="false" data-mode="gtm-strategy">
-          <span class="mode-tab-name">Go-to-Market</span>
-          <span class="mode-tab-id">forge -m gtm-strategy</span>
-        </button>
-        <button class="mode-tab" role="tab" aria-selected="false" data-mode="site-survey">
-          <span class="mode-tab-name">Site Survey</span>
-          <span class="mode-tab-id">forge -m site-survey</span>
-        </button>
-        <button class="mode-tab" role="tab" aria-selected="false" data-mode="custom">
-          <span class="mode-tab-name">Custom</span>
-          <span class="mode-tab-id">forge -m custom</span>
-        </button>
+
+      <!-- LEFT column: section header + tabs + meta -->
+      <div class="mode-side">
+        <div class="section-head" style="margin-bottom: 8px;">
+          <span class="section-num">§ 02</span>
+          <span class="kicker">see forge run</span>
+        </div>
+        <h2 class="display h2-neon" style="margin-bottom: 14px;">
+          Real terminal sessions.<br><em>Pick a mode.</em>
+        </h2>
+
+        <div class="mode-tabs" role="tablist" aria-label="Forge deliberation modes">
+          <button class="mode-tab active" role="tab" aria-selected="true" data-mode="copywrite">
+            <span class="mode-tab-name">Copywriting</span>
+            <span class="mode-tab-id">forge -m copywrite</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="will-it-work">
+            <span class="mode-tab-name">Will It Work?</span>
+            <span class="mode-tab-id">forge -m will-it-work</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="idea-validation">
+            <span class="mode-tab-name">Idea Validation</span>
+            <span class="mode-tab-id">forge -m idea-validation</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="ideation">
+            <span class="mode-tab-name">Ideation</span>
+            <span class="mode-tab-id">forge -m ideation</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="business-plan">
+            <span class="mode-tab-name">Business Plan</span>
+            <span class="mode-tab-id">forge -m business-plan</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="gtm-strategy">
+            <span class="mode-tab-name">Go-to-Market</span>
+            <span class="mode-tab-id">forge -m gtm-strategy</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="site-survey">
+            <span class="mode-tab-name">Site Survey</span>
+            <span class="mode-tab-id">forge -m site-survey</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="custom">
+            <span class="mode-tab-name">Custom</span>
+            <span class="mode-tab-id">forge -m custom</span>
+          </button>
+        </div>
+
+        <div class="mode-meta-block">
+          <span class="tag" id="mode-tag">▶ recorded · forge start -m copywrite</span>
+          <h4 id="mode-title">Copywriting — section-by-section drafting.</h4>
+          <p id="mode-description">Five archetypes debate positioning, then draft every required section one at a time. The session can't exit until every <code>requiredOutput</code> ships. Real deliberation captured live.</p>
+          <div id="mode-phases" class="mode-phases">discovery → research → ideation → synthesis → drafting</div>
+        </div>
       </div>
 
+      <!-- RIGHT column: video stage -->
       <div class="mode-stage">
         <div class="demo-frame">
           <video id="mode-video"
                  src="demo/modes/copywrite.mp4"
-                 autoplay muted loop playsinline preload="metadata"
-                 width="1280" height="820"
-                 style="display:block; width:100%; height:auto; background:var(--k-black);"></video>
-          <div class="demo-meta">
-            <span class="tag" id="mode-tag">▶ recorded · forge start -m copywrite</span>
-            <h4 id="mode-title">Copywriting — section-by-section drafting.</h4>
-            <p id="mode-description">Five archetypes debate positioning, then draft every required section one at a time. The session can't exit until every <code>requiredOutput</code> ships. What you see here is captured from <code>forge start -m copywrite</code> — no scripts, no mocks, a real deliberation end to end.</p>
-            <div id="mode-phases" class="mode-phases" style="margin-top: 12px;">discovery → research → ideation → synthesis → drafting</div>
-          </div>
+                 autoplay muted loop playsinline preload="metadata"></video>
         </div>
       </div>
-    </div>
 
-    <div class="col-full" style="margin-top: 28px; text-align: center;">
-      <p class="mono" style="color: var(--k-text-dim); font-size: 0.78rem;">
-        <span style="color: var(--k-neon-lime);">▶</span>
-        Every tab is a real session. Recordings are time-lapsed for readability — the raw deliberations ran 2–3 minutes each.
-      </p>
     </div>
-
   </div>
 </section>
 
