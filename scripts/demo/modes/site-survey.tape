@@ -24,8 +24,4 @@ Type@25ms `"Audit and rewrite the copy of a legacy SaaS dashboard landing page"`
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 3s
-Type "0"
-Enter
-
 Sleep 180s

@@ -24,8 +24,4 @@ Type@25ms `"Migrate a 10M-user Postgres system to CockroachDB in 90 days?"`
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 3s
-Type "0"
-Enter
-
 Sleep 180s

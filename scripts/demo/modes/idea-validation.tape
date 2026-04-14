@@ -24,8 +24,4 @@ Type@25ms `"Build an AI-native incident response co-pilot that replaces PagerDut
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 3s
-Type "0"
-Enter
-
 Sleep 180s

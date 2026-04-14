@@ -24,8 +24,4 @@ Type@25ms `"Launch strategy for an AI-powered CI tool aimed at platform engineer
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 3s
-Type "0"
-Enter
-
 Sleep 180s
