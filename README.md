@@ -1,10 +1,41 @@
-# Forge
+<div align="center">
 
-> **Multi-agent deliberation engine.** Stop debating in Slack. Start deciding with structure.
+```
+    ███████╗ ██████╗ ██████╗  ██████╗ ███████╗
+    ██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
+    █████╗  ██║   ██║██████╔╝██║  ███╗█████╗
+    ██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝
+    ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
+    ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+```
 
-Forge runs structured deliberation workflows that turn endless discussions into concrete decisions. Eight battle-tested modes for copywriting, idea validation, feasibility analysis, ideation, business planning, go-to-market strategy, site surveys, and custom workflows. CLI-first, open source, no API key lock-in.
+### *The Digital Renaissance of Ideas*
 
-**[→ Landing page](https://saharbarak.github.io/forge/)** · **[Source](https://github.com/SaharBarak/forge)**
+**You don't need a smarter AI. You need five that disagree.**
+
+Three hours re-prompting one model gets you a longer draft, not a decision. Forge runs five reasoning archetypes through a deterministic phase machine — `discovery → research → synthesis → drafting → verdict` — until they actually converge on something you can ship.
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-a78bfa.svg?style=flat-square)](#license)
+[![TypeScript](https://img.shields.io/badge/typescript-5.x-3178c6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tests](https://img.shields.io/badge/tests-898%20passing-4ade80.svg?style=flat-square)](#build--test)
+[![CLI](https://img.shields.io/badge/CLI-first-fbbf24.svg?style=flat-square&logo=gnubash&logoColor=white)](#install)
+[![Powered by Claude](https://img.shields.io/badge/powered%20by-Claude%20Code-d97757.svg?style=flat-square)](https://github.com/anthropics/claude-code)
+
+[**Landing page**](https://saharbarak.github.io/forge/) ·
+[**Modes**](#the-eight-modes) ·
+[**Install**](#install) ·
+[**Architecture**](#architecture) ·
+[**FAQ**](#scope--non-goals)
+
+<br>
+
+![Forge CLI](docs/demo/quick-start.gif)
+
+</div>
+
+---
+
+Forge ships eight battle-tested modes for copywriting, idea validation, feasibility analysis, ideation, business planning, go-to-market strategy, site surveys, and custom workflows. CLI-first, open source, no API key lock-in.
 
 ---
 

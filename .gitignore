@@ -27,9 +27,16 @@ output/drafts/*
 output/final/*
 output/forge-landing-copy/runs/
 output/forge-landing-copy/latest
+output/forge-landing-copy/*.md
 !output/sessions/.gitkeep
 !output/drafts/.gitkeep
 !output/final/.gitkeep
+
+# Demo recordings — commit time-lapsed gifs only, not raw vhs captures
+docs/demo/modes/*-raw.gif
+
+# Optional Svelte landing build output (regeneratable from `landing/`)
+docs/next/
 
 # Claude Code runtime state
 .claude/scheduled_tasks.lock
