@@ -427,10 +427,10 @@ var HomeScreen_exports = {};
 __export(HomeScreen_exports, {
   HomeScreen: () => HomeScreen
 });
-import { useState as useState5, useCallback as useCallback2 } from "react";
-import { Box as Box7, Text as Text7, useApp as useApp2 } from "ink";
+import { useState as useState4, useCallback as useCallback2 } from "react";
+import { Box as Box8, Text as Text8, useApp as useApp2 } from "ink";
 import TextInput2 from "ink-text-input";
-import { jsx as jsx7, jsxs as jsxs7 } from "react/jsx-runtime";
+import { jsx as jsx8, jsxs as jsxs8 } from "react/jsx-runtime";
 function HomeScreen({
   did,
   sessionCount,
@@ -439,9 +439,9 @@ function HomeScreen({
   onExit
 }) {
   const { exit } = useApp2();
-  const [input, setInput] = useState5("");
-  const [message, setMessage] = useState5(null);
-  const [bannerShown] = useState5(() => {
+  const [input, setInput] = useState4("");
+  const [message, setMessage] = useState4(null);
+  const [bannerShown] = useState4(() => {
     showBanner(sessionCount);
     return true;
   });
@@ -472,59 +472,59 @@ function HomeScreen({
         }
     }
   }, [onStartNew, onExit, exit]);
-  return /* @__PURE__ */ jsxs7(Box7, { flexDirection: "column", paddingX: 1, children: [
-    /* @__PURE__ */ jsxs7(Box7, { marginTop: 1, flexDirection: "column", children: [
-      did ? /* @__PURE__ */ jsxs7(Text7, { children: [
-        /* @__PURE__ */ jsx7(Text7, { dimColor: true, children: "  Identity: " }),
-        /* @__PURE__ */ jsxs7(Text7, { color: "cyan", children: [
+  return /* @__PURE__ */ jsxs8(Box8, { flexDirection: "column", paddingX: 1, children: [
+    /* @__PURE__ */ jsxs8(Box8, { marginTop: 1, flexDirection: "column", children: [
+      did ? /* @__PURE__ */ jsxs8(Text8, { children: [
+        /* @__PURE__ */ jsx8(Text8, { dimColor: true, children: "  Identity: " }),
+        /* @__PURE__ */ jsxs8(Text8, { color: "cyan", children: [
           did.slice(0, 24),
           "\u2026"
         ] })
-      ] }) : /* @__PURE__ */ jsx7(Text7, { dimColor: true, children: "  No identity. Run: forge login" }),
-      sessionCount > 0 && /* @__PURE__ */ jsxs7(Text7, { dimColor: true, children: [
+      ] }) : /* @__PURE__ */ jsx8(Text8, { dimColor: true, children: "  No identity. Run: forge login" }),
+      sessionCount > 0 && /* @__PURE__ */ jsxs8(Text8, { dimColor: true, children: [
         "  ",
         sessionCount,
         " saved session(s). Type 'sessions' to view."
       ] })
     ] }),
-    /* @__PURE__ */ jsxs7(Box7, { paddingX: 1, marginTop: 1, flexDirection: "column", children: [
-      /* @__PURE__ */ jsxs7(Text7, { children: [
+    /* @__PURE__ */ jsxs8(Box8, { paddingX: 1, marginTop: 1, flexDirection: "column", children: [
+      /* @__PURE__ */ jsxs8(Text8, { children: [
         "  ",
-        /* @__PURE__ */ jsx7(Text7, { color: "green", children: "new" }),
+        /* @__PURE__ */ jsx8(Text8, { color: "green", children: "new" }),
         "              Start a new deliberation"
       ] }),
-      /* @__PURE__ */ jsxs7(Text7, { children: [
+      /* @__PURE__ */ jsxs8(Text8, { children: [
         "  ",
-        /* @__PURE__ */ jsx7(Text7, { color: "green", children: "forge start" }),
+        /* @__PURE__ */ jsx8(Text8, { color: "green", children: "forge start" }),
         "      Start with options"
       ] }),
-      /* @__PURE__ */ jsxs7(Text7, { children: [
+      /* @__PURE__ */ jsxs8(Text8, { children: [
         "  ",
-        /* @__PURE__ */ jsx7(Text7, { color: "green", children: "forge community" }),
+        /* @__PURE__ */ jsx8(Text8, { color: "green", children: "forge community" }),
         "  Browse peer contributions"
       ] }),
-      /* @__PURE__ */ jsxs7(Text7, { children: [
+      /* @__PURE__ */ jsxs8(Text8, { children: [
         "  ",
-        /* @__PURE__ */ jsx7(Text7, { color: "green", children: "forge login" }),
+        /* @__PURE__ */ jsx8(Text8, { color: "green", children: "forge login" }),
         "      Manage identity"
       ] }),
-      /* @__PURE__ */ jsxs7(Text7, { children: [
+      /* @__PURE__ */ jsxs8(Text8, { children: [
         "  ",
-        /* @__PURE__ */ jsx7(Text7, { color: "green", children: "help" }),
+        /* @__PURE__ */ jsx8(Text8, { color: "green", children: "help" }),
         "             All commands"
       ] })
     ] }),
-    message && /* @__PURE__ */ jsx7(Box7, { paddingX: 1, marginTop: 1, children: /* @__PURE__ */ jsx7(Text7, { color: "yellow", children: message }) }),
-    /* @__PURE__ */ jsxs7(
-      Box7,
+    message && /* @__PURE__ */ jsx8(Box8, { paddingX: 1, marginTop: 1, children: /* @__PURE__ */ jsx8(Text8, { color: "yellow", children: message }) }),
+    /* @__PURE__ */ jsxs8(
+      Box8,
       {
         borderStyle: "single",
         borderColor: "cyan",
         paddingX: 1,
         marginTop: 1,
         children: [
-          /* @__PURE__ */ jsx7(Text7, { color: "cyan", children: "> " }),
-          /* @__PURE__ */ jsx7(
+          /* @__PURE__ */ jsx8(Text8, { color: "cyan", children: "> " }),
+          /* @__PURE__ */ jsx8(
             TextInput2,
             {
               value: input,
@@ -536,7 +536,7 @@ function HomeScreen({
         ]
       }
     ),
-    /* @__PURE__ */ jsx7(Box7, { paddingX: 1, children: /* @__PURE__ */ jsx7(Text7, { dimColor: true, children: "Ctrl+C quit \u2502 Decentralized \xB7 Keyless \xB7 Open Source" }) })
+    /* @__PURE__ */ jsx8(Box8, { paddingX: 1, children: /* @__PURE__ */ jsx8(Text8, { dimColor: true, children: "Ctrl+C quit \u2502 Decentralized \xB7 Keyless \xB7 Open Source" }) })
   ] });
 }
 var init_HomeScreen = __esm({
@@ -556,67 +556,83 @@ import * as fs12 from "fs/promises";
 import * as readline3 from "readline";
 
 // cli/app/App.tsx
-import { useState as useState4, useEffect as useEffect3, useCallback, useMemo } from "react";
-import { Box as Box6, Text as Text6, useApp, useInput as useInput3 } from "ink";
+import { useState as useState3, useEffect as useEffect2, useCallback, useMemo, useRef } from "react";
+import { Box as Box7, Text as Text7, useApp, useInput as useInput3 } from "ink";
 
-// cli/app/StatusBar.tsx
-import { useState, useEffect } from "react";
+// cli/app/HeaderBar.tsx
+import React from "react";
 import { Box, Text } from "ink";
+import { jsx, jsxs } from "react/jsx-runtime";
+var fmtElapsed = (s) => {
+  const m = Math.floor(s / 60);
+  const ss = String(s % 60).padStart(2, "0");
+  return `${m}:${ss}`;
+};
+function HeaderBar({
+  projectName,
+  goal,
+  modeLabel,
+  phases,
+  currentPhaseId,
+  elapsedSeconds
+}) {
+  const currentIdx = Math.max(0, phases.findIndex((p) => p.id === currentPhaseId));
+  return /* @__PURE__ */ jsxs(
+    Box,
+    {
+      flexDirection: "column",
+      borderStyle: "round",
+      borderColor: "yellow",
+      paddingX: 1,
+      children: [
+        /* @__PURE__ */ jsxs(Box, { flexDirection: "row", justifyContent: "space-between", children: [
+          /* @__PURE__ */ jsxs(Box, { children: [
+            /* @__PURE__ */ jsx(Text, { bold: true, color: "yellow", children: "\u2692 FORGE" }),
+            /* @__PURE__ */ jsx(Text, { dimColor: true, children: " \xB7 " }),
+            /* @__PURE__ */ jsx(Text, { bold: true, color: "white", children: projectName })
+          ] }),
+          /* @__PURE__ */ jsxs(Box, { children: [
+            /* @__PURE__ */ jsx(Text, { dimColor: true, children: "mode " }),
+            /* @__PURE__ */ jsx(Text, { color: "magenta", children: modeLabel }),
+            /* @__PURE__ */ jsx(Text, { dimColor: true, children: " \xB7 " }),
+            /* @__PURE__ */ jsx(Text, { color: "cyan", children: fmtElapsed(elapsedSeconds) })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs(Box, { children: [
+          /* @__PURE__ */ jsx(Text, { dimColor: true, children: "\u{1F3AF} " }),
+          /* @__PURE__ */ jsx(Text, { wrap: "truncate", children: goal })
+        ] }),
+        /* @__PURE__ */ jsx(Box, { flexDirection: "row", marginTop: 1, children: phases.map((phase, i) => {
+          const isPast = i < currentIdx;
+          const isCurrent = i === currentIdx;
+          const node = isPast ? "\u25C6" : isCurrent ? "\u25C6" : "\u25C7";
+          const nodeColor = isPast ? "green" : isCurrent ? "yellow" : "gray";
+          const nameColor = isPast ? "green" : isCurrent ? "yellow" : "gray";
+          const connector = i < phases.length - 1 ? isPast ? "\u2500\u2500" : "\u2508\u2508" : "";
+          const connectorColor = isPast ? "green" : "gray";
+          return /* @__PURE__ */ jsxs(React.Fragment, { children: [
+            /* @__PURE__ */ jsxs(Box, { children: [
+              /* @__PURE__ */ jsx(Text, { color: nodeColor, bold: isCurrent, children: node }),
+              /* @__PURE__ */ jsxs(Text, { color: nameColor, bold: isCurrent, children: [
+                " ",
+                phase.name
+              ] })
+            ] }),
+            connector && /* @__PURE__ */ jsxs(Text, { color: connectorColor, dimColor: !isPast, children: [
+              " ",
+              connector,
+              " "
+            ] })
+          ] }, phase.id);
+        }) })
+      ]
+    }
+  );
+}
 
-// src/lib/quotes.ts
-var quotes = [
-  // Forging / smithing metaphors
-  { text: "The best steel is forged in the hottest fire." },
-  { text: "Every consensus is hammered out on the anvil of debate." },
-  { text: "Strike while the arguments are hot." },
-  { text: "Raw ideas go in. Refined decisions come out." },
-  { text: "The forge doesn't break metal \u2014 it reshapes it." },
-  { text: "Sparks fly before the blade is tempered." },
-  { text: "You can't forge anything without heat and pressure." },
-  { text: "A well-forged plan survives the battlefield." },
-  // Debate & consensus
-  { text: "Consensus isn't agreement \u2014 it's alignment." },
-  { text: "The best ideas survive the forge of debate." },
-  { text: "Disagreement is the first step toward understanding." },
-  { text: "If everyone agrees immediately, nobody's thinking." },
-  { text: "Good debate sharpens; bad debate flattens." },
-  { text: "Dissent is a feature, not a bug." },
-  { text: "The point isn't to win \u2014 it's to converge." },
-  { text: "Tension is where the interesting stuff happens." },
-  // AI collaboration & collective intelligence
-  { text: "Three agents walk into a debate..." },
-  { text: "One model's ceiling is another model's floor." },
-  { text: "Collective intelligence beats individual brilliance." },
-  { text: "More perspectives, fewer blind spots." },
-  { text: "The swarm is smarter than the bee." },
-  { text: "Deliberation at machine speed." },
-  { text: "N heads are better than one. Especially at scale." },
-  // Real quotes from thinkers
-  { text: "The test of a first-rate intelligence is the ability to hold two opposing ideas in mind.", author: "F. Scott Fitzgerald" },
-  { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
-  { text: "It is the mark of an educated mind to entertain a thought without accepting it.", author: "Aristotle" },
-  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
-  { text: "Iron sharpens iron, and one person sharpens another.", author: "Proverbs 27:17" },
-  { text: "The clash of ideas is the sound of freedom.", author: "Lady Bird Johnson" },
-  { text: "Where all think alike, no one thinks very much.", author: "Walter Lippmann" },
-  // Witty / fun
-  { text: "Arguing productively since v1.0.0." },
-  { text: "Your agents have opinions. Let them cook." },
-  { text: "Democracy, but faster." },
-  { text: "Strongly held opinions, loosely held agents." },
-  { text: "Consensus achieved. No agents were harmed." },
-  { text: "Debate is just collaborative thinking with spice." },
-  { text: "May your conflicts be constructive." }
-];
-function getRandomQuote() {
-  return quotes[Math.floor(Math.random() * quotes.length)];
-}
-function formatQuote(quote) {
-  if (quote.author) {
-    return `"${quote.text}" \u2014 ${quote.author}`;
-  }
-  return `"${quote.text}"`;
-}
+// cli/app/CouncilPanel.tsx
+import { Box as Box2, Text as Text2 } from "ink";
+import Spinner from "ink-spinner";
 
 // src/lib/render/theme.ts
 var ESC = "\x1B[";
@@ -746,209 +762,251 @@ var forgeTheme = {
 var style = (theme, text) => `${theme}${text}${RESET}`;
 var agentColor = (agentId) => forgeTheme.agent[agentId] ?? forgeTheme.text.primary;
 
-// src/lib/render/progress.ts
-var FRACTIONAL_BLOCKS = ["", "\u258F", "\u258E", "\u258D", "\u258C", "\u258B", "\u258A", "\u2589", "\u2588"];
-var progressBar = (ratio, width, color = forgeTheme.status.success) => {
-  const clamped = Math.max(0, Math.min(1, ratio));
-  const totalEighths = Math.round(clamped * width * 8);
-  const fullBlocks = Math.floor(totalEighths / 8);
-  const remainder = totalEighths % 8;
-  const filled = "\u2588".repeat(fullBlocks) + (remainder > 0 ? FRACTIONAL_BLOCKS[remainder] : "");
-  const emptyLen = Math.max(0, width - fullBlocks - (remainder > 0 ? 1 : 0));
-  const empty = "\u2591".repeat(emptyLen);
-  return style(color, filled) + style(forgeTheme.text.muted, empty);
-};
-var attestationDots = (count, max = 5) => {
-  const filled = Math.min(count, max);
-  const empty = max - filled;
-  return style(forgeTheme.consensus.agree, "\u25CF".repeat(filled)) + style(forgeTheme.text.muted, "\u25CB".repeat(empty));
-};
-
-// cli/app/StatusBar.tsx
-import { jsx, jsxs } from "react/jsx-runtime";
-var PHASES = [
-  "initialization",
-  "context_loading",
-  "research",
-  "brainstorming",
-  "argumentation",
-  "synthesis",
-  "drafting",
-  "review",
-  "consensus",
-  "finalization"
-];
-var PHASE_EMOJI = {
-  initialization: "\u{1F680}",
-  context_loading: "\u{1F4C2}",
-  research: "\u{1F50D}",
-  brainstorming: "\u{1F4AD}",
-  argumentation: "\u2696\uFE0F",
-  synthesis: "\u{1F4CA}",
-  drafting: "\u270D\uFE0F",
-  review: "\u{1F441}\uFE0F",
-  consensus: "\u{1F91D}",
-  finalization: "\u{1F389}"
-};
-var PHASE_COLORS = {
-  initialization: "gray",
-  context_loading: "blue",
-  research: "cyan",
-  brainstorming: "cyan",
-  argumentation: "yellow",
-  synthesis: "magenta",
-  drafting: "green",
-  review: "blue",
-  consensus: "green",
-  finalization: "yellow"
-};
-var shortenDid = (did) => did.length > 20 ? `${did.slice(0, 12)}\u2026${did.slice(-6)}` : did;
-function StatusBar({
-  phase,
-  currentSpeaker,
-  queued,
-  messageCount,
-  consensusPoints,
-  conflictPoints,
-  did,
-  peerCount,
-  connectionsIndexSize
-}) {
-  const phaseColor = PHASE_COLORS[phase] || "white";
-  const phaseEmoji = PHASE_EMOJI[phase] || "\u{1F4CD}";
-  const phaseIdx = PHASES.indexOf(phase);
-  const phaseRatio = (phaseIdx + 1) / PHASES.length;
-  const phaseBar = progressBar(phaseRatio, 10);
-  const [quote, setQuote] = useState(() => formatQuote(getRandomQuote()));
-  useEffect(() => {
-    const timer = setInterval(() => setQuote(formatQuote(getRandomQuote())), 6e4);
-    return () => clearInterval(timer);
-  }, []);
-  return /* @__PURE__ */ jsxs(
-    Box,
-    {
-      flexDirection: "column",
-      borderStyle: "single",
-      borderColor: "gray",
-      paddingX: 1,
-      children: [
-        /* @__PURE__ */ jsxs(Box, { flexDirection: "row", justifyContent: "space-between", children: [
-          /* @__PURE__ */ jsxs(Box, { children: [
-            /* @__PURE__ */ jsxs(Text, { color: phaseColor, bold: true, children: [
-              phaseEmoji,
-              " ",
-              phase.toUpperCase()
-            ] }),
-            /* @__PURE__ */ jsx(Text, { children: " " }),
-            /* @__PURE__ */ jsx(Text, { children: phaseBar })
-          ] }),
-          /* @__PURE__ */ jsxs(Box, { children: [
-            /* @__PURE__ */ jsx(Text, { dimColor: true, children: "Floor: " }),
-            currentSpeaker ? /* @__PURE__ */ jsxs(Text, { color: "green", children: [
-              currentSpeaker,
-              " speaking"
-            ] }) : /* @__PURE__ */ jsx(Text, { color: "gray", children: "open" }),
-            queued.length > 0 && /* @__PURE__ */ jsxs(Text, { dimColor: true, children: [
-              " (",
-              queued.length,
-              " waiting)"
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxs(Box, { children: [
-            /* @__PURE__ */ jsx(Text, { dimColor: true, children: "Msgs: " }),
-            /* @__PURE__ */ jsx(Text, { children: messageCount }),
-            /* @__PURE__ */ jsx(Text, { dimColor: true, children: " | " }),
-            /* @__PURE__ */ jsxs(Text, { color: "green", children: [
-              "\u2713",
-              consensusPoints
-            ] }),
-            /* @__PURE__ */ jsx(Text, { dimColor: true, children: "/" }),
-            /* @__PURE__ */ jsxs(Text, { color: "red", children: [
-              "\u2717",
-              conflictPoints
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsxs(Box, { flexDirection: "row", justifyContent: "space-between", children: [
-          /* @__PURE__ */ jsx(Box, { children: did ? /* @__PURE__ */ jsxs(Text, { dimColor: true, children: [
-            "DID: ",
-            /* @__PURE__ */ jsx(Text, { color: "cyan", children: shortenDid(did) })
-          ] }) : /* @__PURE__ */ jsx(Text, { dimColor: true, children: "No identity \u2014 run /login" }) }),
-          /* @__PURE__ */ jsxs(Box, { children: [
-            typeof peerCount === "number" && /* @__PURE__ */ jsxs(Text, { dimColor: true, children: [
-              "Peers: ",
-              /* @__PURE__ */ jsx(Text, { color: peerCount > 0 ? "green" : "gray", children: peerCount })
-            ] }),
-            typeof connectionsIndexSize === "number" && /* @__PURE__ */ jsxs(Text, { dimColor: true, children: [
-              " | Vectors: ",
-              connectionsIndexSize
-            ] })
-          ] }),
-          /* @__PURE__ */ jsx(Box, { children: /* @__PURE__ */ jsx(Text, { dimColor: true, italic: true, children: quote }) })
-        ] })
-      ]
-    }
-  );
-}
-
-// cli/app/AgentList.tsx
-import { Box as Box2, Text as Text2 } from "ink";
-import Spinner from "ink-spinner";
+// cli/app/CouncilPanel.tsx
 import { jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
 var STATE_ICONS = {
   listening: "\u{1F442}",
   thinking: "\u{1F914}",
   speaking: "\u{1F4AC}",
-  waiting: "\u23F3"
+  waiting: "\u23F3",
+  paused: "\u23F8"
 };
-var STANCE_DISPLAY = {
+var STANCE = {
   FOR: { label: "+", color: "green" },
-  AGAINST: { label: "-", color: "red" },
+  AGAINST: { label: "\u2212", color: "red" },
   NEUTRAL: { label: "~", color: "yellow" }
 };
-function AgentList({
+var BAR_WIDTH = 8;
+var BAR_FILLED = "\u2593";
+var BAR_EMPTY = "\u2591";
+var buildBar = (count, max) => {
+  if (max === 0) return BAR_EMPTY.repeat(BAR_WIDTH);
+  const filled = Math.max(0, Math.min(BAR_WIDTH, Math.round(count / max * BAR_WIDTH)));
+  return BAR_FILLED.repeat(filled) + BAR_EMPTY.repeat(BAR_WIDTH - filled);
+};
+function CouncilPanel({
   agents,
   currentSpeaker
 }) {
-  return /* @__PURE__ */ jsxs2(
-    Box2,
-    {
-      flexDirection: "column",
-      borderStyle: "single",
-      borderColor: "gray",
-      paddingX: 1,
-      width: 26,
-      children: [
-        /* @__PURE__ */ jsx2(Text2, { bold: true, underline: true, children: "Agents" }),
-        /* @__PURE__ */ jsx2(Text2, { children: " " }),
-        agents.map((agent) => {
-          const isSpeaking = agent.id === currentSpeaker;
-          const color = agentColor(agent.id);
-          const stateIcon = STATE_ICONS[agent.state] || "\u2022";
-          const stance = agent.stance ? STANCE_DISPLAY[agent.stance] : null;
-          return /* @__PURE__ */ jsxs2(Box2, { flexDirection: "row", children: [
-            isSpeaking ? /* @__PURE__ */ jsx2(Text2, { color: "green", children: /* @__PURE__ */ jsx2(Spinner, { type: "dots" }) }) : /* @__PURE__ */ jsx2(Text2, { children: stateIcon }),
-            /* @__PURE__ */ jsx2(Text2, { children: " " }),
-            /* @__PURE__ */ jsx2(Text2, { color, bold: isSpeaking, children: agent.name }),
-            /* @__PURE__ */ jsxs2(Text2, { dimColor: true, children: [
-              " (",
-              agent.contributions,
-              ")"
+  const maxContribs = Math.max(1, ...agents.map((a) => a.contributions));
+  return /* @__PURE__ */ jsxs2(Box2, { flexDirection: "column", width: 28, children: [
+    /* @__PURE__ */ jsxs2(
+      Box2,
+      {
+        borderStyle: "round",
+        borderColor: "yellow",
+        paddingX: 1,
+        flexDirection: "column",
+        children: [
+          /* @__PURE__ */ jsx2(Text2, { bold: true, color: "yellow", children: "COUNCIL" }),
+          /* @__PURE__ */ jsxs2(Text2, { dimColor: true, children: [
+            agents.length,
+            " archetypes in the room"
+          ] })
+        ]
+      }
+    ),
+    agents.map((agent) => {
+      const isSpeaking = agent.id === currentSpeaker;
+      const color = agentColor(agent.id);
+      const stateIcon = STATE_ICONS[agent.state] || "\u2022";
+      const stance = agent.stance ? STANCE[agent.stance] : null;
+      const bar2 = buildBar(agent.contributions, maxContribs);
+      return /* @__PURE__ */ jsxs2(
+        Box2,
+        {
+          flexDirection: "column",
+          borderStyle: isSpeaking ? "round" : "single",
+          borderColor: isSpeaking ? "cyan" : "gray",
+          paddingX: 1,
+          marginTop: 1,
+          children: [
+            /* @__PURE__ */ jsxs2(Box2, { flexDirection: "row", children: [
+              isSpeaking ? /* @__PURE__ */ jsx2(Text2, { color: "cyan", children: /* @__PURE__ */ jsx2(Spinner, { type: "dots" }) }) : /* @__PURE__ */ jsx2(Text2, { children: stateIcon }),
+              /* @__PURE__ */ jsx2(Text2, { children: " " }),
+              /* @__PURE__ */ jsx2(Text2, { color, bold: isSpeaking, children: agent.name }),
+              stance && /* @__PURE__ */ jsxs2(Text2, { color: stance.color, children: [
+                " ",
+                stance.label
+              ] })
             ] }),
-            stance && /* @__PURE__ */ jsxs2(Text2, { color: stance.color, children: [
-              " [",
-              stance.label,
-              "]"
+            agent.role && /* @__PURE__ */ jsx2(Text2, { dimColor: true, wrap: "truncate", children: agent.role }),
+            /* @__PURE__ */ jsxs2(Box2, { children: [
+              /* @__PURE__ */ jsx2(Text2, { color: isSpeaking ? "cyan" : "gray", children: bar2 }),
+              /* @__PURE__ */ jsxs2(Text2, { dimColor: true, children: [
+                " ",
+                agent.contributions
+              ] })
             ] })
-          ] }, agent.id);
-        })
-      ]
-    }
-  );
+          ]
+        },
+        agent.id
+      );
+    })
+  ] });
 }
 
-// cli/app/ChatPane.tsx
+// cli/app/OrchestratorPanel.tsx
 import { Box as Box3, Text as Text3 } from "ink";
+import { Fragment, jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
+var BAR_WIDTH2 = 14;
+var bar = (ratio, width) => {
+  const r = Math.max(0, Math.min(1, ratio));
+  const filled = Math.round(r * width);
+  return "\u2593".repeat(filled) + "\u2591".repeat(width - filled);
+};
+function OrchestratorPanel({
+  phaseName,
+  phaseIdx,
+  phaseCount,
+  messagesInPhase,
+  phaseMaxMessages,
+  currentSpeaker,
+  floorQueue,
+  consensusPoints,
+  conflictPoints,
+  requiredOutputs,
+  producedOutputs,
+  totalMessages
+}) {
+  const phaseRatio = phaseCount > 0 ? (phaseIdx + 1) / phaseCount : 0;
+  const phaseMessageRatio = phaseMaxMessages > 0 ? messagesInPhase / phaseMaxMessages : 0;
+  const consensusTotal = consensusPoints + conflictPoints;
+  const consensusRatio = consensusTotal > 0 ? consensusPoints / consensusTotal : 0.5;
+  return /* @__PURE__ */ jsxs3(Box3, { flexDirection: "column", width: 26, children: [
+    /* @__PURE__ */ jsxs3(
+      Box3,
+      {
+        borderStyle: "round",
+        borderColor: "magenta",
+        paddingX: 1,
+        flexDirection: "column",
+        children: [
+          /* @__PURE__ */ jsx3(Text3, { bold: true, color: "magenta", children: "ORCHESTRATOR" }),
+          /* @__PURE__ */ jsx3(Text3, { dimColor: true, children: "phase state machine" })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsxs3(
+      Box3,
+      {
+        borderStyle: "single",
+        borderColor: "gray",
+        paddingX: 1,
+        marginTop: 1,
+        flexDirection: "column",
+        children: [
+          /* @__PURE__ */ jsx3(Text3, { dimColor: true, children: "PHASE" }),
+          /* @__PURE__ */ jsx3(Text3, { bold: true, color: "yellow", wrap: "truncate", children: phaseName }),
+          /* @__PURE__ */ jsxs3(Text3, { children: [
+            /* @__PURE__ */ jsx3(Text3, { color: "yellow", children: bar(phaseRatio, BAR_WIDTH2) }),
+            /* @__PURE__ */ jsxs3(Text3, { dimColor: true, children: [
+              " ",
+              phaseIdx + 1,
+              "/",
+              phaseCount
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs3(Box3, { marginTop: 1, children: [
+            /* @__PURE__ */ jsx3(Text3, { dimColor: true, children: "msgs " }),
+            /* @__PURE__ */ jsx3(Text3, { color: phaseMessageRatio > 0.8 ? "red" : "cyan", children: messagesInPhase }),
+            /* @__PURE__ */ jsxs3(Text3, { dimColor: true, children: [
+              "/",
+              phaseMaxMessages || "\u2014"
+            ] })
+          ] })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsxs3(
+      Box3,
+      {
+        borderStyle: "single",
+        borderColor: "gray",
+        paddingX: 1,
+        marginTop: 1,
+        flexDirection: "column",
+        children: [
+          /* @__PURE__ */ jsx3(Text3, { dimColor: true, children: "FLOOR" }),
+          currentSpeaker ? /* @__PURE__ */ jsxs3(Text3, { color: "cyan", bold: true, wrap: "truncate", children: [
+            "\u25B8 ",
+            currentSpeaker
+          ] }) : /* @__PURE__ */ jsx3(Text3, { color: "gray", children: "open" }),
+          floorQueue.length > 0 && /* @__PURE__ */ jsxs3(Fragment, { children: [
+            /* @__PURE__ */ jsx3(Text3, { dimColor: true, children: "queue" }),
+            floorQueue.slice(0, 3).map((q, i) => /* @__PURE__ */ jsxs3(Text3, { dimColor: true, children: [
+              i + 1,
+              ". ",
+              q
+            ] }, q + i))
+          ] })
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsxs3(
+      Box3,
+      {
+        borderStyle: "single",
+        borderColor: "gray",
+        paddingX: 1,
+        marginTop: 1,
+        flexDirection: "column",
+        children: [
+          /* @__PURE__ */ jsx3(Text3, { dimColor: true, children: "CONSENSUS" }),
+          /* @__PURE__ */ jsxs3(Box3, { children: [
+            /* @__PURE__ */ jsxs3(Text3, { color: "green", children: [
+              "\u2713",
+              consensusPoints
+            ] }),
+            /* @__PURE__ */ jsx3(Text3, { dimColor: true, children: " / " }),
+            /* @__PURE__ */ jsxs3(Text3, { color: "red", children: [
+              "\u2717",
+              conflictPoints
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx3(Text3, { children: /* @__PURE__ */ jsx3(Text3, { color: "green", children: bar(consensusRatio, BAR_WIDTH2) }) }),
+          /* @__PURE__ */ jsxs3(Text3, { dimColor: true, children: [
+            "total ",
+            totalMessages,
+            " msgs"
+          ] })
+        ]
+      }
+    ),
+    requiredOutputs.length > 0 && /* @__PURE__ */ jsxs3(
+      Box3,
+      {
+        borderStyle: "single",
+        borderColor: "gray",
+        paddingX: 1,
+        marginTop: 1,
+        flexDirection: "column",
+        children: [
+          /* @__PURE__ */ jsxs3(Text3, { dimColor: true, children: [
+            "REQUIRED (",
+            producedOutputs.size,
+            "/",
+            requiredOutputs.length,
+            ")"
+          ] }),
+          requiredOutputs.map((out) => {
+            const done = producedOutputs.has(out);
+            return /* @__PURE__ */ jsxs3(Text3, { children: [
+              /* @__PURE__ */ jsx3(Text3, { color: done ? "green" : "gray", children: done ? "\u2713" : "\u25CB" }),
+              /* @__PURE__ */ jsxs3(Text3, { dimColor: !done, children: [
+                " ",
+                out.replace(/_/g, " ")
+              ] })
+            ] }, out);
+          })
+        ]
+      }
+    )
+  ] });
+}
+
+// cli/app/DiscussionPane.tsx
+import { Box as Box4, Text as Text4 } from "ink";
 
 // src/lib/render/markdown.ts
 import { Lexer } from "marked";
@@ -1148,80 +1206,156 @@ var renderMessageWithToolCalls = (content, opts = {}) => {
   }).join("");
 };
 
-// cli/app/ChatPane.tsx
-import { jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
+// cli/app/DiscussionPane.tsx
+import { Fragment as Fragment2, jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
 var TYPE_BADGES = {
-  argument: "[ARG]",
-  question: "[Q]",
-  proposal: "[PROP]",
-  agreement: "[+1]",
-  disagreement: "[-1]",
-  synthesis: "[SYN]",
-  system: "",
-  human_input: "[YOU]",
-  research_result: "[\u{1F50D}]"
+  argument: { label: "ARGUMENT", color: "red" },
+  question: { label: "QUESTION", color: "cyan" },
+  proposal: { label: "PROPOSAL", color: "magenta" },
+  agreement: { label: "AGREEMENT", color: "green" },
+  disagreement: { label: "DISAGREEMENT", color: "red" },
+  synthesis: { label: "SYNTHESIS", color: "magenta" },
+  research_result: { label: "RESEARCH", color: "yellow" },
+  human_input: { label: "YOU", color: "cyan" }
 };
 var formatTime = (date) => new Date(date).toLocaleTimeString("en-US", {
   hour: "2-digit",
   minute: "2-digit",
   hour12: false
 });
-function MessageItem({ message }) {
-  const color = agentColor(message.agentId);
-  const badge = TYPE_BADGES[message.type] || "";
-  const time = formatTime(message.timestamp);
-  if (message.agentId === "system") {
-    return /* @__PURE__ */ jsx3(Box3, { flexDirection: "column", marginBottom: 1, children: /* @__PURE__ */ jsx3(Text3, { dimColor: true, children: message.content }) });
-  }
-  const rendered = renderMessageWithToolCalls(message.content, {
-    renderText: (text) => renderMarkdown(text, 72)
-  });
-  return /* @__PURE__ */ jsxs3(Box3, { flexDirection: "column", marginBottom: 1, children: [
-    /* @__PURE__ */ jsxs3(Box3, { children: [
-      /* @__PURE__ */ jsxs3(Text3, { dimColor: true, children: [
-        time,
-        " "
-      ] }),
-      /* @__PURE__ */ jsx3(Text3, { color, bold: true, children: message.agentId }),
-      badge && /* @__PURE__ */ jsxs3(Text3, { dimColor: true, children: [
-        " ",
-        badge
-      ] })
+function SystemMessage({
+  content
+}) {
+  const lines = content.split("\n").map((l) => l.trim()).filter(Boolean);
+  const first = lines[0] || "";
+  const hasMore = lines.length > 1;
+  return /* @__PURE__ */ jsxs4(Box4, { flexDirection: "row", marginBottom: 0, children: [
+    /* @__PURE__ */ jsxs4(Text4, { dimColor: true, children: [
+      "\u25CE ",
+      first
     ] }),
-    /* @__PURE__ */ jsx3(Box3, { marginLeft: 2, children: /* @__PURE__ */ jsx3(Text3, { children: rendered }) })
+    hasMore && /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: " \u2026" })
   ] });
 }
-function ChatPane({
-  messages,
-  maxHeight = 20
+function AgentMessage({
+  message,
+  isCurrent
 }) {
-  const visibleMessages = messages.slice(-maxHeight);
-  return /* @__PURE__ */ jsx3(
-    Box3,
+  const color = agentColor(message.agentId);
+  const badge = TYPE_BADGES[message.type];
+  const time = formatTime(message.timestamp);
+  const body = renderMessageWithToolCalls(message.content, {
+    renderText: (text) => renderMarkdown(text, 72)
+  });
+  return /* @__PURE__ */ jsxs4(
+    Box4,
     {
       flexDirection: "column",
-      borderStyle: "single",
+      marginBottom: 1,
+      borderStyle: isCurrent ? "round" : void 0,
+      borderColor: isCurrent ? "cyan" : void 0,
+      paddingX: isCurrent ? 1 : 0,
+      children: [
+        /* @__PURE__ */ jsxs4(Box4, { children: [
+          isCurrent && /* @__PURE__ */ jsx4(Text4, { color: "cyan", bold: true, children: "\u25CF NOW " }),
+          /* @__PURE__ */ jsx4(Text4, { color, bold: true, children: message.agentId }),
+          badge && /* @__PURE__ */ jsxs4(Fragment2, { children: [
+            /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: " \xB7 " }),
+            /* @__PURE__ */ jsxs4(Text4, { color: badge.color, children: [
+              "[",
+              badge.label,
+              "]"
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs4(Text4, { dimColor: true, children: [
+            " \xB7 ",
+            time
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx4(Box4, { marginLeft: isCurrent ? 0 : 2, children: /* @__PURE__ */ jsx4(Text4, { wrap: "wrap", children: body }) })
+      ]
+    }
+  );
+}
+function ResearchResultMessage({
+  message
+}) {
+  const body = renderMessageWithToolCalls(message.content, {
+    renderText: (text) => renderMarkdown(text, 72)
+  });
+  return /* @__PURE__ */ jsxs4(Box4, { flexDirection: "column", marginBottom: 1, children: [
+    /* @__PURE__ */ jsxs4(Box4, { children: [
+      /* @__PURE__ */ jsxs4(Text4, { color: "yellow", bold: true, children: [
+        "\u{1F50D} ",
+        message.agentId
+      ] }),
+      /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: " research result" })
+    ] }),
+    /* @__PURE__ */ jsx4(Box4, { marginLeft: 2, children: /* @__PURE__ */ jsx4(Text4, { children: body }) })
+  ] });
+}
+function DiscussionPane({
+  messages,
+  maxHeight = 22
+}) {
+  const visible = messages.slice(-maxHeight);
+  const lastAgentIdx = (() => {
+    for (let i = visible.length - 1; i >= 0; i--) {
+      if (visible[i].agentId !== "system") return i;
+    }
+    return -1;
+  })();
+  return /* @__PURE__ */ jsxs4(
+    Box4,
+    {
+      flexDirection: "column",
+      borderStyle: "round",
       borderColor: "gray",
       paddingX: 1,
       flexGrow: 1,
       overflow: "hidden",
-      children: visibleMessages.length === 0 ? /* @__PURE__ */ jsx3(Text3, { dimColor: true, children: "No messages yet..." }) : visibleMessages.map((msg) => /* @__PURE__ */ jsx3(MessageItem, { message: msg }, msg.id))
+      children: [
+        /* @__PURE__ */ jsxs4(Box4, { children: [
+          /* @__PURE__ */ jsx4(Text4, { bold: true, color: "cyan", children: "DISCUSSION" }),
+          /* @__PURE__ */ jsxs4(Text4, { dimColor: true, children: [
+            " \xB7 ",
+            messages.length,
+            " messages"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx4(Box4, { marginTop: 1, flexDirection: "column", children: visible.length === 0 ? /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "Waiting for the orchestrator to open the floor\u2026" }) : visible.map((msg, i) => {
+          if (msg.agentId === "system") {
+            return /* @__PURE__ */ jsx4(SystemMessage, { content: msg.content }, msg.id);
+          }
+          if (msg.type === "research_result") {
+            return /* @__PURE__ */ jsx4(ResearchResultMessage, { message: msg }, msg.id);
+          }
+          return /* @__PURE__ */ jsx4(
+            AgentMessage,
+            {
+              message: msg,
+              isCurrent: i === lastAgentIdx
+            },
+            msg.id
+          );
+        }) })
+      ]
     }
   );
 }
 
 // cli/app/InputPane.tsx
-import { useState as useState2 } from "react";
-import { Box as Box4, Text as Text4, useInput } from "ink";
+import { useState } from "react";
+import { Box as Box5, Text as Text5, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
+import { jsx as jsx5, jsxs as jsxs5 } from "react/jsx-runtime";
 function InputPane({
   onSubmit,
   onCommand,
   placeholder = "Type a message or /command...",
   disabled = false
 }) {
-  const [value, setValue] = useState2("");
+  const [value, setValue] = useState("");
   const handleSubmit = (text) => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -1243,15 +1377,15 @@ function InputPane({
       onCommand("export", []);
     }
   });
-  return /* @__PURE__ */ jsxs4(
-    Box4,
+  return /* @__PURE__ */ jsxs5(
+    Box5,
     {
       borderStyle: "single",
       borderColor: "cyan",
       paddingX: 1,
       children: [
-        /* @__PURE__ */ jsx4(Text4, { color: "cyan", children: "> " }),
-        disabled ? /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "Waiting for agents..." }) : /* @__PURE__ */ jsx4(
+        /* @__PURE__ */ jsx5(Text5, { color: "cyan", children: "> " }),
+        disabled ? /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "Waiting for agents..." }) : /* @__PURE__ */ jsx5(
           TextInput,
           {
             value,
@@ -1265,31 +1399,31 @@ function InputPane({
   );
 }
 function CommandHelp() {
-  return /* @__PURE__ */ jsxs4(Box4, { flexDirection: "column", paddingX: 1, children: [
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, bold: true, children: "Session:" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  /pause       Pause debate" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  /resume      Resume debate" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  /status      Show consensus status" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  /synthesize  Move to synthesis phase" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  /export      Export transcript" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  /quit        Save and exit" }),
-    /* @__PURE__ */ jsx4(Text4, { children: " " }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, bold: true, children: "Community (P2P):" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  /community   List community contributions" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  /connections  Search similar contributions" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  /did         Show your DID identity" }),
-    /* @__PURE__ */ jsx4(Text4, { children: " " }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, bold: true, children: "Shortcuts:" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  Ctrl+S  Quick synthesize" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  Ctrl+E  Quick export" }),
-    /* @__PURE__ */ jsx4(Text4, { dimColor: true, children: "  ?       Toggle this help" })
+  return /* @__PURE__ */ jsxs5(Box5, { flexDirection: "column", paddingX: 1, children: [
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, bold: true, children: "Session:" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  /pause       Pause debate" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  /resume      Resume debate" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  /status      Show consensus status" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  /synthesize  Move to synthesis phase" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  /export      Export transcript" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  /quit        Save and exit" }),
+    /* @__PURE__ */ jsx5(Text5, { children: " " }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, bold: true, children: "Community (P2P):" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  /community   List community contributions" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  /connections  Search similar contributions" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  /did         Show your DID identity" }),
+    /* @__PURE__ */ jsx5(Text5, { children: " " }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, bold: true, children: "Shortcuts:" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  Ctrl+S  Quick synthesize" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  Ctrl+E  Quick export" }),
+    /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  ?       Toggle this help" })
   ] });
 }
 
 // cli/app/PermissionDialog.tsx
-import { useEffect as useEffect2, useState as useState3 } from "react";
-import { Box as Box5, Text as Text5, useInput as useInput2 } from "ink";
-import { jsx as jsx5, jsxs as jsxs5 } from "react/jsx-runtime";
+import { useEffect, useState as useState2 } from "react";
+import { Box as Box6, Text as Text6, useInput as useInput2 } from "ink";
+import { jsx as jsx6, jsxs as jsxs6 } from "react/jsx-runtime";
 var RISK_COLORS = {
   safe: "green",
   write: "yellow",
@@ -1303,8 +1437,8 @@ var RISK_LABELS = {
   destructive: "DESTRUCTIVE"
 };
 function PermissionDialog({ broker }) {
-  const [pending, setPending] = useState3(null);
-  useEffect2(() => {
+  const [pending, setPending] = useState2(null);
+  useEffect(() => {
     const unsub = broker.onRequest((request2, respond) => {
       setPending({ request: request2, respond });
     });
@@ -1326,8 +1460,8 @@ function PermissionDialog({ broker }) {
   const { request } = pending;
   const riskColor = RISK_COLORS[request.risk];
   const riskLabel = RISK_LABELS[request.risk];
-  return /* @__PURE__ */ jsxs5(
-    Box5,
+  return /* @__PURE__ */ jsxs6(
+    Box6,
     {
       flexDirection: "column",
       borderStyle: "double",
@@ -1335,31 +1469,31 @@ function PermissionDialog({ broker }) {
       paddingX: 2,
       paddingY: 1,
       children: [
-        /* @__PURE__ */ jsx5(Text5, { bold: true, color: riskColor, children: "\u26A0  Tool Permission Request" }),
-        /* @__PURE__ */ jsx5(Text5, { children: " " }),
-        /* @__PURE__ */ jsxs5(Text5, { children: [
-          /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "Tool: " }),
-          /* @__PURE__ */ jsx5(Text5, { bold: true, children: request.toolName }),
-          /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  \xB7  Risk: " }),
-          /* @__PURE__ */ jsx5(Text5, { color: riskColor, bold: true, children: riskLabel })
+        /* @__PURE__ */ jsx6(Text6, { bold: true, color: riskColor, children: "\u26A0  Tool Permission Request" }),
+        /* @__PURE__ */ jsx6(Text6, { children: " " }),
+        /* @__PURE__ */ jsxs6(Text6, { children: [
+          /* @__PURE__ */ jsx6(Text6, { dimColor: true, children: "Tool: " }),
+          /* @__PURE__ */ jsx6(Text6, { bold: true, children: request.toolName }),
+          /* @__PURE__ */ jsx6(Text6, { dimColor: true, children: "  \xB7  Risk: " }),
+          /* @__PURE__ */ jsx6(Text6, { color: riskColor, bold: true, children: riskLabel })
         ] }),
-        /* @__PURE__ */ jsx5(Text5, { children: " " }),
-        /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "Prompt:" }),
-        /* @__PURE__ */ jsxs5(Box5, { paddingLeft: 2, flexDirection: "column", children: [
-          request.toolPrompt.split("\n").slice(0, 8).map((line, i) => /* @__PURE__ */ jsx5(Text5, { children: line }, i)),
-          request.toolPrompt.split("\n").length > 8 && /* @__PURE__ */ jsxs5(Text5, { dimColor: true, children: [
+        /* @__PURE__ */ jsx6(Text6, { children: " " }),
+        /* @__PURE__ */ jsx6(Text6, { dimColor: true, children: "Prompt:" }),
+        /* @__PURE__ */ jsxs6(Box6, { paddingLeft: 2, flexDirection: "column", children: [
+          request.toolPrompt.split("\n").slice(0, 8).map((line, i) => /* @__PURE__ */ jsx6(Text6, { children: line }, i)),
+          request.toolPrompt.split("\n").length > 8 && /* @__PURE__ */ jsxs6(Text6, { dimColor: true, children: [
             "\u2026 (",
             request.toolPrompt.split("\n").length - 8,
             " more lines)"
           ] })
         ] }),
-        /* @__PURE__ */ jsx5(Text5, { children: " " }),
-        /* @__PURE__ */ jsxs5(Text5, { children: [
-          /* @__PURE__ */ jsx5(Text5, { color: "green", children: "[y] Once" }),
-          /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  \xB7  " }),
-          /* @__PURE__ */ jsx5(Text5, { color: "yellow", children: "[a] Always" }),
-          /* @__PURE__ */ jsx5(Text5, { dimColor: true, children: "  \xB7  " }),
-          /* @__PURE__ */ jsx5(Text5, { color: "red", children: "[n] Deny" })
+        /* @__PURE__ */ jsx6(Text6, { children: " " }),
+        /* @__PURE__ */ jsxs6(Text6, { children: [
+          /* @__PURE__ */ jsx6(Text6, { color: "green", children: "[y] Once" }),
+          /* @__PURE__ */ jsx6(Text6, { dimColor: true, children: "  \xB7  " }),
+          /* @__PURE__ */ jsx6(Text6, { color: "yellow", children: "[a] Always" }),
+          /* @__PURE__ */ jsx6(Text6, { dimColor: true, children: "  \xB7  " }),
+          /* @__PURE__ */ jsx6(Text6, { color: "red", children: "[n] Deny" })
         ] })
       ]
     }
@@ -2337,7 +2471,7 @@ var createPermissionBroker = () => {
 };
 
 // cli/app/App.tsx
-import { jsx as jsx6, jsxs as jsxs6 } from "react/jsx-runtime";
+import { jsx as jsx7, jsxs as jsxs7 } from "react/jsx-runtime";
 var authRepo = createSessionRepository(
   () => ResultAsync.fromSafePromise(Promise.resolve(createFileAuthBridge()))
 );
@@ -2345,20 +2479,34 @@ var isContribution = (p) => !!p && typeof p === "object" && "kind" in p && "titl
 function App({ orchestrator, persistence, session, onExit, permissionBroker }) {
   const { exit } = useApp();
   const broker = useMemo(() => permissionBroker ?? createPermissionBroker(), [permissionBroker]);
-  const [messages, setMessages] = useState4([]);
-  const [phase, setPhase] = useState4("initialization");
-  const [currentSpeaker, setCurrentSpeaker] = useState4(null);
-  const [queued, setQueued] = useState4([]);
-  const [agentStates, setAgentStates] = useState4(/* @__PURE__ */ new Map());
-  const [contributions, setContributions] = useState4(/* @__PURE__ */ new Map());
-  const [consensusPoints, setConsensusPoints] = useState4(0);
-  const [conflictPoints, setConflictPoints] = useState4(0);
-  const [showHelp, setShowHelp] = useState4(false);
-  const [statusMessage, setStatusMessage] = useState4(null);
-  const [did, setDid] = useState4(null);
-  const [peerCount, setPeerCount] = useState4(void 0);
-  const [connectionsIndexSize, setConnectionsIndexSize] = useState4(void 0);
-  useEffect3(() => {
+  const [messages, setMessages] = useState3([]);
+  const [phase, setPhase] = useState3("initialization");
+  const [currentSpeaker, setCurrentSpeaker] = useState3(null);
+  const [queued, setQueued] = useState3([]);
+  const [agentStates, setAgentStates] = useState3(/* @__PURE__ */ new Map());
+  const [contributions, setContributions] = useState3(/* @__PURE__ */ new Map());
+  const [consensusPoints, setConsensusPoints] = useState3(0);
+  const [conflictPoints, setConflictPoints] = useState3(0);
+  const [showHelp, setShowHelp] = useState3(false);
+  const [statusMessage, setStatusMessage] = useState3(null);
+  const [did, setDid] = useState3(null);
+  const [peerCount, setPeerCount] = useState3(void 0);
+  const [connectionsIndexSize, setConnectionsIndexSize] = useState3(void 0);
+  const startRef = useRef(Date.now());
+  const [elapsed, setElapsed] = useState3(0);
+  useEffect2(() => {
+    const t = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1e3));
+    }, 1e3);
+    return () => clearInterval(t);
+  }, []);
+  const mode = orchestrator.getModeController().getMode();
+  const modeLabel = mode.name;
+  const modePhases = mode.phases.map((p) => ({ id: p.id, name: p.name || p.id }));
+  const [modeProgress, setModeProgress] = useState3(
+    () => orchestrator.getModeController().getProgress()
+  );
+  useEffect2(() => {
     authRepo.restoreSession().then((result) => {
       result.match(
         (s) => {
@@ -2369,7 +2517,7 @@ function App({ orchestrator, persistence, session, onExit, permissionBroker }) {
       );
     });
   }, []);
-  useEffect3(() => {
+  useEffect2(() => {
     const tick = async () => {
       const p2pResult = await getStatus2();
       p2pResult.match(
@@ -2395,12 +2543,12 @@ function App({ orchestrator, persistence, session, onExit, permissionBroker }) {
     return {
       id,
       name: agent?.name || id,
-      nameHe: agent?.nameHe || "",
+      role: agent?.role,
       state: agentStates.get(id) || "listening",
       contributions: contributions.get(id) || 0
     };
   });
-  useEffect3(() => {
+  useEffect2(() => {
     const unsubscribe = orchestrator.on((event) => {
       switch (event.type) {
         case "phase_change":
@@ -2436,6 +2584,7 @@ function App({ orchestrator, persistence, session, onExit, permissionBroker }) {
           break;
       }
       setAgentStates(new Map(orchestrator.getAgentStates()));
+      setModeProgress(orchestrator.getModeController().getProgress());
     });
     orchestrator.start();
     return () => {
@@ -2548,33 +2697,56 @@ ${lines}`);
       setShowHelp(!showHelp);
     }
   });
-  return /* @__PURE__ */ jsxs6(Box6, { flexDirection: "column", height: "100%", children: [
-    /* @__PURE__ */ jsx6(Box6, { paddingX: 1, marginBottom: 1, children: /* @__PURE__ */ jsxs6(Text6, { bold: true, color: "cyan", children: [
-      "\u{1F525} Forge: ",
-      session.config.projectName
-    ] }) }),
-    /* @__PURE__ */ jsx6(
-      StatusBar,
+  const currentModePhase = modeProgress.currentPhase;
+  const currentPhaseIdx = Math.max(
+    0,
+    modePhases.findIndex((p) => p.id === currentModePhase)
+  );
+  const currentPhaseConfig = mode.phases[currentPhaseIdx];
+  const phaseMaxMessages = currentPhaseConfig?.maxMessages ?? 0;
+  const successCriteria = mode.successCriteria;
+  const requiredOutputs = successCriteria?.requiredOutputs ?? [];
+  return /* @__PURE__ */ jsxs7(Box7, { flexDirection: "column", height: "100%", children: [
+    /* @__PURE__ */ jsx7(
+      HeaderBar,
       {
-        phase,
-        currentSpeaker,
-        queued,
-        messageCount: messages.length,
-        consensusPoints,
-        conflictPoints,
-        did,
-        peerCount,
-        connectionsIndexSize
+        projectName: session.config.projectName,
+        goal: session.config.goal,
+        modeLabel,
+        phases: modePhases,
+        currentPhaseId: currentModePhase,
+        elapsedSeconds: elapsed
       }
     ),
-    /* @__PURE__ */ jsxs6(Box6, { flexDirection: "row", flexGrow: 1, children: [
-      /* @__PURE__ */ jsx6(ChatPane, { messages }),
-      /* @__PURE__ */ jsx6(AgentList, { agents, currentSpeaker })
+    /* @__PURE__ */ jsxs7(Box7, { flexDirection: "row", flexGrow: 1, marginTop: 1, children: [
+      /* @__PURE__ */ jsx7(CouncilPanel, { agents, currentSpeaker }),
+      /* @__PURE__ */ jsx7(Box7, { flexGrow: 1, marginX: 1, children: /* @__PURE__ */ jsx7(DiscussionPane, { messages }) }),
+      /* @__PURE__ */ jsx7(
+        OrchestratorPanel,
+        {
+          phaseName: currentPhaseConfig?.name || currentModePhase,
+          phaseIdx: currentPhaseIdx,
+          phaseCount: modePhases.length,
+          messagesInPhase: modeProgress.messagesInPhase,
+          phaseMaxMessages,
+          currentSpeaker,
+          floorQueue: queued,
+          consensusPoints,
+          conflictPoints,
+          requiredOutputs,
+          producedOutputs: modeProgress.outputsProduced,
+          totalMessages: modeProgress.totalMessages
+        }
+      )
     ] }),
-    statusMessage && /* @__PURE__ */ jsx6(Box6, { paddingX: 1, children: /* @__PURE__ */ jsx6(Text6, { color: "yellow", children: statusMessage }) }),
-    showHelp && /* @__PURE__ */ jsx6(CommandHelp, {}),
-    /* @__PURE__ */ jsx6(PermissionDialog, { broker }),
-    /* @__PURE__ */ jsx6(
+    statusMessage && /* @__PURE__ */ jsx7(Box7, { paddingX: 1, marginTop: 1, children: /* @__PURE__ */ jsxs7(Text7, { color: "yellow", children: [
+      "\u25B8 ",
+      statusMessage
+    ] }) }),
+    false,
+    showHelp && /* @__PURE__ */ jsx7(CommandHelp, {}),
+    /* @__PURE__ */ jsx7(PermissionDialog, { broker }),
+    /* @__PURE__ */ jsx7(
       InputPane,
       {
         onSubmit: handleSubmit,
@@ -2582,7 +2754,7 @@ ${lines}`);
         placeholder: "Type message or /help for commands..."
       }
     ),
-    /* @__PURE__ */ jsx6(Box6, { paddingX: 1, children: /* @__PURE__ */ jsxs6(Text6, { dimColor: true, children: [
+    /* @__PURE__ */ jsx7(Box7, { paddingX: 1, children: /* @__PURE__ */ jsxs7(Text7, { dimColor: true, children: [
       "? help | /community | /connections ",
       "<query>",
       " | Ctrl+C quit"
@@ -9647,6 +9819,15 @@ async function initConfig(options) {
 // cli/commands/login.ts
 import { Command as Command8 } from "commander";
 import * as readline from "readline";
+
+// src/lib/render/progress.ts
+var attestationDots = (count, max = 5) => {
+  const filled = Math.min(count, max);
+  const empty = max - filled;
+  return style(forgeTheme.consensus.agree, "\u25CF".repeat(filled)) + style(forgeTheme.text.muted, "\u25CB".repeat(empty));
+};
+
+// cli/commands/login.ts
 var repo = createSessionRepository(
   () => ResultAsync.fromSafePromise(Promise.resolve(createFileAuthBridge()))
 );
@@ -9821,7 +10002,7 @@ var isReaction = (payload) => {
   const p = payload;
   return p.kind === "reaction" && typeof p.targetId === "string";
 };
-var shortenDid2 = (did) => did.length > 24 ? `${did.slice(0, 12)}\u2026${did.slice(-8)}` : did;
+var shortenDid = (did) => did.length > 24 ? `${did.slice(0, 12)}\u2026${did.slice(-8)}` : did;
 var ask2 = (question) => {
   const rl = readline2.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve4) => {
@@ -9866,7 +10047,7 @@ var createCommunityCommand = () => {
               `  ${style(kindColor[c.payload.kind] ?? forgeTheme.text.primary, `[${c.payload.kind.toUpperCase()}]`)} ${style(forgeTheme.bold, c.payload.title)}  ${voteTally(up, down)}`
             );
             console.log(`  ${style(forgeTheme.text.muted, c.payload.description)}`);
-            console.log(`  ${style(forgeTheme.text.muted, `by ${shortenDid2(c.did)} \xB7 ${c.id.slice(0, 8)}`)}`);
+            console.log(`  ${style(forgeTheme.text.muted, `by ${shortenDid(c.did)} \xB7 ${c.id.slice(0, 8)}`)}`);
             console.log("");
           }
         },

@@ -10,11 +10,12 @@
  *   - Consensus tracking with visual indicators
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
-import { StatusBar } from './StatusBar';
-import { AgentList } from './AgentList';
-import { ChatPane } from './ChatPane';
+import { HeaderBar } from './HeaderBar';
+import { CouncilPanel, type CouncilAgent } from './CouncilPanel';
+import { OrchestratorPanel } from './OrchestratorPanel';
+import { DiscussionPane } from './DiscussionPane';
 import { InputPane, CommandHelp } from './InputPane';
 import { PermissionDialog } from './PermissionDialog';
 import type { Message, Session, SessionPhase } from '../../src/types';
@@ -37,14 +38,8 @@ interface AppProps {
   permissionBroker?: PermissionBroker;
 }
 
-interface AgentInfo {
-  id: string;
-  name: string;
-  nameHe: string;
-  state: string;
-  contributions: number;
-  stance?: 'FOR' | 'AGAINST' | 'NEUTRAL';
-}
+// AgentInfo is owned by CouncilPanel as CouncilAgent; this App file just
+// builds that shape from orchestrator state below.
 
 const authRepo = createSessionRepository(
   () => ResultAsync.fromSafePromise(Promise.resolve(createFileAuthBridge()))
@@ -75,6 +70,24 @@ export function App({ orchestrator, persistence, session, onExit, permissionBrok
   const [peerCount, setPeerCount] = useState<number | undefined>(undefined);
   const [connectionsIndexSize, setConnectionsIndexSize] = useState<number | undefined>(undefined);
 
+  // Session timer (updates every second for the header)
+  const startRef = useRef<number>(Date.now());
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Mode-aware data pulled from the orchestrator via getModeController().
+  const mode = orchestrator.getModeController().getMode();
+  const modeLabel = mode.name;
+  const modePhases = mode.phases.map((p) => ({ id: p.id, name: p.name || p.id }));
+  const [modeProgress, setModeProgress] = useState(() =>
+    orchestrator.getModeController().getProgress()
+  );
+
   // Restore identity on mount
   useEffect(() => {
     authRepo.restoreSession().then((result) => {
@@ -104,13 +117,13 @@ export function App({ orchestrator, persistence, session, onExit, permissionBrok
     return () => clearInterval(timer);
   }, []);
 
-  // Build agent list
-  const agents: AgentInfo[] = session.config.enabledAgents.map((id) => {
+  // Build council agents (consumed by CouncilPanel)
+  const agents: CouncilAgent[] = session.config.enabledAgents.map((id) => {
     const agent = getAgentById(id);
     return {
       id,
       name: agent?.name || id,
-      nameHe: agent?.nameHe || '',
+      role: agent?.role,
       state: agentStates.get(id) || 'listening',
       contributions: contributions.get(id) || 0,
     };
@@ -153,6 +166,7 @@ export function App({ orchestrator, persistence, session, onExit, permissionBrok
           break;
       }
       setAgentStates(new Map(orchestrator.getAgentStates()));
+      setModeProgress(orchestrator.getModeController().getProgress());
     });
 
     orchestrator.start();
@@ -277,35 +291,61 @@ export function App({ orchestrator, persistence, session, onExit, permissionBrok
     }
   });
 
+  // Phase machine state for the orchestrator panel.
+  const currentModePhase = modeProgress.currentPhase;
+  const currentPhaseIdx = Math.max(
+    0,
+    modePhases.findIndex((p) => p.id === currentModePhase)
+  );
+  const currentPhaseConfig = mode.phases[currentPhaseIdx];
+  const phaseMaxMessages = currentPhaseConfig?.maxMessages ?? 0;
+  // Required outputs for this mode's final deliverable (if any).
+  const successCriteria = mode.successCriteria;
+  const requiredOutputs = successCriteria?.requiredOutputs ?? [];
+
   return (
     <Box flexDirection="column" height="100%">
-      <Box paddingX={1} marginBottom={1}>
-        <Text bold color="cyan">
-          🔥 Forge: {session.config.projectName}
-        </Text>
-      </Box>
-
-      <StatusBar
-        phase={phase}
-        currentSpeaker={currentSpeaker}
-        queued={queued}
-        messageCount={messages.length}
-        consensusPoints={consensusPoints}
-        conflictPoints={conflictPoints}
-        did={did}
-        peerCount={peerCount}
-        connectionsIndexSize={connectionsIndexSize}
+      <HeaderBar
+        projectName={session.config.projectName}
+        goal={session.config.goal}
+        modeLabel={modeLabel}
+        phases={modePhases}
+        currentPhaseId={currentModePhase}
+        elapsedSeconds={elapsed}
       />
 
-      <Box flexDirection="row" flexGrow={1}>
-        <ChatPane messages={messages} />
-        <AgentList agents={agents} currentSpeaker={currentSpeaker} />
+      <Box flexDirection="row" flexGrow={1} marginTop={1}>
+        <CouncilPanel agents={agents} currentSpeaker={currentSpeaker} />
+        <Box flexGrow={1} marginX={1}>
+          <DiscussionPane messages={messages} />
+        </Box>
+        <OrchestratorPanel
+          phaseName={currentPhaseConfig?.name || currentModePhase}
+          phaseIdx={currentPhaseIdx}
+          phaseCount={modePhases.length}
+          messagesInPhase={modeProgress.messagesInPhase}
+          phaseMaxMessages={phaseMaxMessages}
+          currentSpeaker={currentSpeaker}
+          floorQueue={queued}
+          consensusPoints={consensusPoints}
+          conflictPoints={conflictPoints}
+          requiredOutputs={requiredOutputs}
+          producedOutputs={modeProgress.outputsProduced}
+          totalMessages={modeProgress.totalMessages}
+        />
       </Box>
 
       {statusMessage && (
-        <Box paddingX={1}>
-          <Text color="yellow">{statusMessage}</Text>
+        <Box paddingX={1} marginTop={1}>
+          <Text color="yellow">▸ {statusMessage}</Text>
         </Box>
+      )}
+
+      {/* Hidden — left out of render scope but kept for debugging if needed */}
+      {false && (
+        <Text dimColor>
+          phase={phase} did={did} peers={peerCount} vec={connectionsIndexSize}
+        </Text>
       )}
 
       {showHelp && <CommandHelp />}
