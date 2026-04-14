@@ -1,0 +1,1688 @@
+/* ═════════════════════════════════════════════════════════════════
+   FORGE — KERNING CITY
+   Pixel-neon punk. Always night. Hard edges. Stepped gradients.
+   ═════════════════════════════════════════════════════════════════ */
+
+:root {
+  --k-sky-top:      #1a0b3d;
+  --k-sky-mid:      #2d1760;
+  --k-sky-horizon:  #4a2080;
+  --k-black:        #0a0512;
+  --k-brick:        #1f1033;
+  --k-brick-2:      #2a164a;
+  --k-neon-pink:    #ff3dc4;
+  --k-neon-cyan:    #00e5ff;
+  --k-neon-lime:    #b4ff3d;
+  --k-amber:        #ffb347;
+  --k-amber-dim:    #b8732a;
+  --k-window:       #ffd166;
+  --k-cream:        #fff4d8;
+  --k-text:         #f5e6ff;
+  --k-text-dim:     #d0c0e8;
+  --k-yellow:       #ffe600;
+  --k-rule:         #3a1f6a;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  font-size: 15px;
+  background: var(--k-black);
+}
+@media (max-width: 720px) { html { font-size: 14px; } }
+
+body {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', ui-monospace, monospace;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: var(--k-text);
+  line-height: 1.65;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: auto;
+  image-rendering: pixelated;
+  overflow-x: hidden;
+  position: relative;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg,
+      var(--k-sky-top) 0%,
+      var(--k-sky-mid) 28%,
+      var(--k-sky-mid) 60%,
+      var(--k-sky-horizon) 92%,
+      var(--k-black) 100%
+    );
+  background-attachment: fixed;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   STARFIELD — single ::before, dozens of pinpoint box-shadows
+   ───────────────────────────────────────────────────────────── */
+/* starfield disabled — too busy for reading. single subtle haze only. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%,
+      rgba(255, 61, 196, 0.05) 0%,
+      transparent 60%);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PIXEL CITYSCAPE — fixed mid-depth + foreground silhouettes
+   Built from layered repeating-linear-gradients (pixel buildings)
+   ───────────────────────────────────────────────────────────── */
+.cityscape {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 180px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+}
+.cityscape .layer-front { display: none; }
+.cityscape .layer-back {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 180px;
+  background:
+    /* tiny windows */
+    radial-gradient(2px 2px at 80px 60px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 80px 90px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 200px 80px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 320px 50px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 320px 100px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 460px 70px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 600px 40px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 720px 90px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 850px 60px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 980px 80px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1100px 50px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1240px 70px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1380px 90px, var(--k-window), transparent 50%),
+    /* stepped roofline back layer */
+    linear-gradient(180deg, transparent 0%, transparent 36%, var(--k-brick) 36%, var(--k-brick) 100%);
+  background-repeat: no-repeat;
+  opacity: 0.85;
+  clip-path: polygon(
+    0% 100%,
+    0% 60%,    4% 60%,   4% 50%,   9% 50%,   9% 65%,
+    13% 65%,  13% 40%,  18% 40%,  18% 55%,  22% 55%,
+    22% 35%,  27% 35%,  27% 50%,  32% 50%,  32% 60%,
+    37% 60%,  37% 38%,  42% 38%,  42% 55%,  47% 55%,
+    47% 42%,  52% 42%,  52% 60%,  57% 60%,  57% 35%,
+    62% 35%,  62% 50%,  67% 50%,  67% 58%,  72% 58%,
+    72% 40%,  77% 40%,  77% 55%,  82% 55%,  82% 45%,
+    87% 45%,  87% 60%,  92% 60%,  92% 38%,  97% 38%,
+    97% 55%,  100% 55%, 100% 100%
+  );
+}
+.cityscape .layer-front {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 130px;
+  background:
+    radial-gradient(2px 2px at 60px 40px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 60px 70px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 180px 50px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 180px 80px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 320px 30px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 320px 60px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 460px 50px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 460px 80px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 600px 30px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 740px 60px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 740px 90px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 880px 40px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1020px 70px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1160px 50px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1300px 80px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1440px 40px, var(--k-window), transparent 50%),
+    linear-gradient(180deg, transparent 0%, transparent 25%, var(--k-black) 25%, var(--k-black) 100%);
+  background-repeat: no-repeat;
+  clip-path: polygon(
+    0% 100%,
+    0% 70%,   3% 70%,   3% 50%,   7% 50%,   7% 65%,
+    11% 65%, 11% 30%,  16% 30%,  16% 55%,  20% 55%,
+    20% 75%, 24% 75%,  24% 45%,  29% 45%,  29% 65%,
+    34% 65%, 34% 35%,  38% 35%,  38% 60%,  43% 60%,
+    43% 50%, 48% 50%,  48% 70%,  52% 70%,  52% 40%,
+    57% 40%, 57% 55%,  62% 55%,  62% 65%,  66% 65%,
+    66% 38%, 71% 38%,  71% 58%,  76% 58%,  76% 45%,
+    81% 45%, 81% 70%,  85% 70%,  85% 50%,  90% 50%,
+    90% 60%, 94% 60%,  94% 35%,  99% 35%,  99% 60%,
+    100% 60%, 100% 100%
+  );
+}
+@media (max-width: 720px) {
+  .cityscape { height: 160px; }
+  .cityscape .layer-back { height: 120px; }
+  .cityscape .layer-front { height: 80px; }
+}
+
+main, nav, footer { position: relative; z-index: 2; }
+
+/* ─────────────────────────────────────────────────────────────
+   TYPOGRAPHY — Press Start 2P is reserved for the hero signboard
+   only. Section h2s use Silkscreen at a larger size so they stay
+   readable. Body stays JetBrains Mono.
+   ───────────────────────────────────────────────────────────── */
+.display, h2, .neon {
+  font-family: 'Silkscreen', monospace;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  color: var(--k-cream);
+  text-transform: none;
+}
+.label, .kicker, .pixel-ui {
+  font-family: 'Silkscreen', 'Press Start 2P', monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+code, .mono {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', ui-monospace, monospace;
+  font-feature-settings: "calt" 0;
+}
+code {
+  font-size: 0.88em;
+  background: rgba(255, 61, 196, 0.1);
+  padding: 1px 6px;
+  color: var(--k-neon-pink);
+  border: 1px solid var(--k-neon-pink);
+}
+strong { color: var(--k-cream); font-weight: 700; }
+em     { font-style: normal; color: var(--k-neon-pink); }
+
+/* ─────────────────────────────────────────────────────────────
+   NEON — layered text-shadow glow, no gaussian blur
+   ───────────────────────────────────────────────────────────── */
+.neon-pink {
+  color: var(--k-cream);
+  text-shadow:
+    0 0 0 var(--k-cream),
+    -2px 0 0 var(--k-neon-pink),
+    2px 0 0 var(--k-neon-pink),
+    0 -2px 0 var(--k-neon-pink),
+    0 2px 0 var(--k-neon-pink),
+    -2px -2px 0 var(--k-neon-pink),
+    2px 2px 0 var(--k-neon-pink),
+    0 0 14px var(--k-neon-pink),
+    0 0 26px rgba(255, 61, 196, 0.85),
+    0 0 50px rgba(255, 61, 196, 0.6);
+}
+.neon-cyan {
+  color: var(--k-cream);
+  text-shadow:
+    -2px 0 0 var(--k-neon-cyan),
+    2px 0 0 var(--k-neon-cyan),
+    0 -2px 0 var(--k-neon-cyan),
+    0 2px 0 var(--k-neon-cyan),
+    0 0 12px var(--k-neon-cyan),
+    0 0 24px rgba(0, 229, 255, 0.7);
+}
+.neon-amber {
+  color: var(--k-cream);
+  text-shadow:
+    -2px 0 0 var(--k-amber),
+    2px 0 0 var(--k-amber),
+    0 -2px 0 var(--k-amber),
+    0 2px 0 var(--k-amber),
+    0 0 14px var(--k-amber),
+    0 0 28px rgba(255, 179, 71, 0.75);
+}
+.neon-lime {
+  color: var(--k-cream);
+  text-shadow:
+    -2px 0 0 var(--k-neon-lime),
+    2px 0 0 var(--k-neon-lime),
+    0 -2px 0 var(--k-neon-lime),
+    0 2px 0 var(--k-neon-lime),
+    0 0 12px var(--k-neon-lime),
+    0 0 24px rgba(180, 255, 61, 0.7);
+}
+
+@keyframes neonFlicker {
+  0%, 48%, 52%, 100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.88;
+    filter: brightness(0.9);
+  }
+}
+/* flicker disabled on reading-level text — only the hero sign flickers */
+.flicker, .flicker2, .flicker3 { animation: none; }
+
+/* ─────────────────────────────────────────────────────────────
+   PAGE ENTRY — staggered staircase
+   ───────────────────────────────────────────────────────────── */
+@keyframes appear {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes signbootup {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  15%  { opacity: 0.2; }
+  20%  { opacity: 1; }
+  30%  { opacity: 0.4; }
+  35%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+/* fade-in is now a no-op — GSAP drives all entry animations */
+.fade-in, .d1, .d2, .d3, .d4, .d5, .d6 { animation: none; opacity: 1; transform: none; }
+
+/* ─────────────────────────────────────────────────────────────
+   LAYOUT — 12-col asymmetric
+   ───────────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 18px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+@media (max-width: 880px) { .grid { padding: 0 22px; gap: 18px; } }
+@media (max-width: 480px) { .grid { padding: 0 16px; gap: 14px; } }
+
+.col-full { grid-column: 1 / -1; }
+.col-1-6  { grid-column: 1 / span 6; }
+.col-7-12 { grid-column: 7 / span 6; }
+.col-1-7  { grid-column: 1 / span 7; }
+.col-8-12 { grid-column: 8 / span 5; }
+.col-2-11 { grid-column: 2 / span 10; }
+.col-3-10 { grid-column: 3 / span 8; }
+.col-1-8  { grid-column: 1 / span 8; }
+.col-9-12 { grid-column: 9 / span 4; }
+@media (max-width: 880px) {
+  .col-1-6, .col-7-12, .col-1-7, .col-8-12, .col-2-11, .col-3-10, .col-1-8, .col-9-12 {
+    grid-column: 1 / -1;
+  }
+}
+
+section {
+  padding: 48px 0 48px;
+  position: relative;
+}
+@media (max-width: 720px) { section { padding: 32px 0 32px; } }
+
+section > * { position: relative; z-index: 1; }
+
+/* ─────────────────────────────────────────────────────────────
+   PIXEL BORDERS — chunky stepped borders, no border-radius
+   ───────────────────────────────────────────────────────────── */
+.px-border {
+  border: 0;
+  background: var(--k-brick);
+  position: relative;
+  box-shadow:
+    /* outer black ring */
+    -3px 0 0 0 var(--k-black),
+    3px 0 0 0 var(--k-black),
+    0 -3px 0 0 var(--k-black),
+    0 3px 0 0 var(--k-black),
+    /* corner pixels for stepped look */
+    -3px -3px 0 0 var(--k-black),
+    3px 3px 0 0 var(--k-black),
+    -3px 3px 0 0 var(--k-black),
+    3px -3px 0 0 var(--k-black),
+    /* inner highlight */
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.06),
+    inset -2px -2px 0 0 rgba(0, 0, 0, 0.4);
+}
+.px-border-pink {
+  box-shadow:
+    -3px 0 0 0 var(--k-neon-pink),
+    3px 0 0 0 var(--k-neon-pink),
+    0 -3px 0 0 var(--k-neon-pink),
+    0 3px 0 0 var(--k-neon-pink),
+    -3px -3px 0 0 var(--k-neon-pink),
+    3px 3px 0 0 var(--k-neon-pink),
+    -3px 3px 0 0 var(--k-neon-pink),
+    3px -3px 0 0 var(--k-neon-pink),
+    0 0 18px rgba(255, 61, 196, 0.55),
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.05);
+}
+.px-border-amber {
+  box-shadow:
+    -3px 0 0 0 var(--k-amber),
+    3px 0 0 0 var(--k-amber),
+    0 -3px 0 0 var(--k-amber),
+    0 3px 0 0 var(--k-amber),
+    -3px -3px 0 0 var(--k-amber),
+    3px 3px 0 0 var(--k-amber),
+    -3px 3px 0 0 var(--k-amber),
+    3px -3px 0 0 var(--k-amber),
+    0 0 22px rgba(255, 179, 71, 0.55),
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.06);
+}
+.px-border-cyan {
+  box-shadow:
+    -3px 0 0 0 var(--k-neon-cyan),
+    3px 0 0 0 var(--k-neon-cyan),
+    0 -3px 0 0 var(--k-neon-cyan),
+    0 3px 0 0 var(--k-neon-cyan),
+    -3px -3px 0 0 var(--k-neon-cyan),
+    3px 3px 0 0 var(--k-neon-cyan),
+    -3px 3px 0 0 var(--k-neon-cyan),
+    3px -3px 0 0 var(--k-neon-cyan),
+    0 0 18px rgba(0, 229, 255, 0.5),
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   NAV — pixel signpost
+   ───────────────────────────────────────────────────────────── */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(10, 5, 18, 0.95);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--k-rule);
+  box-shadow: 0 1px 0 rgba(255, 61, 196, 0.15);
+}
+nav .inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 18px 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+nav .wordmark {
+  font-family: 'Silkscreen', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--k-cream);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+nav .wordmark .tag {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 10px;
+  color: var(--k-text-dim);
+  letter-spacing: 0;
+  font-weight: 400;
+}
+nav .links {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+nav .links a {
+  color: var(--k-text-dim);
+  text-decoration: none;
+  padding: 6px 0;
+  border-bottom: 1px solid transparent;
+  transition: color 140ms ease-out;
+}
+nav .links a:hover,
+nav .links a:focus-visible {
+  color: var(--k-cream);
+  text-shadow: none;
+  border-bottom-color: var(--k-neon-pink);
+  outline: none;
+}
+nav .ghstar {
+  color: var(--k-cream) !important;
+  background: transparent;
+  padding: 6px 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+nav .ghstar:hover {
+  background: var(--k-cream);
+  color: var(--k-black) !important;
+  border-color: var(--k-cream) !important;
+  text-shadow: none;
+}
+@media (max-width: 720px) {
+  nav .links { gap: 12px; font-size: 10px; }
+  nav .links a:not(.ghstar) { display: none; }
+  nav .inner { padding: 14px 18px; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   HERO — signboard entrance
+   ───────────────────────────────────────────────────────────── */
+.hero { padding: 56px 0 64px; }
+
+.kicker {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  display: inline-block;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.kicker::before { content: "// "; color: var(--k-text-dim); }
+
+.hero-dateline {
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: var(--k-text-dim);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.hero-dateline .sep { color: var(--k-rule); }
+.hero-dateline .live {
+  color: var(--k-neon-lime);
+  text-shadow: 0 0 6px var(--k-neon-lime);
+}
+.hero-dateline .live::before {
+  content: "● ";
+  animation: blink 1.4s steps(2) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* the FORGE signboard — the ONE signature moment */
+.signboard {
+  position: relative;
+  display: inline-block;
+  padding: 16px 22px 18px;
+  background: var(--k-black);
+  margin-bottom: 10px;
+  box-shadow:
+    -3px 0 0 var(--k-amber),
+    3px 0 0 var(--k-amber),
+    0 -3px 0 var(--k-amber),
+    0 3px 0 var(--k-amber),
+    -6px 0 0 var(--k-black),
+    6px 0 0 var(--k-black),
+    0 -6px 0 var(--k-black),
+    0 6px 0 var(--k-black),
+    0 0 40px rgba(255, 179, 71, 0.25),
+    0 0 80px rgba(255, 61, 196, 0.15);
+}
+.signboard h1 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(26px, 4.2vw, 44px);
+  color: var(--k-cream);
+  letter-spacing: 4px;
+  margin: 0;
+  text-shadow:
+    -2px 0 0 var(--k-neon-pink),
+    2px 0 0 var(--k-neon-pink),
+    0 -2px 0 var(--k-neon-pink),
+    0 2px 0 var(--k-neon-pink),
+    0 0 12px rgba(255, 61, 196, 0.75),
+    0 0 28px rgba(255, 61, 196, 0.35);
+  animation: signbootup 1.2s steps(4) both;
+}
+
+/* the actual headline — one-thought sentence, single neon accent */
+.headline {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-weight: 700;
+  font-size: clamp(1.75rem, 3.2vw, 2.75rem);
+  line-height: 1.25;
+  color: var(--k-text);
+  margin-top: 26px;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+.headline .line {
+  display: block;
+  margin-bottom: 6px;
+}
+.headline .five {
+  display: inline;
+  color: var(--k-neon-pink);
+}
+
+.hero-sub {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.88rem;
+  color: var(--k-text);
+  line-height: 1.65;
+  max-width: 58ch;
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(10, 5, 18, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border-left: 2px solid var(--k-rule);
+}
+.hero-sub strong { color: var(--k-cream); font-weight: 700; }
+.hero-sub em { color: var(--k-neon-pink); }
+
+.hero-phaseline {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--k-text-dim);
+  margin-top: 14px;
+  padding: 8px 12px;
+  display: inline-block;
+  background: rgba(10, 5, 18, 0.55);
+  border-left: 3px solid var(--k-neon-cyan);
+  letter-spacing: 0.02em;
+  line-height: 1.6;
+}
+.hero-phaseline .sep {
+  color: var(--k-neon-cyan);
+  opacity: 0.65;
+  padding: 0 2px;
+}
+
+.hero-cta {
+  margin-top: 28px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 18px;
+  min-height: 40px;
+  border: 0;
+  position: relative;
+  cursor: pointer;
+  transition: transform 140ms ease-out, background-color 140ms ease-out, border-color 140ms ease-out;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--k-neon-pink);
+  outline-offset: 3px;
+}
+.btn-primary {
+  background: var(--k-neon-pink);
+  color: var(--k-black);
+  border: 1px solid var(--k-neon-pink);
+}
+.btn-primary:hover {
+  background: var(--k-cream);
+  color: var(--k-black);
+  border-color: var(--k-cream);
+  transform: translateY(-1px);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--k-cream);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--k-cream);
+  border-color: var(--k-cream);
+  transform: translateY(-1px);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TERMINAL — pixel chrome
+   ───────────────────────────────────────────────────────────── */
+.terminal {
+  background: var(--k-black);
+  margin-top: 28px;
+  max-width: 640px;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.72rem;
+  position: relative;
+  box-shadow:
+    -4px 0 0 var(--k-neon-pink),
+    4px 0 0 var(--k-neon-pink),
+    0 -4px 0 var(--k-neon-pink),
+    0 4px 0 var(--k-neon-pink),
+    -4px -4px 0 var(--k-neon-pink),
+    4px 4px 0 var(--k-neon-pink),
+    -4px 4px 0 var(--k-neon-pink),
+    4px -4px 0 var(--k-neon-pink),
+    -8px 0 0 var(--k-black),
+    8px 0 0 var(--k-black),
+    0 -8px 0 var(--k-black),
+    0 8px 0 var(--k-black),
+    0 0 32px rgba(255, 61, 196, 0.45);
+}
+.terminal-head {
+  background: var(--k-brick);
+  border-bottom: 3px solid var(--k-neon-pink);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tdot {
+  width: 12px; height: 12px;
+  display: inline-block;
+  box-shadow: 0 0 0 1px var(--k-black);
+}
+.tdot.r { background: #ff5454; }
+.tdot.y { background: var(--k-amber); }
+.tdot.g { background: var(--k-neon-lime); }
+.terminal-title {
+  font-family: 'Silkscreen', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  margin-left: 14px;
+  letter-spacing: 0.04em;
+}
+.terminal-body {
+  padding: 18px 18px 20px;
+  white-space: pre-wrap;
+  word-break: normal;
+  color: var(--k-text-dim);
+  line-height: 1.55;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 22px, rgba(255, 61, 196, 0.025) 22px, rgba(255, 61, 196, 0.025) 23px);
+}
+@media (max-width: 720px) {
+  .terminal-body { font-size: 0.66rem; padding: 12px; }
+}
+
+.t-prompt   { color: var(--k-neon-pink); font-weight: 700; }
+.t-cmd      { color: var(--k-cream); font-weight: 700; }
+.t-flag     { color: var(--k-neon-cyan); }
+.t-str      { color: var(--k-amber); }
+.t-path     { color: var(--k-neon-lime); text-decoration: underline; text-decoration-color: var(--k-rule); }
+.t-num      { color: var(--k-neon-lime); }
+.t-comment  { color: #6a4f8a; font-style: italic; }
+.t-warn     { color: var(--k-amber); }
+.t-err      { color: var(--k-neon-pink); }
+.t-ok       { color: var(--k-neon-lime); }
+.t-out      { color: var(--k-text-dim); }
+.t-phase {
+  margin: 16px 0 8px;
+  color: var(--k-amber);
+  font-weight: 700;
+  text-shadow: 0 0 6px var(--k-amber);
+  font-family: 'Silkscreen', monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+.t-phase.cyan { color: var(--k-neon-cyan); text-shadow: 0 0 6px var(--k-neon-cyan); }
+.t-phase.mag  { color: var(--k-neon-pink); text-shadow: 0 0 6px var(--k-neon-pink); }
+.t-agent {
+  margin: 6px 0;
+  padding-left: 14px;
+  border-left: 3px solid var(--k-rule);
+}
+.t-agent.skeptic     { border-left-color: #ff5454; }
+.t-agent.pragmatist  { border-left-color: var(--k-neon-lime); }
+.t-agent.analyst     { border-left-color: var(--k-neon-cyan); }
+.t-agent.contrarian  { border-left-color: var(--k-neon-pink); }
+.t-agent.researcher  { border-left-color: var(--k-amber); }
+.t-agent-name {
+  font-family: 'Silkscreen', monospace;
+  color: var(--k-cream);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.t-verdict {
+  margin: 14px 0 4px;
+  padding: 14px 18px;
+  background: rgba(180, 255, 61, 0.06);
+  border: 2px solid var(--k-neon-lime);
+  box-shadow: 0 0 18px rgba(180, 255, 61, 0.35);
+}
+.t-verdict-head {
+  font-family: 'Silkscreen', monospace;
+  color: var(--k-neon-lime);
+  font-size: 12px;
+  text-shadow: 0 0 6px var(--k-neon-lime);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+.t-cursor::after {
+  content: "█";
+  color: var(--k-neon-pink);
+  animation: blink 1s steps(2) infinite;
+}
+.t-statusbar {
+  background: var(--k-brick);
+  border-top: 3px solid var(--k-neon-pink);
+  padding: 8px 14px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: var(--k-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.t-statusbar .pill {
+  padding: 3px 8px;
+  background: var(--k-black);
+  border: 1px solid currentColor;
+}
+.t-statusbar .pill.gold  { color: var(--k-amber); }
+.t-statusbar .pill.cyan  { color: var(--k-neon-cyan); }
+.t-statusbar .pill.green { color: var(--k-neon-lime); }
+.t-statusbar .quiet      { color: var(--k-rule); }
+.t-statusbar .spacer     { flex: 1; }
+
+/* ─────────────────────────────────────────────────────────────
+   SECTION HEADERS — neon BAND-style
+   ───────────────────────────────────────────────────────────── */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.section-num {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  letter-spacing: 0;
+}
+.section-head .kicker { color: var(--k-text-dim); }
+h2.display {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  line-height: 1.3;
+  text-transform: none;
+  letter-spacing: -0.01em;
+}
+.h2-neon {
+  color: var(--k-cream);
+}
+.h2-neon em {
+  color: var(--k-neon-pink);
+  font-style: normal;
+}
+
+.prose {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.94rem;
+  line-height: 1.7;
+  color: var(--k-text);
+}
+.prose strong { color: var(--k-cream); }
+.prose em { color: var(--k-neon-pink); }
+
+/* ─────────────────────────────────────────────────────────────
+   PROBLEM — pixel speech bubbles
+   ───────────────────────────────────────────────────────────── */
+.problem-lede {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: var(--k-text);
+  margin-top: 6px;
+}
+.problem-lede em { color: var(--k-neon-pink); }
+.problem-lede .amber { color: var(--k-neon-pink); }
+
+.bubble {
+  position: relative;
+  background: rgba(31, 16, 51, 0.5);
+  color: var(--k-text);
+  padding: 22px 24px 24px;
+  margin-top: 22px;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 2px solid var(--k-neon-pink);
+}
+.bubble::after { content: none; }
+.bubble .agent-tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  padding: 0;
+  margin-bottom: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.bubble.warn { border-left-color: var(--k-neon-lime); }
+.bubble.fail { border-left-color: var(--k-neon-cyan); }
+.bubble h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 10px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+.bubble h4 em { color: var(--k-neon-pink); font-style: normal; }
+.bubble p {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--k-text);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SUBWAY-TILE DIVIDER STRIP
+   ───────────────────────────────────────────────────────────── */
+.subway-divider { display: none; }
+
+/* ─────────────────────────────────────────────────────────────
+   STEPS (HOW)
+   ───────────────────────────────────────────────────────────── */
+.step {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  background: rgba(31, 16, 51, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.step-num {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--k-text-dim);
+  min-width: 32px;
+  letter-spacing: 0;
+}
+.step h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 6px;
+  letter-spacing: 0;
+}
+.step p {
+  font-size: 0.92rem;
+  color: var(--k-text);
+  line-height: 1.65;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MODES — pixel cards, asymmetric grid
+   ───────────────────────────────────────────────────────────── */
+.modes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+@media (max-width: 640px) { .modes-grid { grid-template-columns: 1fr; gap: 14px; } }
+
+.mode {
+  background: var(--k-brick);
+  padding: 24px 26px 24px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 2px solid var(--k-neon-pink);
+  transition: border-color 140ms ease-out, transform 140ms ease-out;
+}
+.mode:hover {
+  border-left-color: var(--k-neon-cyan);
+  transform: translateX(2px);
+}
+.mode-glyph { display: none; }
+.mode-id {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--k-text-dim);
+  display: block;
+  margin-bottom: 8px;
+  letter-spacing: 0;
+}
+.mode h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 12px;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+.mode p {
+  font-size: 0.94rem;
+  color: var(--k-text);
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+.mode-phases {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--k-text-dim);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+  word-break: normal;
+  line-height: 1.6;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DEMOS — pixel-rendered gif frames
+   ───────────────────────────────────────────────────────────── */
+.demo-frame {
+  background: var(--k-black);
+  padding: 0;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.demo-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+.demo-meta {
+  padding: 18px 22px 22px;
+  background: var(--k-brick);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.demo-meta .tag {
+  display: inline-block;
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: var(--k-neon-lime);
+  margin-bottom: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.demo-meta h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 10px;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.demo-meta h4 em { color: var(--k-neon-pink); font-style: normal; }
+.demo-meta p {
+  font-size: 0.9rem;
+  color: var(--k-text);
+  line-height: 1.65;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FEATURES — broadsheet
+   ───────────────────────────────────────────────────────────── */
+.feat-double {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+@media (max-width: 880px) { .feat-double { grid-template-columns: 1fr; } }
+.feat {
+  padding: 22px 22px 22px;
+  background: rgba(31, 16, 51, 0.5);
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 2px solid var(--k-neon-cyan);
+}
+.feat:nth-child(2n) { border-top-color: var(--k-neon-pink); }
+.feat:nth-child(3n) { border-top-color: var(--k-neon-lime); }
+.feat .num {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  letter-spacing: 0;
+  text-transform: none;
+  display: block;
+  margin-bottom: 10px;
+}
+.feat h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 10px;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.feat p {
+  font-size: 0.9rem;
+  color: var(--k-text);
+  line-height: 1.65;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   AUDIENCE BUBBLES
+   ───────────────────────────────────────────────────────────── */
+.audience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+@media (max-width: 880px) { .audience-grid { grid-template-columns: 1fr; } }
+
+.audience {
+  position: relative;
+  background: rgba(31, 16, 51, 0.5);
+  color: var(--k-text);
+  padding: 22px 24px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 2px solid var(--k-neon-cyan);
+}
+.audience:nth-child(2) { border-top-color: var(--k-neon-pink); }
+.audience:nth-child(3) { border-top-color: var(--k-neon-lime); }
+.audience::after { content: none; }
+.audience .init {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--k-text-dim);
+  margin-bottom: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.audience h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 10px;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.audience p {
+  font-size: 0.9rem;
+  color: var(--k-text);
+  line-height: 1.65;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   OSS BADGES
+   ───────────────────────────────────────────────────────────── */
+.oss-manifesto {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--k-text);
+  margin-bottom: 28px;
+  text-align: center;
+}
+.oss-meta {
+  font-family: 'Silkscreen', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  text-align: center;
+  letter-spacing: 0.05em;
+  line-height: 1.8;
+}
+.oss-meta strong {
+  color: var(--k-cream);
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FAQ — pixel accordion
+   ───────────────────────────────────────────────────────────── */
+.faq details {
+  background: rgba(31, 16, 51, 0.5);
+  margin-bottom: 10px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.faq details[open] { border-color: rgba(255, 61, 196, 0.3); }
+.faq summary {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--k-cream);
+  padding: 18px 22px;
+  cursor: pointer;
+  letter-spacing: 0;
+  text-transform: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::before {
+  content: "+";
+  color: var(--k-neon-pink);
+  font-size: 16px;
+  font-weight: 700;
+  width: 14px;
+  text-align: center;
+}
+.faq details[open] summary::before { content: "−"; }
+.faq details[open] summary { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.faq .answer {
+  padding: 16px 22px 22px;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--k-text);
+  line-height: 1.7;
+}
+.faq .answer strong { color: var(--k-cream); }
+.faq .answer em { color: var(--k-neon-pink); font-style: normal; }
+
+/* ─────────────────────────────────────────────────────────────
+   FINAL CTA
+   ───────────────────────────────────────────────────────────── */
+.final {
+  text-align: center;
+  padding: 80px 0 96px;
+}
+.final h2 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+  color: var(--k-cream);
+  line-height: 1.25;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  margin-bottom: 24px;
+}
+.final h2 em {
+  color: var(--k-neon-pink);
+  font-style: normal;
+}
+.final p {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.96rem;
+  color: var(--k-text-dim);
+  margin-bottom: 32px;
+  max-width: 56ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+.final .hero-cta { justify-content: center; }
+
+/* ─────────────────────────────────────────────────────────────
+   FOOTER COLOPHON
+   ───────────────────────────────────────────────────────────── */
+footer {
+  padding: 56px 0 72px;
+  border-top: 1px solid var(--k-rule);
+  background: rgba(10, 5, 18, 0.7);
+  position: relative;
+  z-index: 2;
+}
+.colophon {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 36px;
+  text-align: center;
+}
+.colophon-mark {
+  font-family: 'Silkscreen', monospace;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--k-cream);
+  text-shadow:
+    -1px 0 0 var(--k-neon-pink),
+    1px 0 0 var(--k-neon-pink),
+    0 0 8px rgba(255, 61, 196, 0.4);
+  letter-spacing: 0.18em;
+  margin-bottom: 12px;
+}
+.colophon-tag {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 12px;
+  color: var(--k-text-dim);
+  letter-spacing: 0;
+  text-transform: none;
+  margin-bottom: 24px;
+}
+.colophon-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--k-text-dim);
+  line-height: 1.65;
+  margin-bottom: 24px;
+}
+.colophon-text em { color: var(--k-neon-pink); }
+.colophon-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+.colophon-links a {
+  font-family: 'Silkscreen', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--k-rule);
+  padding-bottom: 2px;
+}
+.colophon-links a:hover {
+  color: var(--k-neon-cyan);
+  border-bottom-color: var(--k-neon-cyan);
+  text-shadow: 0 0 6px var(--k-neon-cyan);
+}
+.colophon-stamp {
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: var(--k-rule);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.colophon-stamp em { color: var(--k-text); font-style: normal; }
+.colophon-stamp code {
+  font-size: 0.95em;
+  color: var(--k-neon-cyan);
+  border-color: var(--k-neon-cyan);
+  background: rgba(0, 229, 255, 0.08);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MOBILE — 375px floor
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  section, .hero { padding: 28px 0 28px; }
+  .signboard { padding: 14px 18px 16px; }
+  .signboard h1 { font-size: 26px; letter-spacing: 2px; }
+  .headline { font-size: 1.3rem; line-height: 1.3; }
+  .headline .five { font-size: 1.4em; }
+  h2.display { font-size: 1.1rem; }
+  body { font-size: 0.9rem; }
+  .btn { font-size: 11px; padding: 9px 14px; }
+  .colophon-mark { font-size: 14px; letter-spacing: 2px; }
+  nav .wordmark { font-size: 11px; }
+  .terminal-body { font-size: 0.64rem; padding: 10px; }
+  .feat-double, .modes-grid, .audience-grid { gap: 12px; }
+  .hero-phaseline { font-size: 0.7rem; }
+}
+
+/* selection */
+::selection { background: var(--k-neon-pink); color: var(--k-black); }
+
+/* ═════════════════════════════════════════════════════════════════
+   SCENE SYSTEM — parallax + per-section atmospheric shift
+   Each <section> wraps its content in a .scene element. The .scene
+   stacks three decorative .scene-bg layers (far/mid/near) each with
+   its own gradient / clip-path, then GSAP moves them at different
+   speeds on scroll to create depth + hue drift.
+   ═════════════════════════════════════════════════════════════════ */
+.scene {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: var(--k-black);
+}
+/* Hairline section separator */
+.scene::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 50%;
+  width: 180px; height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 61, 196, 0.4) 50%,
+    transparent 100%);
+  z-index: 3;
+  pointer-events: none;
+}
+.scene.hero::before { display: none; }
+.scene-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+/* kill all the per-scene parallax layers — one global night backdrop only */
+.scene-bg--mid,
+.scene-bg--near,
+.scene-train,
+.scene-window-city { display: none !important; }
+.scene-bg--far {
+  z-index: 0;
+  opacity: 0.55;
+  background: linear-gradient(180deg,
+    rgba(26, 11, 61, 0.4) 0%,
+    rgba(45, 23, 96, 0.2) 50%,
+    rgba(26, 11, 61, 0.4) 100%) !important;
+}
+/* Alternating subtle section tints so they feel distinct without scenes */
+.scene:nth-of-type(even) .scene-bg--far {
+  background: linear-gradient(180deg,
+    rgba(31, 16, 51, 0.4) 0%,
+    rgba(26, 11, 61, 0.2) 50%,
+    rgba(31, 16, 51, 0.4) 100%) !important;
+}
+.scene > .grid,
+.scene > .container { position: relative; z-index: 2; }
+
+/* reveal primitives — GSAP toggles .in or animates directly */
+.reveal   { opacity: 0; transform: translateY(22px); will-change: opacity, transform; }
+.reveal.in { opacity: 1; transform: none; transition: opacity .7s steps(6), transform .7s steps(6); }
+.stagger > * { opacity: 0; transform: translateY(14px); will-change: opacity, transform; }
+
+/* ─── Hero scene: Main Street — under the FORGE sign ─────────── */
+.scene[data-scene="main-street"] .scene-bg--far {
+  background:
+    radial-gradient(ellipse 60% 35% at 50% 18%,
+      rgba(255, 61, 196, 0.28) 0%,
+      rgba(255, 61, 196, 0.10) 40%,
+      transparent 75%),
+    radial-gradient(ellipse 40% 25% at 20% 30%,
+      rgba(0, 229, 255, 0.14) 0%,
+      transparent 60%),
+    radial-gradient(ellipse 45% 30% at 82% 22%,
+      rgba(255, 179, 71, 0.16) 0%,
+      transparent 60%),
+    linear-gradient(180deg,
+      #1a0b3d 0%,
+      #2d1760 55%,
+      #1f1033 100%);
+}
+.scene[data-scene="main-street"] .scene-bg--mid {
+  background:
+    repeating-linear-gradient(90deg,
+      transparent 0 38px,
+      rgba(255, 61, 196, 0.04) 38px 40px),
+    linear-gradient(180deg,
+      transparent 0%, transparent 55%,
+      rgba(10, 5, 18, 0.35) 85%, rgba(10, 5, 18, 0.55) 100%);
+}
+.scene[data-scene="main-street"] .scene-bg--near {
+  background:
+    radial-gradient(circle at 50% 10%,
+      rgba(255, 61, 196, 0.35) 0%,
+      rgba(255, 61, 196, 0.12) 12%,
+      transparent 28%);
+}
+
+/* ─── Problem scene: Dark Alley — navy, brick, dripping neon ── */
+.scene[data-scene="alley"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(15, 8, 35, 0.92) 0%,
+      rgba(25, 12, 55, 0.82) 60%,
+      rgba(10, 5, 18, 0.95) 100%);
+}
+.scene[data-scene="alley"] .scene-bg--mid {
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(31, 16, 51, 0.45) 0 24px,
+      rgba(10, 5, 18, 0.55) 24px 26px,
+      rgba(31, 16, 51, 0.45) 26px 50px,
+      rgba(10, 5, 18, 0.55) 50px 52px),
+    repeating-linear-gradient(90deg,
+      transparent 0 82px,
+      rgba(255, 255, 255, 0.04) 82px 84px);
+}
+.scene[data-scene="alley"] .scene-bg--near {
+  background:
+    radial-gradient(ellipse 30% 60% at 12% 42%,
+      rgba(255, 179, 71, 0.22) 0%,
+      rgba(255, 179, 71, 0.06) 40%,
+      transparent 70%),
+    radial-gradient(ellipse 24% 50% at 88% 68%,
+      rgba(255, 61, 196, 0.16) 0%,
+      rgba(255, 61, 196, 0.04) 45%,
+      transparent 72%);
+}
+
+/* ─── How scene: Subway platform — cyan tile, train blur ────── */
+.scene[data-scene="subway-platform"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(20, 30, 70, 0.85) 0%,
+      rgba(10, 20, 55, 0.9) 70%,
+      rgba(5, 10, 30, 0.95) 100%);
+}
+.scene[data-scene="subway-platform"] .scene-bg--mid {
+  background:
+    /* tile grout */
+    repeating-linear-gradient(90deg,
+      rgba(210, 220, 240, 0.055) 0 46px,
+      rgba(10, 5, 18, 0.5) 46px 48px),
+    repeating-linear-gradient(0deg,
+      rgba(210, 220, 240, 0.055) 0 28px,
+      rgba(10, 5, 18, 0.5) 28px 30px);
+}
+.scene[data-scene="subway-platform"] .scene-bg--near {
+  background:
+    /* yellow warning strip */
+    linear-gradient(180deg,
+      transparent 0%, transparent 86%,
+      rgba(255, 230, 0, 0.42) 86%, rgba(255, 230, 0, 0.42) 90%,
+      transparent 90%),
+    radial-gradient(ellipse 40% 30% at 50% 92%,
+      rgba(0, 229, 255, 0.18) 0%,
+      transparent 70%);
+}
+/* passing train element — absolutely positioned inside subway scene */
+.scene-train {
+  position: absolute;
+  top: 38%;
+  left: -120%;
+  width: 90%;
+  height: 120px;
+  z-index: 1;
+  pointer-events: none;
+  will-change: transform;
+  background:
+    linear-gradient(180deg,
+      rgba(10, 5, 18, 0.0) 0%,
+      rgba(10, 5, 18, 0.0) 18%,
+      rgba(40, 25, 80, 0.9) 18%,
+      rgba(40, 25, 80, 0.9) 78%,
+      rgba(10, 5, 18, 0.0) 78%),
+    /* train windows */
+    repeating-linear-gradient(90deg,
+      transparent 0 18px,
+      rgba(255, 214, 102, 0.75) 18px 52px,
+      transparent 52px 72px);
+  filter: blur(1.5px);
+  opacity: 0.6;
+}
+
+/* ─── Modes scene: Neon market — hanging signs, magenta+cyan ── */
+.scene[data-scene="neon-market"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(40, 10, 60, 0.8) 0%,
+      rgba(20, 8, 48, 0.9) 100%);
+}
+.scene[data-scene="neon-market"] .scene-bg--mid {
+  background:
+    /* hanging neon rectangles */
+    repeating-linear-gradient(90deg,
+      transparent 0 92px,
+      rgba(255, 61, 196, 0.14) 92px 100px,
+      transparent 100px 196px,
+      rgba(0, 229, 255, 0.12) 196px 204px);
+}
+.scene[data-scene="neon-market"] .scene-bg--near {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 61, 196, 0.22) 0%, transparent 12%),
+    radial-gradient(circle at 42% 8%,  rgba(0, 229, 255, 0.20) 0%, transparent 10%),
+    radial-gradient(circle at 68% 16%, rgba(180, 255, 61, 0.18) 0%, transparent 10%),
+    radial-gradient(circle at 88% 10%, rgba(255, 179, 71, 0.22) 0%, transparent 12%);
+}
+
+/* ─── Demos scene: Rooftop view — clear violet + distant city ─ */
+.scene[data-scene="rooftop"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(50, 24, 90, 0.75) 0%,
+      rgba(30, 14, 68, 0.85) 55%,
+      rgba(15, 8, 35, 0.95) 100%);
+}
+.scene[data-scene="rooftop"] .scene-bg--mid {
+  background:
+    radial-gradient(1px 1px at 10% 20%, rgba(255,244,216,0.7), transparent 50%),
+    radial-gradient(1px 1px at 22% 32%, rgba(255,244,216,0.55), transparent 50%),
+    radial-gradient(1px 1px at 38% 16%, rgba(255,244,216,0.6), transparent 50%),
+    radial-gradient(1px 1px at 54% 24%, rgba(208,192,232,0.55), transparent 50%),
+    radial-gradient(1px 1px at 68% 14%, rgba(255,244,216,0.7), transparent 50%),
+    radial-gradient(1px 1px at 82% 28%, rgba(255,244,216,0.5), transparent 50%),
+    radial-gradient(1px 1px at 91% 18%, rgba(208,192,232,0.6), transparent 50%),
+    radial-gradient(ellipse 45% 12% at 50% 82%,
+      rgba(255, 61, 196, 0.15) 0%,
+      transparent 70%);
+}
+.scene[data-scene="rooftop"] .scene-bg--near {
+  background:
+    linear-gradient(180deg,
+      transparent 0%, transparent 78%,
+      rgba(10, 5, 18, 0.55) 92%, rgba(10, 5, 18, 0.7) 100%);
+}
+
+/* ─── Features scene: Back alley — amber + steam ─────────────── */
+.scene[data-scene="back-alley"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(30, 14, 50, 0.9) 0%,
+      rgba(45, 22, 20, 0.75) 60%,
+      rgba(15, 8, 18, 0.95) 100%);
+}
+.scene[data-scene="back-alley"] .scene-bg--mid {
+  background:
+    /* brick wall */
+    repeating-linear-gradient(0deg,
+      rgba(60, 28, 15, 0.28) 0 14px,
+      rgba(10, 5, 18, 0.6) 14px 16px),
+    repeating-linear-gradient(90deg,
+      transparent 0 62px,
+      rgba(10, 5, 18, 0.4) 62px 64px);
+}
+.scene[data-scene="back-alley"] .scene-bg--near {
+  background:
+    radial-gradient(ellipse 22% 40% at 20% 30%,
+      rgba(255, 179, 71, 0.28) 0%,
+      rgba(255, 179, 71, 0.08) 45%,
+      transparent 72%),
+    radial-gradient(ellipse 22% 40% at 78% 65%,
+      rgba(255, 179, 71, 0.22) 0%,
+      rgba(255, 179, 71, 0.06) 45%,
+      transparent 72%);
+}
+
+/* ─── For whom scene: Band stage — spotlights ────────────────── */
+.scene[data-scene="band-stage"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(50, 12, 65, 0.9) 0%,
+      rgba(25, 8, 50, 0.95) 100%);
+}
+.scene[data-scene="band-stage"] .scene-bg--mid {
+  background:
+    /* spotlight cone left */
+    linear-gradient(175deg,
+      rgba(255, 61, 196, 0.22) 0%,
+      rgba(255, 61, 196, 0.06) 18%,
+      transparent 35%),
+    /* spotlight cone right */
+    linear-gradient(185deg,
+      rgba(0, 229, 255, 0.18) 0%,
+      rgba(0, 229, 255, 0.04) 20%,
+      transparent 38%);
+}
+.scene[data-scene="band-stage"] .scene-bg--near {
+  background:
+    /* stage floor */
+    linear-gradient(180deg,
+      transparent 0%, transparent 82%,
+      rgba(120, 20, 60, 0.35) 82%, rgba(40, 8, 28, 0.6) 100%);
+}
+
+/* ─── FAQ scene: Subway car interior ─────────────────────────── */
+.scene[data-scene="subway-car"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(48, 32, 12, 0.82) 0%,
+      rgba(35, 22, 8, 0.92) 100%);
+}
+.scene[data-scene="subway-car"] .scene-bg--mid {
+  background:
+    /* horizontal window strip */
+    linear-gradient(180deg,
+      transparent 0%, transparent 24%,
+      rgba(10, 5, 18, 0.7) 24%, rgba(10, 5, 18, 0.7) 44%,
+      transparent 44%);
+}
+.scene[data-scene="subway-car"] .scene-bg--near {
+  background:
+    /* overhead warm light */
+    linear-gradient(180deg,
+      rgba(255, 230, 140, 0.18) 0%,
+      transparent 18%);
+}
+/* the cityscape-passing-the-window element */
+.scene-window-city {
+  position: absolute;
+  top: 24%;
+  left: 0;
+  width: 220%;
+  height: 20%;
+  z-index: 1;
+  pointer-events: none;
+  will-change: transform;
+  background:
+    /* pixel building silhouettes passing by */
+    repeating-linear-gradient(90deg,
+      rgba(20, 8, 40, 0.95) 0 34px,
+      rgba(40, 16, 70, 0.9) 34px 38px,
+      rgba(20, 8, 40, 0.95) 38px 70px,
+      rgba(30, 12, 58, 0.85) 70px 74px),
+    /* window pinpoints */
+    radial-gradient(1px 1px at 14% 40%, rgba(255,214,102,0.85), transparent 50%),
+    radial-gradient(1px 1px at 28% 55%, rgba(255,214,102,0.75), transparent 50%),
+    radial-gradient(1px 1px at 44% 35%, rgba(255,214,102,0.85), transparent 50%),
+    radial-gradient(1px 1px at 60% 50%, rgba(255,214,102,0.7), transparent 50%),
+    radial-gradient(1px 1px at 76% 38%, rgba(255,214,102,0.8), transparent 50%),
+    radial-gradient(1px 1px at 90% 58%, rgba(255,214,102,0.7), transparent 50%);
+  clip-path: polygon(
+    0 60%, 4% 60%, 4% 20%, 9% 20%, 9% 50%, 14% 50%,
+    14% 30%, 19% 30%, 19% 60%, 24% 60%, 24% 10%, 30% 10%,
+    30% 55%, 36% 55%, 36% 35%, 42% 35%, 42% 60%, 48% 60%,
+    48% 25%, 54% 25%, 54% 50%, 60% 50%, 60% 15%, 66% 15%,
+    66% 55%, 72% 55%, 72% 30%, 78% 30%, 78% 60%, 84% 60%,
+    84% 20%, 90% 20%, 90% 50%, 96% 50%, 96% 35%, 100% 35%,
+    100% 100%, 0 100%
+  );
+  opacity: 0.85;
+}
+
+/* ─── Final CTA scene: push-in sign ──────────────────────────── */
+.scene[data-scene="signboard-closeup"] .scene-bg--far {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%,
+      rgba(255, 61, 196, 0.3) 0%,
+      rgba(255, 61, 196, 0.08) 40%,
+      rgba(10, 5, 18, 0.85) 80%);
+}
+.scene[data-scene="signboard-closeup"] .scene-bg--mid {
+  background:
+    radial-gradient(ellipse 35% 30% at 50% 50%,
+      rgba(255, 179, 71, 0.22) 0%,
+      transparent 60%);
+}
+
+/* mobile — suppress heavy parallax, keep reveals */
+@media (max-width: 640px) {
+  .scene-bg { opacity: 0.4; }
+  .scene-train, .scene-window-city { display: none; }
+}
+
+/* reduced motion — flat + instant */
+@media (prefers-reduced-motion: reduce) {
+  .scene-bg { transform: none !important; }
+  .scene-train, .scene-window-city { display: none; }
+  .reveal { opacity: 1; transform: none; }
+  .stagger > * { opacity: 1; transform: none; }
+  .flicker, .flicker2, .flicker3 { animation: none; }
+}
+
