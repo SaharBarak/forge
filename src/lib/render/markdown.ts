@@ -23,6 +23,38 @@ import { forgeTheme, style } from './theme';
 
 const { bold, dim, italic, strikethrough: strikeStyle } = forgeTheme;
 
+/**
+ * Decode HTML entities that `marked`'s lexer leaves in text tokens.
+ *
+ * `marked` HTML-escapes characters like `"` → `&quot;`, `'` → `&#39;`,
+ * `<` → `&lt;`, etc. Since we render to the terminal (not a browser),
+ * we need to undo that escape before display.
+ */
+const HTML_ENTITY_MAP: Record<string, string> = {
+  '&quot;': '"',
+  '&apos;': "'",
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&nbsp;': ' ',
+  '&#39;': "'",
+  '&#34;': '"',
+};
+
+const decodeEntities = (text: string): string => {
+  if (!text || text.indexOf('&') === -1) return text;
+  return text
+    .replace(/&(?:quot|apos|amp|lt|gt|nbsp|#39|#34);/g, (m) => HTML_ENTITY_MAP[m] ?? m)
+    .replace(/&#(\d+);/g, (_, code) => {
+      const n = parseInt(code, 10);
+      return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+      const n = parseInt(hex, 16);
+      return Number.isFinite(n) ? String.fromCodePoint(n) : _;
+    });
+};
+
 // ---- syntax highlighter cache ----
 //
 // @speed-highlight/core exposes an async highlightText() — we can't await it
@@ -80,10 +112,10 @@ const renderToken = (token: Token, depth: number): string => {
     case 'space':
       return '\n';
     case 'html':
-      return (token as Tokens.HTML).text;
+      return decodeEntities((token as Tokens.HTML).text);
     default:
       if ('text' in token && typeof (token as { text: unknown }).text === 'string') {
-        return (token as { text: string }).text + '\n';
+        return decodeEntities((token as { text: string }).text) + '\n';
       }
       return '';
   }
@@ -106,11 +138,12 @@ const renderCodeBlock = (token: Tokens.Code): string => {
   const border = forgeTheme.border.accent;
   const top = style(border, `╭─${lang ? ` ${lang} ` : '─'}${'─'.repeat(Math.max(0, 36 - lang.length))}`) + '\n';
 
-  // Try to get syntax-highlighted content; falls back to plain code.
+  // Decode HTML entities `marked` left in the raw code text, then highlight.
+  const codeText = decodeEntities(token.text);
   const highlighted = lang
-    ? getHighlightedSync(token.text, lang)
-    : token.text;
-  const isHighlighted = highlighted !== token.text;
+    ? getHighlightedSync(codeText, lang)
+    : codeText;
+  const isHighlighted = highlighted !== codeText;
 
   const lines = highlighted
     .split('\n')
@@ -154,7 +187,7 @@ const renderInline = (tokens: Token[]): string =>
 const renderInlineToken = (token: Token): string => {
   switch (token.type) {
     case 'text':
-      return (token as Tokens.Text).text;
+      return decodeEntities((token as Tokens.Text).text);
     case 'strong':
       return style(`${bold}${forgeTheme.text.strong}`, renderInline((token as Tokens.Strong).tokens ?? []));
     case 'em':
@@ -162,7 +195,7 @@ const renderInlineToken = (token: Token): string => {
     case 'del':
       return style(strikeStyle, renderInline((token as Tokens.Del).tokens ?? []));
     case 'codespan':
-      return style(forgeTheme.text.inlineCode, (token as Tokens.Codespan).text);
+      return style(forgeTheme.text.inlineCode, decodeEntities((token as Tokens.Codespan).text));
     case 'link': {
       const link = token as Tokens.Link;
       const text = renderInline(link.tokens ?? []);
@@ -171,10 +204,10 @@ const renderInlineToken = (token: Token): string => {
     case 'br':
       return '\n';
     case 'escape':
-      return (token as Tokens.Escape).text;
+      return decodeEntities((token as Tokens.Escape).text);
     default:
       if ('text' in token && typeof (token as { text: unknown }).text === 'string') {
-        return (token as { text: string }).text;
+        return decodeEntities((token as { text: string }).text);
       }
       return '';
   }

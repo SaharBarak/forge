@@ -663,18 +663,28 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
     this.bus.emit('message:research', { request: { researcherId, query }, fromAgent: requestedBy });
 
     // Announce research halt
+    const lang = this.session.config.language;
+    const isHebrew = lang === 'hebrew';
     const announceMessage: Message = {
       id: crypto.randomUUID(),
       timestamp: new Date(),
       agentId: 'system',
       type: 'system',
-      content: `🔍 **הדיון נעצר לצורך מחקר**
+      content: isHebrew
+        ? `🔍 **הדיון נעצר לצורך מחקר**
 
 **חוקר:** ${researcher.name}
 **בקשה:** "${query}"
 **מבקש:** ${this.getAgentName(requestedBy)}
 
-⏳ מחפש מידע... הסוכנים ממתינים.`,
+⏳ מחפש מידע... הסוכנים ממתינים.`
+        : `🔍 **Research in progress — discussion paused**
+
+**Researcher:** ${researcher.name}
+**Query:** "${query}"
+**Requested by:** ${this.getAgentName(requestedBy)}
+
+⏳ Looking up information... agents waiting.`,
     };
     this.bus.addMessage(announceMessage, 'system');
 
@@ -704,9 +714,9 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
         timestamp: new Date(),
         agentId: 'system',
         type: 'system',
-        content: `✅ **מחקר הושלם - הדיון ממשיך**
-
-הסוכנים יכולים כעת להתייחס לממצאים.`,
+        content: isHebrew
+          ? `✅ **מחקר הושלם - הדיון ממשיך**\n\nהסוכנים יכולים כעת להתייחס לממצאים.`
+          : `✅ **Research complete — resuming discussion**\n\nAgents can now respond to the findings.`,
       };
       this.bus.addMessage(resumeMessage, 'system');
 
@@ -718,7 +728,9 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
         timestamp: new Date(),
         agentId: 'system',
         type: 'system',
-        content: `❌ **שגיאה במחקר:** ${error}\n\nהדיון ממשיך ללא תוצאות המחקר.`,
+        content: isHebrew
+          ? `❌ **שגיאה במחקר:** ${error}\n\nהדיון ממשיך ללא תוצאות המחקר.`
+          : `❌ **Research error:** ${error}\n\nDiscussion continues without research results.`,
       };
       this.bus.addMessage(errorMessage, 'system');
     }
@@ -1188,7 +1200,11 @@ ${assignments}
    */
   private getAgentName(agentId: string): string {
     const agent = getAgentById(agentId);
-    return agent ? `${agent.name} (${agent.nameHe})` : agentId;
+    if (!agent) return agentId;
+    // Only append the Hebrew name when the session language is Hebrew.
+    return this.session.config.language === 'hebrew'
+      ? `${agent.name} (${agent.nameHe})`
+      : agent.name;
   }
 
   /**

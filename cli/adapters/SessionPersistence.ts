@@ -15,7 +15,7 @@ export interface PersistenceConfig {
 
 const DEFAULT_CONFIG: PersistenceConfig = {
   outputDir: 'output/sessions',
-  autoSaveInterval: 30000, // 30 seconds
+  autoSaveInterval: 5000, // 5 seconds — fallback; updateSession() persists on every message
 };
 
 export class SessionPersistence {
@@ -221,7 +221,11 @@ export class SessionPersistence {
 
     const agent = getAgentById(agentId);
     if (agent) {
-      return `**${agent.name}** (${agent.nameHe})`;
+      // Only append the Hebrew name when the session language is Hebrew.
+      const isHebrew = this.session?.config.language === 'hebrew';
+      return isHebrew
+        ? `**${agent.name}** (${agent.nameHe})`
+        : `**${agent.name}**`;
     }
     return `**${agentId}**`;
   }
@@ -244,10 +248,19 @@ export class SessionPersistence {
   }
 
   /**
-   * Update session reference (for live updates)
+   * Update session reference (for live updates) and immediately persist
+   * any new messages to disk. This is event-driven — every message ends
+   * up on disk within ~ms of being emitted, so a crash mid-session loses
+   * nothing.
    */
   updateSession(session: Session): void {
     this.session = session;
+    // Fire-and-forget immediate save. The 5s auto-save interval below is
+    // a fallback in case a caller updates the in-memory session without
+    // going through this path.
+    this.saveIncremental().catch((err) => {
+      console.error('[SessionPersistence] Incremental save failed:', err);
+    });
   }
 
   /**

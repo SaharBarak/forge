@@ -13,6 +13,7 @@ import * as fs from 'fs/promises';
 import * as readline from 'readline';
 import { App } from './app/App';
 import { CLIAgentRunner } from './adapters/CLIAgentRunner';
+import { ClaudeCodeCLIRunner } from './adapters/ClaudeCodeCLIRunner';
 import { FileSystemAdapter } from './adapters/FileSystemAdapter';
 import { SessionPersistence } from './adapters/SessionPersistence';
 import { EDAOrchestrator } from '../src/lib/eda/EDAOrchestrator';
@@ -326,6 +327,7 @@ program
   .option('-p, --project <name>', 'Project name', 'New Project')
   .option('-g, --goal <goal>', 'Project goal')
   .option('-a, --agents <ids>', 'Comma-separated agent IDs (from default or custom personas)')
+  .option('-m, --mode <mode>', 'Deliberation mode: copywrite, idea-validation, ideation, will-it-work, site-survey, business-plan, gtm-strategy, custom', 'copywrite')
   .option('--personas <name>', 'Use custom persona set (from personas/ directory)')
   .option('-l, --language <lang>', 'Language: hebrew, english, mixed', 'hebrew')
   .option('--human', 'Enable human participation', true)
@@ -334,7 +336,13 @@ program
   .action(async (options) => {
     const cwd = process.cwd();
     const fsAdapter = new FileSystemAdapter(cwd);
-    const agentRunner = new CLIAgentRunner();
+    // Use the Claude Code CLI runner by default — it inherits the user's
+    // authenticated `claude` session, no ANTHROPIC_API_KEY required. This is
+    // the spec in README.md and project memory. Fall back to the direct SDK
+    // runner only if ANTHROPIC_API_KEY is explicitly set.
+    const agentRunner = process.env.ANTHROPIC_API_KEY
+      ? new CLIAgentRunner()
+      : new ClaudeCodeCLIRunner();
 
     // Load brief if specified
     let briefContent = '';
@@ -472,6 +480,7 @@ program
       contextDir: path.join(cwd, 'context'),
       outputDir: options.output,
       language: options.language,
+      mode: options.mode,
     };
 
     // Create session
@@ -493,7 +502,9 @@ program
     });
     await persistence.initSession(session);
 
-    // Create orchestrator with CLI adapters
+    // Create orchestrator with CLI adapters.
+    // When --no-human is set, no one can advance phases manually, so the
+    // orchestrator must drive the phase state machine itself.
     const orchestrator = new EDAOrchestrator(
       session,
       undefined, // context
@@ -501,6 +512,7 @@ program
       {
         agentRunner,
         fileSystem: fsAdapter,
+        autoRunPhaseMachine: !options.human,
       }
     );
 
@@ -534,7 +546,9 @@ program
     if (personaSetName) {
       console.log(`📂 Persona set: ${personaSetName}`);
     }
-    console.log(`📁 Output: ${persistence.getSessionDir()}\n`);
+    console.log(`📁 Output: ${persistence.getSessionDir()}`);
+    console.log(`📜 Live transcript: ${persistence.getSessionDir()}/transcript.md`);
+    console.log(`📦 Raw events:      ${persistence.getSessionDir()}/messages.jsonl\n`);
 
     // Render Ink app
     const { waitUntilExit } = render(
