@@ -376,20 +376,14 @@ program
     let domainSkills: string | undefined;
     let personaSetName: string | null = options.personas || null;
 
-    // If no personas specified, offer interactive selection with generate option
-    if (!personaSetName) {
-      const selection = await selectPersonas(cwd, goal, projectName);
-      if (selection) {
-        personaSetName = selection.name;
-        availablePersonas = selection.personas;
-        if (selection.skills) {
-          domainSkills = selection.skills;
-        }
-        console.log(`\n📋 Using persona set: ${personaSetName}`);
-      } else {
-        console.log('\n📋 Using default personas (copywriting experts)');
-      }
-    }
+    // If no personas specified, use the built-in default council.
+    // The old readline-based `selectPersonas` prompt has been removed —
+    // it polluted stdout and scrolled the terminal before Ink could own
+    // it. If the user wants to pick a saved persona set, they can pass
+    // `--personas <name>` explicitly; otherwise the Ink StartWizard (from
+    // the Shell) handles persona selection as a proper Ink screen.
+    // Here in the direct `forge start` action we just fall through to the
+    // default persona set silently.
 
     // Load personas from file if specified
     if (personaSetName && availablePersonas === AGENT_PERSONAS) {
@@ -430,34 +424,10 @@ program
         process.exit(1);
       }
     } else {
-      // Interactive agent selection with loop for generate/defaults
-      let selecting = true;
-      while (selecting) {
-        const result = await selectAgentsInteractively(availablePersonas);
-
-        if (result === 'generate') {
-          // Generate new personas
-          const generated = await generatePersonasForGoal(cwd, goal, projectName);
-          if (generated) {
-            availablePersonas = generated.personas;
-            domainSkills = generated.skills;
-            personaSetName = generated.name;
-          }
-          // Continue selection with new personas
-        } else if (result === 'defaults') {
-          // Reset to default personas
-          availablePersonas = AGENT_PERSONAS;
-          domainSkills = undefined;
-          personaSetName = null;
-          clearCustomPersonas();
-          console.log('\n📋 Using default personas (copywriting experts)');
-          // Continue selection with defaults
-        } else {
-          // Got array of agent IDs
-          validAgents = result;
-          selecting = false;
-        }
-      }
+      // No -a flag: use all agents from the active persona set. The old
+      // readline-based interactive selector polluted stdout; CLI users who
+      // want a subset should pass -a skeptic,pragmatist,analyst explicitly.
+      validAgents = availablePersonas.map((a) => a.id);
     }
 
     // Register custom personas if using a custom set
@@ -540,22 +510,18 @@ program
       console.log(`${GREEN}  ✔ Identity: ${authState.did.slice(0, 24)}…${RESET}`);
     }
 
-    console.log(`\n🔥 Starting Forge: ${projectName}`);
-    console.log(`📋 Goal: ${goal}`);
-    console.log(`👥 Agents: ${validAgents.join(', ')}`);
-    if (personaSetName) {
-      console.log(`📂 Persona set: ${personaSetName}`);
-    }
-    console.log(`📁 Output: ${persistence.getSessionDir()}`);
-    console.log(`📜 Live transcript: ${persistence.getSessionDir()}/transcript.md`);
-    console.log(`📦 Raw events:      ${persistence.getSessionDir()}/messages.jsonl\n`);
+    // (intentionally no console.log here — Ink owns stdout from here on.
+    // The session path is printed after Ink unmounts.)
 
-    // Render Ink app
+    // Render Ink app via Shell so screen state is consistent with `forge`
+    // no-args. Skips home + wizard since we already built everything.
+    const { Shell } = await import('./app/Shell');
     const { waitUntilExit } = render(
-      React.createElement(App, {
-        orchestrator,
-        persistence,
-        session,
+      React.createElement(Shell, {
+        did: null,
+        sessionCount: 0,
+        initialWizardSeed: null,
+        prebuiltApp: { session, orchestrator, persistence },
         onExit: async () => {
           await persistence.saveFull();
           clearCustomPersonas(); // Clean up
@@ -653,48 +619,26 @@ program.action(async () => {
     sessionCount = dirs.filter(d => !d.startsWith('.')).length;
   } catch {}
 
-  // Track what the user selected in the Ink HomeScreen so we can act on it
-  // AFTER the app unmounts (Ink owns stdin while mounted).
-  type HomeIntent =
-    | { kind: 'start' }
-    | { kind: 'load'; name: string }
-    | { kind: 'community' }
-    | { kind: 'exit' };
-  let intent: HomeIntent = { kind: 'exit' };
-
-  const { HomeScreen } = await import('./app/HomeScreen');
-  const homeApp = render(
-    React.createElement(HomeScreen, {
+  // One persistent Ink root. Shell handles home → wizard → app transitions
+  // via state, so stdin/stdout stay owned by Ink the whole time — no
+  // scrolling readline prompts in between.
+  const { Shell } = await import('./app/Shell');
+  let exitSignal = false;
+  const shellApp = render(
+    React.createElement(Shell, {
       did,
       sessionCount,
-      onStartNew: () => {
-        intent = { kind: 'start' };
-        homeApp.unmount();
-      },
-      onLoadSession: (name: string) => {
-        intent = { kind: 'load', name };
-        homeApp.unmount();
-      },
+      initialWizardSeed: null,
+      prebuiltApp: null,
       onExit: () => {
-        intent = { kind: 'exit' };
+        exitSignal = true;
+        shellApp.unmount();
       },
     })
   );
 
-  await homeApp.waitUntilExit();
-
-  // After Ink unmounts, act on the user's choice.
-  if (intent.kind === 'start') {
-    console.log(`\n${CYAN}Launching deliberation session…${RESET}\n`);
-    // Delegate to the 'start' subcommand with default options (interactive).
-    await program.parseAsync(['node', 'forge', 'start']);
-  } else if (intent.kind === 'load') {
-    console.log(`\n${CYAN}Loading session: ${intent.name}${RESET}\n`);
-    await program.parseAsync(['node', 'forge', 'sessions', 'load', intent.name]);
-  } else if (intent.kind === 'community') {
-    await program.parseAsync(['node', 'forge', 'community', 'list']);
-  }
-  // 'exit' → let Node flush and exit naturally
+  await shellApp.waitUntilExit();
+  void exitSignal; // quiet unused warning
 });
 
 // ---- graceful shutdown ----
