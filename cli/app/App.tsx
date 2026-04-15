@@ -70,7 +70,10 @@ export function App({ orchestrator, persistence, session, onExit, permissionBrok
   const [peerCount, setPeerCount] = useState<number | undefined>(undefined);
   const [connectionsIndexSize, setConnectionsIndexSize] = useState<number | undefined>(undefined);
 
-  // Session timer (updates every second for the header)
+  // Session timer — ticks every second for live M:SS display. This used
+  // to cause flicker when combined with 50+ stray console.log calls from
+  // the orchestrator; now that console is silenced via captureConsoleToFile,
+  // the per-second re-render is clean.
   const startRef = useRef<number>(Date.now());
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {

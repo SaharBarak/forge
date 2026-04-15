@@ -32,7 +32,7 @@ const fmtElapsed = (s: number): string => {
   return `${m}:${ss}`;
 };
 
-export function HeaderBar({
+function HeaderBarImpl({
   projectName,
   goal,
   modeLabel,
@@ -108,3 +108,8 @@ export function HeaderBar({
     </Box>
   );
 }
+
+// React.memo — only re-render when primitive props actually change.
+// The phases array must be referentially stable (pass from a useMemo
+// in the parent) for this to help.
+export const HeaderBar = React.memo(HeaderBarImpl);

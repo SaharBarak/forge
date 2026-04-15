@@ -535,8 +535,8 @@ var init_SessionPersistence = __esm({
       autoSaveTimer = null;
       lastSavedMessageCount = 0;
       session = null;
-      constructor(fs13, config = {}) {
-        this.fs = fs13;
+      constructor(fs14, config = {}) {
+        this.fs = fs14;
         this.config = { ...DEFAULT_CONFIG, ...config };
       }
       /**
@@ -6720,11 +6720,70 @@ var init_connections_direct = __esm({
   }
 });
 
+// cli/adapters/console-capture.ts
+var console_capture_exports = {};
+__export(console_capture_exports, {
+  captureConsoleToFile: () => captureConsoleToFile
+});
+import * as fs12 from "fs";
+import * as path16 from "path";
+function captureConsoleToFile(logDir) {
+  try {
+    fs12.mkdirSync(logDir, { recursive: true });
+  } catch {
+  }
+  const logPath = path16.join(logDir, "session.log");
+  const stream = fs12.createWriteStream(logPath, { flags: "a" });
+  const originals = {};
+  const writeLine = (level, args) => {
+    try {
+      const ts = (/* @__PURE__ */ new Date()).toISOString();
+      const rendered = args.map((a) => {
+        if (a instanceof Error) return `${a.message}
+${a.stack ?? ""}`;
+        if (typeof a === "string") return a;
+        try {
+          return JSON.stringify(a);
+        } catch {
+          return String(a);
+        }
+      }).join(" ");
+      stream.write(`${ts} [${level}] ${rendered}
+`);
+    } catch {
+    }
+  };
+  for (const m of METHODS) {
+    originals[m] = console[m];
+    console[m] = (...args) => writeLine(m, args);
+  }
+  return {
+    logPath,
+    restore: () => {
+      for (const m of METHODS) {
+        const orig = originals[m];
+        if (orig) console[m] = orig;
+      }
+      try {
+        stream.end();
+      } catch {
+      }
+    }
+  };
+}
+var METHODS;
+var init_console_capture = __esm({
+  "cli/adapters/console-capture.ts"() {
+    "use strict";
+    METHODS = ["log", "warn", "error", "info", "debug"];
+  }
+});
+
 // cli/app/HeaderBar.tsx
 import React from "react";
 import { Box, Text } from "ink";
 import { jsx, jsxs } from "react/jsx-runtime";
-function HeaderBar({
+function HeaderBarImpl({
   projectName,
   goal,
   modeLabel,
@@ -6785,7 +6844,7 @@ function HeaderBar({
     }
   );
 }
-var fmtElapsed;
+var fmtElapsed, HeaderBar;
 var init_HeaderBar = __esm({
   "cli/app/HeaderBar.tsx"() {
     "use strict";
@@ -6794,6 +6853,7 @@ var init_HeaderBar = __esm({
       const ss = String(s % 60).padStart(2, "0");
       return `${m}:${ss}`;
     };
+    HeaderBar = React.memo(HeaderBarImpl);
   }
 });
 
@@ -8268,7 +8328,7 @@ __export(Shell_exports, {
 import { useState as useState6, useCallback as useCallback3, useMemo as useMemo2 } from "react";
 import { Box as Box10, Text as Text10 } from "ink";
 import { v4 as uuid2 } from "uuid";
-import * as path16 from "path";
+import * as path17 from "path";
 import { jsx as jsx10 } from "react/jsx-runtime";
 function Shell({
   did,
@@ -8323,7 +8383,7 @@ function Shell({
         maxRounds: 10,
         consensusThreshold: 0.6,
         methodology: getDefaultMethodology(),
-        contextDir: path16.join(cwd, "context"),
+        contextDir: path17.join(cwd, "context"),
         outputDir: wizardSeed.outputDir,
         language: wizardSeed.language,
         mode: wizardSeed.mode
@@ -8438,8 +8498,8 @@ import { Command as Command10 } from "commander";
 import { render } from "ink";
 import React8 from "react";
 import { v4 as uuid3 } from "uuid";
-import * as path17 from "path";
-import * as fs12 from "fs/promises";
+import * as path18 from "path";
+import * as fs13 from "fs/promises";
 
 // cli/adapters/CLIAgentRunner.ts
 import Anthropic from "@anthropic-ai/sdk";
@@ -10779,9 +10839,9 @@ program.command("start").description("Start a new debate session").option("-b, -
   let domainSkills;
   let personaSetName = options.personas || null;
   if (personaSetName && availablePersonas === AGENT_PERSONAS) {
-    const personasPath = path17.join(cwd, "personas", `${personaSetName}.json`);
+    const personasPath = path18.join(cwd, "personas", `${personaSetName}.json`);
     try {
-      const content = await fs12.readFile(personasPath, "utf-8");
+      const content = await fs13.readFile(personasPath, "utf-8");
       availablePersonas = JSON.parse(content);
     } catch {
       console.error(`Persona set "${personaSetName}" not found in personas/ directory`);
@@ -10789,9 +10849,9 @@ program.command("start").description("Start a new debate session").option("-b, -
     }
   }
   if (personaSetName) {
-    const skillsPath = path17.join(cwd, "personas", `${personaSetName}.skills.md`);
+    const skillsPath = path18.join(cwd, "personas", `${personaSetName}.skills.md`);
     try {
-      domainSkills = await fs12.readFile(skillsPath, "utf-8");
+      domainSkills = await fs13.readFile(skillsPath, "utf-8");
       console.log(`\u{1F4DA} Loaded domain expertise: ${personaSetName}.skills.md`);
     } catch {
     }
@@ -10824,7 +10884,7 @@ program.command("start").description("Start a new debate session").option("-b, -
     maxRounds: 10,
     consensusThreshold: 0.6,
     methodology: getDefaultMethodology(),
-    contextDir: path17.join(cwd, "context"),
+    contextDir: path18.join(cwd, "context"),
     outputDir: options.output,
     language: options.language,
     mode: options.mode
@@ -10876,6 +10936,8 @@ program.command("start").description("Start a new debate session").option("-b, -
   } else {
     console.log(`${GREEN}  \u2714 Identity: ${authState.did.slice(0, 24)}\u2026${RESET2}`);
   }
+  const { captureConsoleToFile: captureConsoleToFile2 } = await Promise.resolve().then(() => (init_console_capture(), console_capture_exports));
+  const captured = captureConsoleToFile2(persistence.getSessionDir());
   const { Shell: Shell2 } = await Promise.resolve().then(() => (init_Shell(), Shell_exports));
   const { waitUntilExit } = render(
     React8.createElement(Shell2, {
@@ -10886,12 +10948,15 @@ program.command("start").description("Start a new debate session").option("-b, -
       onExit: async () => {
         await persistence.saveFull();
         clearCustomPersonas();
-        console.log(`
-\u2705 Session saved to ${persistence.getSessionDir()}`);
       }
-    })
+    }),
+    { patchConsole: false }
   );
   await waitUntilExit();
+  captured.restore();
+  console.log(`
+\u2705 Session saved to ${persistence.getSessionDir()}`);
+  console.log(`   Debug log: ${captured.logPath}`);
 });
 program.command("briefs").description("List available briefs").action(async () => {
   const cwd = process.cwd();
@@ -10939,11 +11004,13 @@ program.action(async () => {
   const did = authResult.match((s) => s?.did ?? null, () => null);
   let sessionCount = 0;
   try {
-    const sessionsDir = path17.join(cwd, "output", "sessions");
-    const dirs = await fs12.readdir(sessionsDir);
+    const sessionsDir = path18.join(cwd, "output", "sessions");
+    const dirs = await fs13.readdir(sessionsDir);
     sessionCount = dirs.filter((d) => !d.startsWith(".")).length;
   } catch {
   }
+  const { captureConsoleToFile: captureConsoleToFile2 } = await Promise.resolve().then(() => (init_console_capture(), console_capture_exports));
+  const captured = captureConsoleToFile2(path18.join(cwd, ".forge"));
   const { Shell: Shell2 } = await Promise.resolve().then(() => (init_Shell(), Shell_exports));
   let exitSignal = false;
   const shellApp = render(
@@ -10956,9 +11023,11 @@ program.action(async () => {
         exitSignal = true;
         shellApp.unmount();
       }
-    })
+    }),
+    { patchConsole: false }
   );
   await shellApp.waitUntilExit();
+  captured.restore();
   void exitSignal;
 });
 var shutdown = async () => {

@@ -513,8 +513,16 @@ program
     // (intentionally no console.log here — Ink owns stdout from here on.
     // The session path is printed after Ink unmounts.)
 
+    // Silence stray console.log/error calls from the orchestrator so
+    // they don't force Ink to flicker. Output lands in session.log.
+    const { captureConsoleToFile } = await import('./adapters/console-capture');
+    const captured = captureConsoleToFile(persistence.getSessionDir());
+
     // Render Ink app via Shell so screen state is consistent with `forge`
     // no-args. Skips home + wizard since we already built everything.
+    // patchConsole: false is CRITICAL — Ink's default behavior wraps
+    // console.log and prints captured output ABOVE the render tree, which
+    // causes the exact flicker we're trying to eliminate.
     const { Shell } = await import('./app/Shell');
     const { waitUntilExit } = render(
       React.createElement(Shell, {
@@ -525,12 +533,16 @@ program
         onExit: async () => {
           await persistence.saveFull();
           clearCustomPersonas(); // Clean up
-          console.log(`\n✅ Session saved to ${persistence.getSessionDir()}`);
         },
-      })
+      }),
+      { patchConsole: false }
     );
 
     await waitUntilExit();
+    captured.restore();
+    // Now that Ink is unmounted, it's safe to log the final summary.
+    console.log(`\n✅ Session saved to ${persistence.getSessionDir()}`);
+    console.log(`   Debug log: ${captured.logPath}`);
   });
 
 // Briefs command - list available briefs
@@ -619,6 +631,11 @@ program.action(async () => {
     sessionCount = dirs.filter(d => !d.startsWith('.')).length;
   } catch {}
 
+  // Silence stray console.log/error calls so they don't force Ink to
+  // flicker. Everything lands in .forge/session.log until Ink unmounts.
+  const { captureConsoleToFile } = await import('./adapters/console-capture');
+  const captured = captureConsoleToFile(path.join(cwd, '.forge'));
+
   // One persistent Ink root. Shell handles home → wizard → app transitions
   // via state, so stdin/stdout stay owned by Ink the whole time — no
   // scrolling readline prompts in between.
@@ -634,10 +651,12 @@ program.action(async () => {
         exitSignal = true;
         shellApp.unmount();
       },
-    })
+    }),
+    { patchConsole: false }
   );
 
   await shellApp.waitUntilExit();
+  captured.restore();
   void exitSignal; // quiet unused warning
 });
 
