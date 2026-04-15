@@ -84,9 +84,14 @@ export function App({ orchestrator, persistence, session, onExit, permissionBrok
   }, []);
 
   // Mode-aware data pulled from the orchestrator via getModeController().
+  // Memoize the derived phases array so HeaderBar.memo can skip re-renders
+  // — otherwise a fresh array every render always looks "different".
   const mode = orchestrator.getModeController().getMode();
   const modeLabel = mode.name;
-  const modePhases = mode.phases.map((p) => ({ id: p.id, name: p.name || p.id }));
+  const modePhases = useMemo(
+    () => mode.phases.map((p) => ({ id: p.id, name: p.name || p.id })),
+    [mode]
+  );
   const [modeProgress, setModeProgress] = useState(() =>
     orchestrator.getModeController().getProgress()
   );
@@ -132,21 +137,48 @@ export function App({ orchestrator, persistence, session, onExit, permissionBrok
     };
   });
 
-  // Subscribe to orchestrator events
+  // Subscribe to orchestrator events — coalesced through a microtask so
+  // rapid-fire events collapse into ONE re-render instead of five.
+  //
+  // React 18's auto-batching doesn't apply to EventEmitter callbacks (we're
+  // outside any React synthetic event), so without coalescing every message
+  // triggered 5+ separate setState calls and 5+ full Ink re-layouts per
+  // event = flicker.
+  //
+  // The pattern: queue a single flush via queueMicrotask; the flush reads
+  // all orchestrator state in one pass and calls one setState per field.
+  // Multiple events within the same tick only schedule one flush.
   useEffect(() => {
+    let pendingFlush = false;
+    let statusTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const flush = (): void => {
+      pendingFlush = false;
+      const status = orchestrator.getConsensusStatus();
+      const floorStatus = orchestrator.getFloorStatus();
+      setMessages(orchestrator.getMessages());
+      setContributions(status.agentParticipation);
+      setConsensusPoints(status.consensusPoints);
+      setConflictPoints(status.conflictPoints);
+      setQueued(floorStatus.queued);
+      setAgentStates(new Map(orchestrator.getAgentStates()));
+      setModeProgress(orchestrator.getModeController().getProgress());
+    };
+
+    const schedule = (): void => {
+      if (pendingFlush) return;
+      pendingFlush = true;
+      queueMicrotask(flush);
+    };
+
     const unsubscribe = orchestrator.on((event: EDAEvent) => {
       switch (event.type) {
         case 'phase_change':
           setPhase((event.data as { phase: SessionPhase }).phase);
+          schedule();
           break;
         case 'agent_message':
-          setMessages(orchestrator.getMessages());
-          {
-            const status = orchestrator.getConsensusStatus();
-            setContributions(status.agentParticipation);
-            setConsensusPoints(status.consensusPoints);
-            setConflictPoints(status.conflictPoints);
-          }
+          schedule();
           break;
         case 'agent_typing': {
           const typingData = event.data as { agentId: string; typing: boolean };
@@ -156,24 +188,25 @@ export function App({ orchestrator, persistence, session, onExit, permissionBrok
         case 'floor_status': {
           const floorData = event.data as { current: string | null; status: string };
           setCurrentSpeaker(floorData.current);
-          const floorStatus = orchestrator.getFloorStatus();
-          setQueued(floorStatus.queued);
+          schedule();
           break;
         }
         case 'synthesis':
           setStatusMessage('Synthesis complete');
-          setTimeout(() => setStatusMessage(null), 3000);
+          if (statusTimeout) clearTimeout(statusTimeout);
+          statusTimeout = setTimeout(() => setStatusMessage(null), 3000);
           break;
         case 'error':
           setStatusMessage(`Error: ${(event.data as { message: string }).message}`);
           break;
       }
-      setAgentStates(new Map(orchestrator.getAgentStates()));
-      setModeProgress(orchestrator.getModeController().getProgress());
     });
 
     orchestrator.start();
-    return () => { unsubscribe(); };
+    return () => {
+      unsubscribe();
+      if (statusTimeout) clearTimeout(statusTimeout);
+    };
   }, [orchestrator]);
 
   // Handle human input

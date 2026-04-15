@@ -123,7 +123,7 @@ function ResearchResultMessage({
   );
 }
 
-export function DiscussionPane({
+function DiscussionPaneImpl({
   messages,
   maxHeight = 22,
 }: DiscussionPaneProps): React.ReactElement {
@@ -174,3 +174,15 @@ export function DiscussionPane({
     </Box>
   );
 }
+
+// Re-render only when the messages array reference changes AND its length
+// differs. The parent always passes a fresh array on each new message,
+// so reference equality works as a cheap gate.
+export const DiscussionPane = React.memo(DiscussionPaneImpl, (prev, next) => {
+  if (prev.maxHeight !== next.maxHeight) return false;
+  if (prev.messages === next.messages) return true;
+  if (prev.messages.length !== next.messages.length) return false;
+  const lastPrev = prev.messages[prev.messages.length - 1];
+  const lastNext = next.messages[next.messages.length - 1];
+  return lastPrev?.id === lastNext?.id;
+});

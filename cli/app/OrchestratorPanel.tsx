@@ -37,7 +37,7 @@ const bar = (ratio: number, width: number): string => {
   return '▓'.repeat(filled) + '░'.repeat(width - filled);
 };
 
-export function OrchestratorPanel({
+function OrchestratorPanelImpl({
   phaseName,
   phaseIdx,
   phaseCount,
@@ -172,3 +172,20 @@ export function OrchestratorPanel({
     </Box>
   );
 }
+
+export const OrchestratorPanel = React.memo(OrchestratorPanelImpl, (prev, next) => {
+  if (
+    prev.phaseName !== next.phaseName ||
+    prev.phaseIdx !== next.phaseIdx ||
+    prev.messagesInPhase !== next.messagesInPhase ||
+    prev.currentSpeaker !== next.currentSpeaker ||
+    prev.consensusPoints !== next.consensusPoints ||
+    prev.conflictPoints !== next.conflictPoints ||
+    prev.totalMessages !== next.totalMessages ||
+    prev.floorQueue.length !== next.floorQueue.length ||
+    prev.producedOutputs.size !== next.producedOutputs.size
+  ) {
+    return false;
+  }
+  return true;
+});

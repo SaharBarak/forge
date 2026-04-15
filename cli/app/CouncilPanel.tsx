@@ -14,7 +14,6 @@
 
 import React from 'react';
 import { Box, Text } from 'ink';
-import Spinner from 'ink-spinner';
 import { agentColor } from '../../src/lib/render/theme';
 
 export interface CouncilAgent {
@@ -55,7 +54,7 @@ const buildBar = (count: number, max: number): string => {
   return BAR_FILLED.repeat(filled) + BAR_EMPTY.repeat(BAR_WIDTH - filled);
 };
 
-export function CouncilPanel({
+function CouncilPanelImpl({
   agents,
   currentSpeaker,
 }: CouncilPanelProps): React.ReactElement {
@@ -91,15 +90,14 @@ export function CouncilPanel({
             paddingX={1}
             marginTop={1}
           >
-            {/* Row 1: state icon + name + stance */}
+            {/* Row 1: state icon + name + stance.
+                Static ▸ instead of ink-spinner — spinners animate via
+                setInterval and force a full re-render ~12x/sec per active
+                speaker, which is the primary source of Ink flicker. */}
             <Box flexDirection="row">
-              {isSpeaking ? (
-                <Text color="cyan">
-                  <Spinner type="dots" />
-                </Text>
-              ) : (
-                <Text>{stateIcon}</Text>
-              )}
+              <Text color={isSpeaking ? 'cyan' : undefined}>
+                {isSpeaking ? '▸' : stateIcon}
+              </Text>
               <Text> </Text>
               <Text color={color as 'red'} bold={isSpeaking}>
                 {agent.name}
@@ -127,3 +125,17 @@ export function CouncilPanel({
     </Box>
   );
 }
+
+// React.memo so identity-equal props skip re-render entirely — this cuts
+// Ink's layout-reflow cost when the App re-renders for an unrelated field.
+export const CouncilPanel = React.memo(CouncilPanelImpl, (prev, next) => {
+  if (prev.currentSpeaker !== next.currentSpeaker) return false;
+  if (prev.agents.length !== next.agents.length) return false;
+  for (let i = 0; i < prev.agents.length; i++) {
+    const a = prev.agents[i], b = next.agents[i];
+    if (a.id !== b.id || a.state !== b.state || a.contributions !== b.contributions || a.stance !== b.stance) {
+      return false;
+    }
+  }
+  return true;
+});

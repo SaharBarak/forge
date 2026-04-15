@@ -6858,10 +6858,10 @@ var init_HeaderBar = __esm({
 });
 
 // cli/app/CouncilPanel.tsx
+import React2 from "react";
 import { Box as Box2, Text as Text2 } from "ink";
-import Spinner from "ink-spinner";
 import { jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
-function CouncilPanel({
+function CouncilPanelImpl({
   agents,
   currentSpeaker
 }) {
@@ -6899,7 +6899,7 @@ function CouncilPanel({
           marginTop: 1,
           children: [
             /* @__PURE__ */ jsxs2(Box2, { flexDirection: "row", children: [
-              isSpeaking ? /* @__PURE__ */ jsx2(Text2, { color: "cyan", children: /* @__PURE__ */ jsx2(Spinner, { type: "dots" }) }) : /* @__PURE__ */ jsx2(Text2, { children: stateIcon }),
+              /* @__PURE__ */ jsx2(Text2, { color: isSpeaking ? "cyan" : void 0, children: isSpeaking ? "\u25B8" : stateIcon }),
               /* @__PURE__ */ jsx2(Text2, { children: " " }),
               /* @__PURE__ */ jsx2(Text2, { color, bold: isSpeaking, children: agent.name }),
               stance && /* @__PURE__ */ jsxs2(Text2, { color: stance.color, children: [
@@ -6922,7 +6922,7 @@ function CouncilPanel({
     })
   ] });
 }
-var STATE_ICONS, STANCE, BAR_WIDTH, BAR_FILLED, BAR_EMPTY, buildBar;
+var STATE_ICONS, STANCE, BAR_WIDTH, BAR_FILLED, BAR_EMPTY, buildBar, CouncilPanel;
 var init_CouncilPanel = __esm({
   "cli/app/CouncilPanel.tsx"() {
     "use strict";
@@ -6947,13 +6947,25 @@ var init_CouncilPanel = __esm({
       const filled = Math.max(0, Math.min(BAR_WIDTH, Math.round(count / max * BAR_WIDTH)));
       return BAR_FILLED.repeat(filled) + BAR_EMPTY.repeat(BAR_WIDTH - filled);
     };
+    CouncilPanel = React2.memo(CouncilPanelImpl, (prev, next) => {
+      if (prev.currentSpeaker !== next.currentSpeaker) return false;
+      if (prev.agents.length !== next.agents.length) return false;
+      for (let i = 0; i < prev.agents.length; i++) {
+        const a = prev.agents[i], b = next.agents[i];
+        if (a.id !== b.id || a.state !== b.state || a.contributions !== b.contributions || a.stance !== b.stance) {
+          return false;
+        }
+      }
+      return true;
+    });
   }
 });
 
 // cli/app/OrchestratorPanel.tsx
+import React3 from "react";
 import { Box as Box3, Text as Text3 } from "ink";
 import { Fragment, jsx as jsx3, jsxs as jsxs3 } from "react/jsx-runtime";
-function OrchestratorPanel({
+function OrchestratorPanelImpl({
   phaseName,
   phaseIdx,
   phaseCount,
@@ -7102,7 +7114,7 @@ function OrchestratorPanel({
     )
   ] });
 }
-var BAR_WIDTH2, bar;
+var BAR_WIDTH2, bar, OrchestratorPanel;
 var init_OrchestratorPanel = __esm({
   "cli/app/OrchestratorPanel.tsx"() {
     "use strict";
@@ -7112,6 +7124,12 @@ var init_OrchestratorPanel = __esm({
       const filled = Math.round(r * width);
       return "\u2593".repeat(filled) + "\u2591".repeat(width - filled);
     };
+    OrchestratorPanel = React3.memo(OrchestratorPanelImpl, (prev, next) => {
+      if (prev.phaseName !== next.phaseName || prev.phaseIdx !== next.phaseIdx || prev.messagesInPhase !== next.messagesInPhase || prev.currentSpeaker !== next.currentSpeaker || prev.consensusPoints !== next.consensusPoints || prev.conflictPoints !== next.conflictPoints || prev.totalMessages !== next.totalMessages || prev.floorQueue.length !== next.floorQueue.length || prev.producedOutputs.size !== next.producedOutputs.size) {
+        return false;
+      }
+      return true;
+    });
   }
 });
 
@@ -7328,6 +7346,7 @@ var init_tool_call = __esm({
 });
 
 // cli/app/DiscussionPane.tsx
+import React4 from "react";
 import { Box as Box4, Text as Text4 } from "ink";
 import { Fragment as Fragment2, jsx as jsx4, jsxs as jsxs4 } from "react/jsx-runtime";
 function SystemMessage({
@@ -7401,7 +7420,7 @@ function ResearchResultMessage({
     /* @__PURE__ */ jsx4(Box4, { marginLeft: 2, children: /* @__PURE__ */ jsx4(Text4, { children: body }) })
   ] });
 }
-function DiscussionPane({
+function DiscussionPaneImpl({
   messages,
   maxHeight = 22
 }) {
@@ -7450,7 +7469,7 @@ function DiscussionPane({
     }
   );
 }
-var TYPE_BADGES, formatTime;
+var TYPE_BADGES, formatTime, DiscussionPane;
 var init_DiscussionPane = __esm({
   "cli/app/DiscussionPane.tsx"() {
     "use strict";
@@ -7471,6 +7490,14 @@ var init_DiscussionPane = __esm({
       hour: "2-digit",
       minute: "2-digit",
       hour12: false
+    });
+    DiscussionPane = React4.memo(DiscussionPaneImpl, (prev, next) => {
+      if (prev.maxHeight !== next.maxHeight) return false;
+      if (prev.messages === next.messages) return true;
+      if (prev.messages.length !== next.messages.length) return false;
+      const lastPrev = prev.messages[prev.messages.length - 1];
+      const lastNext = next.messages[next.messages.length - 1];
+      return lastPrev?.id === lastNext?.id;
     });
   }
 });
@@ -7713,7 +7740,10 @@ function App({ orchestrator, persistence, session, onExit, permissionBroker }) {
   }, []);
   const mode = orchestrator.getModeController().getMode();
   const modeLabel = mode.name;
-  const modePhases = mode.phases.map((p) => ({ id: p.id, name: p.name || p.id }));
+  const modePhases = useMemo(
+    () => mode.phases.map((p) => ({ id: p.id, name: p.name || p.id })),
+    [mode]
+  );
   const [modeProgress, setModeProgress] = useState3(
     () => orchestrator.getModeController().getProgress()
   );
@@ -7760,19 +7790,33 @@ function App({ orchestrator, persistence, session, onExit, permissionBroker }) {
     };
   });
   useEffect2(() => {
+    let pendingFlush = false;
+    let statusTimeout = null;
+    const flush = () => {
+      pendingFlush = false;
+      const status2 = orchestrator.getConsensusStatus();
+      const floorStatus = orchestrator.getFloorStatus();
+      setMessages(orchestrator.getMessages());
+      setContributions(status2.agentParticipation);
+      setConsensusPoints(status2.consensusPoints);
+      setConflictPoints(status2.conflictPoints);
+      setQueued(floorStatus.queued);
+      setAgentStates(new Map(orchestrator.getAgentStates()));
+      setModeProgress(orchestrator.getModeController().getProgress());
+    };
+    const schedule = () => {
+      if (pendingFlush) return;
+      pendingFlush = true;
+      queueMicrotask(flush);
+    };
     const unsubscribe = orchestrator.on((event) => {
       switch (event.type) {
         case "phase_change":
           setPhase(event.data.phase);
+          schedule();
           break;
         case "agent_message":
-          setMessages(orchestrator.getMessages());
-          {
-            const status2 = orchestrator.getConsensusStatus();
-            setContributions(status2.agentParticipation);
-            setConsensusPoints(status2.consensusPoints);
-            setConflictPoints(status2.conflictPoints);
-          }
+          schedule();
           break;
         case "agent_typing": {
           const typingData = event.data;
@@ -7782,24 +7826,23 @@ function App({ orchestrator, persistence, session, onExit, permissionBroker }) {
         case "floor_status": {
           const floorData = event.data;
           setCurrentSpeaker(floorData.current);
-          const floorStatus = orchestrator.getFloorStatus();
-          setQueued(floorStatus.queued);
+          schedule();
           break;
         }
         case "synthesis":
           setStatusMessage("Synthesis complete");
-          setTimeout(() => setStatusMessage(null), 3e3);
+          if (statusTimeout) clearTimeout(statusTimeout);
+          statusTimeout = setTimeout(() => setStatusMessage(null), 3e3);
           break;
         case "error":
           setStatusMessage(`Error: ${event.data.message}`);
           break;
       }
-      setAgentStates(new Map(orchestrator.getAgentStates()));
-      setModeProgress(orchestrator.getModeController().getProgress());
     });
     orchestrator.start();
     return () => {
       unsubscribe();
+      if (statusTimeout) clearTimeout(statusTimeout);
     };
   }, [orchestrator]);
   const handleSubmit = useCallback(async (text) => {
@@ -8191,7 +8234,7 @@ var init_HomeScreen = __esm({
 });
 
 // cli/app/StartWizard.tsx
-import React6, { useState as useState5 } from "react";
+import React9, { useState as useState5 } from "react";
 import { Box as Box9, Text as Text9, useInput as useInput4 } from "ink";
 import TextInput3 from "ink-text-input";
 import { jsx as jsx9, jsxs as jsxs9 } from "react/jsx-runtime";
@@ -8210,7 +8253,7 @@ function StartWizard({
   const [goalInput, setGoalInput] = useState5("");
   const [personaCursor, setPersonaCursor] = useState5(0);
   const [personaSet, setPersonaSet] = useState5(initialPersonaSet);
-  React6.useEffect(() => {
+  React9.useEffect(() => {
     if (step === "done" && personaSet !== null) {
       onComplete({ goal, personaSet });
     }
@@ -8496,7 +8539,7 @@ var init_Shell = __esm({
 // cli/index.ts
 import { Command as Command10 } from "commander";
 import { render } from "ink";
-import React8 from "react";
+import React11 from "react";
 import { v4 as uuid3 } from "uuid";
 import * as path18 from "path";
 import * as fs13 from "fs/promises";
@@ -10940,7 +10983,7 @@ program.command("start").description("Start a new debate session").option("-b, -
   const captured = captureConsoleToFile2(persistence.getSessionDir());
   const { Shell: Shell2 } = await Promise.resolve().then(() => (init_Shell(), Shell_exports));
   const { waitUntilExit } = render(
-    React8.createElement(Shell2, {
+    React11.createElement(Shell2, {
       did: null,
       sessionCount: 0,
       initialWizardSeed: null,
@@ -11014,7 +11057,7 @@ program.action(async () => {
   const { Shell: Shell2 } = await Promise.resolve().then(() => (init_Shell(), Shell_exports));
   let exitSignal = false;
   const shellApp = render(
-    React8.createElement(Shell2, {
+    React11.createElement(Shell2, {
       did,
       sessionCount,
       initialWizardSeed: null,
