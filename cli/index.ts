@@ -1,11 +1,13 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Forge CLI - Multi-agent deliberation engine
  * Reach consensus through structured debate
  */
 
 import { Command } from 'commander';
-import { render } from 'ink';
+// ink is imported lazily (only for the bare `forge` no-args HomeScreen
+// path). Importing it eagerly loads react-reconciler 0.29 which uses
+// React 18 internals and crashes under React 19 (required by OpenTUI).
 import React from 'react';
 import { v4 as uuid } from 'uuid';
 import * as path from 'path';
@@ -514,33 +516,40 @@ program
     // The session path is printed after Ink unmounts.)
 
     // Silence stray console.log/error calls from the orchestrator so
-    // they don't force Ink to flicker. Output lands in session.log.
+    // they don't pollute the TUI. Output lands in session.log.
     const { captureConsoleToFile } = await import('./adapters/console-capture');
     const captured = captureConsoleToFile(persistence.getSessionDir());
 
-    // Render Ink app via Shell so screen state is consistent with `forge`
-    // no-args. Skips home + wizard since we already built everything.
-    // patchConsole: false is CRITICAL — Ink's default behavior wraps
-    // console.log and prints captured output ABOVE the render tree, which
-    // causes the exact flicker we're trying to eliminate.
-    const { Shell } = await import('./app/Shell');
-    const { waitUntilExit } = render(
-      React.createElement(Shell, {
-        did: null,
-        sessionCount: 0,
-        initialWizardSeed: null,
-        prebuiltApp: { session, orchestrator, persistence },
-        onExit: async () => {
-          await persistence.saveFull();
-          clearCustomPersonas(); // Clean up
+    // Render the main deliberation UI via OpenTUI's React reconciler.
+    // OpenTUI uses a native Zig core with dirty-rectangle optimization at
+    // 60 FPS — no full viewport redraws, so no flicker (which was the
+    // fundamental architectural problem with Ink).
+    const { createCliRenderer } = await import('@opentui/core');
+    const { createRoot } = await import('@opentui/react');
+    const { OpenTuiApp } = await import('./otui/App');
+
+    const renderer = await createCliRenderer({
+      exitOnCtrlC: true,
+    });
+    const root = createRoot(renderer);
+    const done = new Promise<void>((resolve) => {
+      renderer.on('destroy', () => resolve());
+    });
+    root.render(
+      React.createElement(OpenTuiApp, {
+        orchestrator,
+        persistence,
+        session,
+        onExit: () => {
+          renderer.destroy();
         },
-      }),
-      { patchConsole: false }
+      })
     );
 
-    await waitUntilExit();
+    await done;
     captured.restore();
-    // Now that Ink is unmounted, it's safe to log the final summary.
+    await persistence.saveFull();
+    clearCustomPersonas();
     console.log(`\n✅ Session saved to ${persistence.getSessionDir()}`);
     console.log(`   Debug log: ${captured.logPath}`);
   });
@@ -612,52 +621,32 @@ program.addCommand(createLoginCommand());
 program.addCommand(createCommunityCommand());
 
 
-// Default action - launch Ink home screen, then drop to readline for config
+// Default action — print a short help screen.
+//
+// The Ink-based HomeScreen + StartWizard flow (cli/app/Shell.tsx) has been
+// disabled while we migrate to OpenTUI. Ink's bundled react-reconciler
+// uses React 18 internals that crash under React 19 (which OpenTUI
+// requires). Until Shell/StartWizard are ported to OpenTUI, the bare
+// `forge` command just prints usage and exits.
 program.action(async () => {
-  const cwd = process.cwd();
-
-  // Check identity
-  const authRepo = createSessionRepository(
-    () => ResultAsync.fromSafePromise(Promise.resolve(createFileAuthBridge()))
-  );
-  const authResult = await authRepo.restoreSession();
-  const did = authResult.match((s) => s?.did ?? null, () => null);
-
-  // Count saved sessions
-  let sessionCount = 0;
-  try {
-    const sessionsDir = path.join(cwd, 'output', 'sessions');
-    const dirs = await fs.readdir(sessionsDir);
-    sessionCount = dirs.filter(d => !d.startsWith('.')).length;
-  } catch {}
-
-  // Silence stray console.log/error calls so they don't force Ink to
-  // flicker. Everything lands in .forge/session.log until Ink unmounts.
-  const { captureConsoleToFile } = await import('./adapters/console-capture');
-  const captured = captureConsoleToFile(path.join(cwd, '.forge'));
-
-  // One persistent Ink root. Shell handles home → wizard → app transitions
-  // via state, so stdin/stdout stay owned by Ink the whole time — no
-  // scrolling readline prompts in between.
-  const { Shell } = await import('./app/Shell');
-  let exitSignal = false;
-  const shellApp = render(
-    React.createElement(Shell, {
-      did,
-      sessionCount,
-      initialWizardSeed: null,
-      prebuiltApp: null,
-      onExit: () => {
-        exitSignal = true;
-        shellApp.unmount();
-      },
-    }),
-    { patchConsole: false }
-  );
-
-  await shellApp.waitUntilExit();
-  captured.restore();
-  void exitSignal; // quiet unused warning
+  const banner = [
+    '',
+    '  ⚒  FORGE — multi-agent deliberation engine',
+    '',
+    '  Start a deliberation:',
+    '    forge start -m <mode> -g "<goal>"',
+    '',
+    '  Available modes:',
+    '    copywrite · idea-validation · ideation · will-it-work',
+    '    site-survey · business-plan · gtm-strategy · custom',
+    '',
+    '  Example:',
+    '    forge start -m will-it-work -g "Ship Q2 migration?"',
+    '',
+    '  Full help:  forge --help',
+    '',
+  ];
+  console.log(banner.join('\n'));
 });
 
 // ---- graceful shutdown ----
