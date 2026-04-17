@@ -1,150 +1,423 @@
 <!DOCTYPE html>
 <!--
   FORGE — docs/index.html
-  One story, one product under a microscope, eleven modes.
-
-  Narrative: a founder team builds CivicVote (decentralized local-municipal voting)
-  and runs every phase of the lifecycle through Forge. The page IS the case study.
-  Forge is the engine that made each verdict possible.
-
-  Design: refined Kerning City (pixel-neon) — Press Start 2P reserved for the
-  signboard; Space Grotesk for display heads; Silkscreen for chapter markers;
-  JetBrains Mono for body. Deep purple/black base, one accent per chapter.
-  Motion: scroll-driven reveals, annotated video frames, one signature flicker.
-
-  Self-contained. Inline CSS/JS. No bundler. MIT.
+  Aesthetic direction: "Kerning City — MapleStory night, pixel-neon punk."
+  Perma-night Kerning vibe. Giant flickering neon FORGE signboard, pixel cityscape silhouettes,
+  sodium-vapor amber streetlight halos, pixel speech bubbles, subway-tile dividers.
+  Display = Press Start 2P. UI labels = Silkscreen. Body = JetBrains Mono.
 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Forge — A product built in public, one deliberation at a time.</title>
-<meta name="description" content="A founding team builds CivicVote — decentralized local-municipal voting — using Forge for every phase of the lifecycle. Eleven recorded sessions. Real verdicts. The engine that ran them is open source.">
-<meta property="og:title" content="Forge — A product built in public, one deliberation at a time.">
-<meta property="og:description" content="Follow a real product lifecycle through Forge's 11 modes. Ideation → Validation → Will-It-Work → Red Team → Build → Plan → GTM → Raise → Launch. Every verdict, captured.">
+<title>Forge — You don't need a smarter AI. You need five that disagree.</title>
+<meta name="description" content="You don't need a smarter AI. You need five that disagree. Forge runs five reasoning archetypes through a deterministic phase machine until they converge on a decision you can ship. CLI-first, open source, MIT.">
+<meta property="og:title" content="Forge — Multi-Agent Deliberation Engine">
+<meta property="og:description" content="Five archetypes. A deterministic phase machine. A verdict you can ship.">
 <meta property="og:type" content="website">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
 /* ═════════════════════════════════════════════════════════════════
-   FORGE — CASE STUDY EDITION
-   Kerning City, edited down. Editorial density, one accent per chapter.
+   FORGE — KERNING CITY
+   Pixel-neon punk. Always night. Hard edges. Stepped gradients.
    ═════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Base */
-  --k-bg:            #0a0512;
-  --k-bg-rise:       #120829;
-  --k-bg-deep:       #05020d;
-  --k-brick:         #1c0f36;
-  --k-brick-2:       #281654;
-  --k-rule:          #2a1558;
-  --k-rule-dim:      #1a0d38;
-
-  /* Text */
-  --k-cream:         #fff4d8;
-  --k-text:          #e8ddf5;
-  --k-text-dim:      #a89fc5;
-  --k-text-mute:     #6b5e92;
-
-  /* Chapter accents — one per chapter */
-  --acc-pink:        #ff3dc4;  /* tension, rhetoric, copy */
-  --acc-cyan:        #00e5ff;  /* analysis, tech, method */
-  --acc-lime:        #b4ff3d;  /* go / yes / launched */
-  --acc-amber:       #ffb347;  /* warning, verdict, money */
-  --acc-violet:      #a78bfa;  /* ideation, imagination */
-
-  /* Global accent — re-declared per chapter via --acc */
-  --acc:             var(--acc-pink);
-  --acc-glow:        rgba(255, 61, 196, 0.22);
-
-  /* Rhythm */
-  --seam:            1px solid var(--k-rule-dim);
-  --ease:            cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-snap:       cubic-bezier(0.4, 0, 0.2, 1);
+  --k-sky-top:      #1a0b3d;
+  --k-sky-mid:      #2d1760;
+  --k-sky-horizon:  #4a2080;
+  --k-black:        #0a0512;
+  --k-brick:        #1f1033;
+  --k-brick-2:      #2a164a;
+  --k-neon-pink:    #ff3dc4;
+  --k-neon-cyan:    #00e5ff;
+  --k-neon-lime:    #b4ff3d;
+  --k-amber:        #ffb347;
+  --k-amber-dim:    #b8732a;
+  --k-window:       #ffd166;
+  --k-cream:        #fff4d8;
+  --k-text:         #f5e6ff;
+  --k-text-dim:     #d0c0e8;
+  --k-yellow:       #ffe600;
+  --k-rule:         #3a1f6a;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html {
   scroll-behavior: smooth;
-  font-size: 15.5px;
-  background: var(--k-bg);
+  font-size: 15px;
+  background: var(--k-black);
 }
 @media (max-width: 720px) { html { font-size: 14px; } }
 
 body {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', ui-monospace, monospace;
   font-weight: 400;
+  font-size: 0.95rem;
   color: var(--k-text);
-  line-height: 1.68;
+  line-height: 1.65;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: auto;
+  image-rendering: pixelated;
   overflow-x: hidden;
   position: relative;
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 80% 55% at 50% -10%,
-      rgba(167, 139, 250, 0.10) 0%,
-      transparent 60%),
-    radial-gradient(ellipse 60% 45% at 50% 110%,
-      rgba(255, 61, 196, 0.08) 0%,
-      transparent 65%),
     linear-gradient(180deg,
-      var(--k-bg-rise) 0%,
-      var(--k-bg) 50%,
-      var(--k-bg-deep) 100%);
+      var(--k-sky-top) 0%,
+      var(--k-sky-mid) 28%,
+      var(--k-sky-mid) 60%,
+      var(--k-sky-horizon) 92%,
+      var(--k-black) 100%
+    );
   background-attachment: fixed;
 }
 
-/* Subtle grain — fixed, pointer-events none, GPU-safe */
-body::after {
+/* ─────────────────────────────────────────────────────────────
+   STARFIELD — single ::before, dozens of pinpoint box-shadows
+   ───────────────────────────────────────────────────────────── */
+/* starfield disabled — too busy for reading. single subtle haze only. */
+body::before {
   content: "";
   position: fixed;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
-  z-index: 80;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  mix-blend-mode: screen;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 0%,
+      rgba(255, 61, 196, 0.05) 0%,
+      transparent 60%);
 }
 
-::selection { background: var(--acc); color: var(--k-bg); }
-
-a { color: var(--acc); text-decoration: none; }
-a:hover { color: var(--k-cream); }
-
 /* ─────────────────────────────────────────────────────────────
-   READ PROGRESS — thin hairline, chapter-tinted
+   PIXEL CITYSCAPE — fixed mid-depth + foreground silhouettes
+   Built from layered repeating-linear-gradients (pixel buildings)
    ───────────────────────────────────────────────────────────── */
-.progress {
+.cityscape {
   position: fixed;
-  top: 0; left: 0;
-  height: 2px;
-  width: 0%;
-  background: var(--acc);
-  box-shadow: 0 0 8px var(--acc-glow);
-  z-index: 100;
-  transition: background 400ms var(--ease), box-shadow 400ms var(--ease);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 180px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+}
+.cityscape .layer-front { display: none; }
+.cityscape .layer-back {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 180px;
+  background:
+    /* tiny windows */
+    radial-gradient(2px 2px at 80px 60px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 80px 90px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 200px 80px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 320px 50px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 320px 100px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 460px 70px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 600px 40px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 720px 90px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 850px 60px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 980px 80px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1100px 50px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1240px 70px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1380px 90px, var(--k-window), transparent 50%),
+    /* stepped roofline back layer */
+    linear-gradient(180deg, transparent 0%, transparent 36%, var(--k-brick) 36%, var(--k-brick) 100%);
+  background-repeat: no-repeat;
+  opacity: 0.85;
+  clip-path: polygon(
+    0% 100%,
+    0% 60%,    4% 60%,   4% 50%,   9% 50%,   9% 65%,
+    13% 65%,  13% 40%,  18% 40%,  18% 55%,  22% 55%,
+    22% 35%,  27% 35%,  27% 50%,  32% 50%,  32% 60%,
+    37% 60%,  37% 38%,  42% 38%,  42% 55%,  47% 55%,
+    47% 42%,  52% 42%,  52% 60%,  57% 60%,  57% 35%,
+    62% 35%,  62% 50%,  67% 50%,  67% 58%,  72% 58%,
+    72% 40%,  77% 40%,  77% 55%,  82% 55%,  82% 45%,
+    87% 45%,  87% 60%,  92% 60%,  92% 38%,  97% 38%,
+    97% 55%,  100% 55%, 100% 100%
+  );
+}
+.cityscape .layer-front {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 130px;
+  background:
+    radial-gradient(2px 2px at 60px 40px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 60px 70px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 180px 50px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 180px 80px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 320px 30px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 320px 60px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 460px 50px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 460px 80px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 600px 30px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 740px 60px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 740px 90px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 880px 40px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1020px 70px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1160px 50px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1300px 80px, var(--k-window), transparent 50%),
+    radial-gradient(2px 2px at 1440px 40px, var(--k-window), transparent 50%),
+    linear-gradient(180deg, transparent 0%, transparent 25%, var(--k-black) 25%, var(--k-black) 100%);
+  background-repeat: no-repeat;
+  clip-path: polygon(
+    0% 100%,
+    0% 70%,   3% 70%,   3% 50%,   7% 50%,   7% 65%,
+    11% 65%, 11% 30%,  16% 30%,  16% 55%,  20% 55%,
+    20% 75%, 24% 75%,  24% 45%,  29% 45%,  29% 65%,
+    34% 65%, 34% 35%,  38% 35%,  38% 60%,  43% 60%,
+    43% 50%, 48% 50%,  48% 70%,  52% 70%,  52% 40%,
+    57% 40%, 57% 55%,  62% 55%,  62% 65%,  66% 65%,
+    66% 38%, 71% 38%,  71% 58%,  76% 58%,  76% 45%,
+    81% 45%, 81% 70%,  85% 70%,  85% 50%,  90% 50%,
+    90% 60%, 94% 60%,  94% 35%,  99% 35%,  99% 60%,
+    100% 60%, 100% 100%
+  );
+}
+@media (max-width: 720px) {
+  .cityscape { height: 160px; }
+  .cityscape .layer-back { height: 120px; }
+  .cityscape .layer-front { height: 80px; }
+}
+
+main, nav, footer { position: relative; z-index: 2; }
+
+/* ─────────────────────────────────────────────────────────────
+   TYPOGRAPHY — Press Start 2P is reserved for the hero signboard
+   only. Section h2s use Silkscreen at a larger size so they stay
+   readable. Body stays JetBrains Mono.
+   ───────────────────────────────────────────────────────────── */
+.display, h2, .neon {
+  font-family: 'Silkscreen', monospace;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  color: var(--k-cream);
+  text-transform: none;
+}
+.label, .kicker, .pixel-ui {
+  font-family: 'Silkscreen', 'Press Start 2P', monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+code, .mono {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', ui-monospace, monospace;
+  font-feature-settings: "calt" 0;
+}
+code {
+  font-size: 0.88em;
+  background: rgba(255, 61, 196, 0.1);
+  padding: 1px 6px;
+  color: var(--k-neon-pink);
+  border: 1px solid var(--k-neon-pink);
+}
+strong { color: var(--k-cream); font-weight: 700; }
+em     { font-style: normal; color: var(--k-neon-pink); }
+
+/* ─────────────────────────────────────────────────────────────
+   NEON — layered text-shadow glow, no gaussian blur
+   ───────────────────────────────────────────────────────────── */
+.neon-pink {
+  color: var(--k-cream);
+  text-shadow:
+    0 0 0 var(--k-cream),
+    -2px 0 0 var(--k-neon-pink),
+    2px 0 0 var(--k-neon-pink),
+    0 -2px 0 var(--k-neon-pink),
+    0 2px 0 var(--k-neon-pink),
+    -2px -2px 0 var(--k-neon-pink),
+    2px 2px 0 var(--k-neon-pink),
+    0 0 14px var(--k-neon-pink),
+    0 0 26px rgba(255, 61, 196, 0.85),
+    0 0 50px rgba(255, 61, 196, 0.6);
+}
+.neon-cyan {
+  color: var(--k-cream);
+  text-shadow:
+    -2px 0 0 var(--k-neon-cyan),
+    2px 0 0 var(--k-neon-cyan),
+    0 -2px 0 var(--k-neon-cyan),
+    0 2px 0 var(--k-neon-cyan),
+    0 0 12px var(--k-neon-cyan),
+    0 0 24px rgba(0, 229, 255, 0.7);
+}
+.neon-amber {
+  color: var(--k-cream);
+  text-shadow:
+    -2px 0 0 var(--k-amber),
+    2px 0 0 var(--k-amber),
+    0 -2px 0 var(--k-amber),
+    0 2px 0 var(--k-amber),
+    0 0 14px var(--k-amber),
+    0 0 28px rgba(255, 179, 71, 0.75);
+}
+.neon-lime {
+  color: var(--k-cream);
+  text-shadow:
+    -2px 0 0 var(--k-neon-lime),
+    2px 0 0 var(--k-neon-lime),
+    0 -2px 0 var(--k-neon-lime),
+    0 2px 0 var(--k-neon-lime),
+    0 0 12px var(--k-neon-lime),
+    0 0 24px rgba(180, 255, 61, 0.7);
+}
+
+@keyframes neonFlicker {
+  0%, 48%, 52%, 100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.88;
+    filter: brightness(0.9);
+  }
+}
+/* flicker disabled on reading-level text — only the hero sign flickers */
+.flicker, .flicker2, .flicker3 { animation: none; }
+
+/* ─────────────────────────────────────────────────────────────
+   PAGE ENTRY — staggered staircase
+   ───────────────────────────────────────────────────────────── */
+@keyframes appear {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes signbootup {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  15%  { opacity: 0.2; }
+  20%  { opacity: 1; }
+  30%  { opacity: 0.4; }
+  35%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+/* fade-in is now a no-op — GSAP drives all entry animations */
+.fade-in, .d1, .d2, .d3, .d4, .d5, .d6 { animation: none; opacity: 1; transform: none; }
+
+/* ─────────────────────────────────────────────────────────────
+   LAYOUT — 12-col asymmetric
+   ───────────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 18px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+@media (max-width: 880px) { .grid { padding: 0 22px; gap: 18px; } }
+@media (max-width: 480px) { .grid { padding: 0 16px; gap: 14px; } }
+
+.col-full { grid-column: 1 / -1; }
+.col-1-6  { grid-column: 1 / span 6; }
+.col-7-12 { grid-column: 7 / span 6; }
+.col-1-7  { grid-column: 1 / span 7; }
+.col-8-12 { grid-column: 8 / span 5; }
+.col-2-11 { grid-column: 2 / span 10; }
+.col-3-10 { grid-column: 3 / span 8; }
+.col-1-8  { grid-column: 1 / span 8; }
+.col-9-12 { grid-column: 9 / span 4; }
+@media (max-width: 880px) {
+  .col-1-6, .col-7-12, .col-1-7, .col-8-12, .col-2-11, .col-3-10, .col-1-8, .col-9-12 {
+    grid-column: 1 / -1;
+  }
+}
+
+section {
+  padding: 48px 0 48px;
+  position: relative;
+}
+@media (max-width: 720px) { section { padding: 32px 0 32px; } }
+
+section > * { position: relative; z-index: 1; }
+
+/* ─────────────────────────────────────────────────────────────
+   PIXEL BORDERS — chunky stepped borders, no border-radius
+   ───────────────────────────────────────────────────────────── */
+.px-border {
+  border: 0;
+  background: var(--k-brick);
+  position: relative;
+  box-shadow:
+    /* outer black ring */
+    -3px 0 0 0 var(--k-black),
+    3px 0 0 0 var(--k-black),
+    0 -3px 0 0 var(--k-black),
+    0 3px 0 0 var(--k-black),
+    /* corner pixels for stepped look */
+    -3px -3px 0 0 var(--k-black),
+    3px 3px 0 0 var(--k-black),
+    -3px 3px 0 0 var(--k-black),
+    3px -3px 0 0 var(--k-black),
+    /* inner highlight */
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.06),
+    inset -2px -2px 0 0 rgba(0, 0, 0, 0.4);
+}
+.px-border-pink {
+  box-shadow:
+    -3px 0 0 0 var(--k-neon-pink),
+    3px 0 0 0 var(--k-neon-pink),
+    0 -3px 0 0 var(--k-neon-pink),
+    0 3px 0 0 var(--k-neon-pink),
+    -3px -3px 0 0 var(--k-neon-pink),
+    3px 3px 0 0 var(--k-neon-pink),
+    -3px 3px 0 0 var(--k-neon-pink),
+    3px -3px 0 0 var(--k-neon-pink),
+    0 0 18px rgba(255, 61, 196, 0.55),
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.05);
+}
+.px-border-amber {
+  box-shadow:
+    -3px 0 0 0 var(--k-amber),
+    3px 0 0 0 var(--k-amber),
+    0 -3px 0 0 var(--k-amber),
+    0 3px 0 0 var(--k-amber),
+    -3px -3px 0 0 var(--k-amber),
+    3px 3px 0 0 var(--k-amber),
+    -3px 3px 0 0 var(--k-amber),
+    3px -3px 0 0 var(--k-amber),
+    0 0 22px rgba(255, 179, 71, 0.55),
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.06);
+}
+.px-border-cyan {
+  box-shadow:
+    -3px 0 0 0 var(--k-neon-cyan),
+    3px 0 0 0 var(--k-neon-cyan),
+    0 -3px 0 0 var(--k-neon-cyan),
+    0 3px 0 0 var(--k-neon-cyan),
+    -3px -3px 0 0 var(--k-neon-cyan),
+    3px 3px 0 0 var(--k-neon-cyan),
+    -3px 3px 0 0 var(--k-neon-cyan),
+    3px -3px 0 0 var(--k-neon-cyan),
+    0 0 18px rgba(0, 229, 255, 0.5),
+    inset 2px 2px 0 0 rgba(255, 255, 255, 0.06);
 }
 
 /* ─────────────────────────────────────────────────────────────
-   NAVIGATION
+   NAV — pixel signpost
    ───────────────────────────────────────────────────────────── */
 nav {
   position: sticky;
   top: 0;
-  z-index: 60;
-  backdrop-filter: blur(10px) saturate(1.1);
-  -webkit-backdrop-filter: blur(10px) saturate(1.1);
-  background: rgba(10, 5, 18, 0.72);
-  border-bottom: var(--seam);
+  z-index: 10;
+  background: rgba(10, 5, 18, 0.95);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--k-rule);
+  box-shadow: 0 1px 0 rgba(255, 61, 196, 0.15);
 }
 nav .inner {
-  max-width: 1240px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 14px 32px;
+  padding: 18px 36px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -152,861 +425,963 @@ nav .inner {
 }
 nav .wordmark {
   font-family: 'Silkscreen', monospace;
+  font-size: 18px;
   font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.12em;
   color: var(--k-cream);
+  text-decoration: none;
   display: inline-flex;
-  align-items: baseline;
-  gap: 12px;
-}
-nav .wordmark .dot {
-  display: inline-block;
-  width: 6px; height: 6px;
-  background: var(--acc);
-  box-shadow: 0 0 8px var(--acc-glow);
-  transform: translateY(-1px);
+  align-items: center;
+  gap: 14px;
 }
 nav .wordmark .tag {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
   font-size: 10px;
-  color: var(--k-text-mute);
+  color: var(--k-text-dim);
   letter-spacing: 0;
-  text-transform: lowercase;
+  font-weight: 400;
 }
 nav .links {
   display: flex;
-  gap: 20px;
   align-items: center;
-  font-family: 'Silkscreen', monospace;
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  gap: 26px;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 nav .links a {
   color: var(--k-text-dim);
-  padding: 6px 2px;
+  text-decoration: none;
+  padding: 6px 0;
   border-bottom: 1px solid transparent;
-  transition: color 160ms var(--ease), border-color 160ms var(--ease);
+  transition: color 140ms ease-out;
 }
-nav .links a:hover {
-  color: var(--acc);
-  border-bottom-color: var(--acc);
-}
-nav .links a.star {
+nav .links a:hover,
+nav .links a:focus-visible {
   color: var(--k-cream);
-  border: 1px solid var(--k-rule);
-  padding: 6px 12px;
+  text-shadow: none;
+  border-bottom-color: var(--k-neon-pink);
+  outline: none;
 }
-nav .links a.star:hover {
-  border-color: var(--acc);
-  color: var(--acc);
+nav .ghstar {
+  color: var(--k-cream) !important;
+  background: transparent;
+  padding: 6px 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
-@media (max-width: 760px) {
-  nav .links a:not(.star) { display: none; }
+nav .ghstar:hover {
+  background: var(--k-cream);
+  color: var(--k-black) !important;
+  border-color: var(--k-cream) !important;
+  text-shadow: none;
 }
-
-/* ─────────────────────────────────────────────────────────────
-   LAYOUT PRIMITIVES
-   ───────────────────────────────────────────────────────────── */
-.wrap {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 0 32px;
-}
-@media (max-width: 560px) { .wrap { padding: 0 20px; } }
-
-main > section {
-  position: relative;
-  padding: 96px 0 96px;
-}
-@media (max-width: 760px) {
-  main > section { padding: 64px 0 64px; }
-}
-
-/* chapter seam: single hairline with an accent pip in the middle */
-.seam {
-  position: relative;
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent 0%, var(--k-rule) 30%, var(--k-rule) 70%, transparent 100%);
-}
-.seam::before {
-  content: "";
-  position: absolute;
-  left: 50%; top: 50%;
-  width: 6px; height: 6px;
-  background: var(--acc);
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 10px var(--acc-glow);
+@media (max-width: 720px) {
+  nav .links { gap: 12px; font-size: 10px; }
+  nav .links a:not(.ghstar) { display: none; }
+  nav .inner { padding: 14px 18px; }
 }
 
 /* ─────────────────────────────────────────────────────────────
-   TYPOGRAPHY
+   HERO — signboard entrance
    ───────────────────────────────────────────────────────────── */
-.chapter-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-family: 'Silkscreen', monospace;
+.hero { padding: 56px 0 64px; }
+
+.kicker {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
   font-size: 11px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--acc);
-  margin-bottom: 22px;
-}
-.chapter-mark .num {
-  color: var(--k-text-mute);
-  font-weight: 700;
-}
-.chapter-mark .pip {
-  width: 5px; height: 5px;
-  background: var(--acc);
-  box-shadow: 0 0 6px var(--acc-glow);
-}
-
-h1.display, h2.display, h3.display {
-  font-family: 'Space Grotesk', 'Silkscreen', monospace;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  color: var(--k-cream);
-}
-h2.display {
-  font-size: clamp(2.1rem, 4.4vw, 3.4rem);
-  margin-bottom: 18px;
-}
-h2.display em {
-  font-style: normal;
-  color: var(--acc);
-}
-h3.display {
-  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-  margin-bottom: 14px;
-}
-
-.lede {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(1.1rem, 1.45vw, 1.25rem);
-  line-height: 1.55;
-  color: var(--k-text);
-  max-width: 60ch;
-}
-.lede em { color: var(--acc); font-style: normal; }
-.lede strong { color: var(--k-cream); font-weight: 600; }
-
-.prose {
-  font-size: 0.96rem;
-  line-height: 1.72;
   color: var(--k-text-dim);
-  max-width: 64ch;
+  display: inline-block;
+  letter-spacing: 0;
+  text-transform: none;
 }
-.prose strong { color: var(--k-cream); font-weight: 600; }
-.prose em { color: var(--acc); font-style: normal; }
-.prose code { font-size: 0.92em; color: var(--acc); }
+.kicker::before { content: "// "; color: var(--k-text-dim); }
 
-code {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9em;
-  color: var(--acc);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--k-rule);
-  padding: 1px 6px;
-  border-radius: 2px;
-}
-
-/* ═════════════════════════════════════════════════════════════════
-   HERO — the tension
-   ═════════════════════════════════════════════════════════════════ */
-.hero {
-  padding: 72px 0 72px;
-  position: relative;
-  overflow: hidden;
-}
-.hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 55% 35% at 50% 18%,
-      rgba(255, 61, 196, 0.18) 0%,
-      rgba(255, 61, 196, 0.04) 35%,
-      transparent 72%);
-  pointer-events: none;
-  z-index: 0;
-}
-.hero .wrap { position: relative; z-index: 1; }
-
-.dateline {
+.hero-dateline {
   font-family: 'Silkscreen', monospace;
   font-size: 10px;
-  letter-spacing: 0.18em;
+  color: var(--k-text-dim);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--k-text-mute);
-  margin-bottom: 36px;
+  margin-bottom: 28px;
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 10px;
   align-items: center;
 }
-.dateline .sep { color: var(--k-rule); }
-.dateline .live {
-  color: var(--acc-lime);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.hero-dateline .sep { color: var(--k-rule); }
+.hero-dateline .live {
+  color: var(--k-neon-lime);
+  text-shadow: 0 0 6px var(--k-neon-lime);
 }
-.dateline .live::before {
-  content: "";
-  width: 6px; height: 6px;
-  background: var(--acc-lime);
-  box-shadow: 0 0 6px rgba(180, 255, 61, 0.5);
-  animation: livedot 2s ease-in-out infinite;
+.hero-dateline .live::before {
+  content: "● ";
+  animation: blink 1.4s steps(2) infinite;
 }
-@keyframes livedot {
-  0%, 60% { opacity: 1; }
-  80% { opacity: 0.25; }
-  100% { opacity: 1; }
-}
+@keyframes blink { 50% { opacity: 0; } }
 
-/* The signboard — the ONE gratuitously pixel moment on the page. */
+/* the FORGE signboard — the ONE signature moment */
 .signboard {
-  display: inline-flex;
-  align-items: center;
-  gap: 20px;
-  padding: 22px 28px 26px;
-  background: var(--k-bg-deep);
-  border: 2px solid var(--k-rule);
   position: relative;
-  margin-bottom: 28px;
+  display: inline-block;
+  padding: 16px 22px 18px;
+  background: var(--k-black);
+  margin-bottom: 10px;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 61, 196, 0.15),
-    0 0 28px rgba(255, 61, 196, 0.12);
+    -3px 0 0 var(--k-amber),
+    3px 0 0 var(--k-amber),
+    0 -3px 0 var(--k-amber),
+    0 3px 0 var(--k-amber),
+    -6px 0 0 var(--k-black),
+    6px 0 0 var(--k-black),
+    0 -6px 0 var(--k-black),
+    0 6px 0 var(--k-black),
+    0 0 40px rgba(255, 179, 71, 0.25),
+    0 0 80px rgba(255, 61, 196, 0.15);
 }
-.signboard::before,
-.signboard::after {
-  content: "";
-  position: absolute;
-  width: 10px; height: 10px;
-  background: var(--acc-pink);
-  box-shadow: 0 0 10px rgba(255, 61, 196, 0.7);
-}
-.signboard::before { top: -5px; left: -5px; }
-.signboard::after  { bottom: -5px; right: -5px; }
 .signboard h1 {
   font-family: 'Press Start 2P', monospace;
-  font-weight: 400;
-  font-size: clamp(34px, 5.4vw, 54px);
+  font-size: clamp(26px, 4.2vw, 44px);
   color: var(--k-cream);
   letter-spacing: 4px;
+  margin: 0;
   text-shadow:
-    -2px 0 0 var(--acc-pink),
-    2px 0 0 var(--acc-cyan);
-  animation: flicker 14s steps(1) infinite;
-}
-@keyframes flicker {
-  0%, 96%, 100% { opacity: 1; }
-  97% { opacity: 0.78; }
-  97.4% { opacity: 1; }
-  97.8% { opacity: 0.85; }
-  98.2% { opacity: 1; }
-}
-.signboard .glyph {
-  font-family: 'Silkscreen', monospace;
-  font-size: 11px;
-  color: var(--acc-amber);
-  letter-spacing: 0.16em;
-  line-height: 1.4;
-  text-align: left;
-  padding-left: 18px;
-  border-left: 1px solid var(--k-rule);
-}
-.signboard .glyph .dim { color: var(--k-text-mute); }
-
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 56px;
-  align-items: end;
-  margin-top: 24px;
-}
-@media (max-width: 900px) {
-  .hero-grid { grid-template-columns: 1fr; gap: 28px; }
+    -2px 0 0 var(--k-neon-pink),
+    2px 0 0 var(--k-neon-pink),
+    0 -2px 0 var(--k-neon-pink),
+    0 2px 0 var(--k-neon-pink),
+    0 0 12px rgba(255, 61, 196, 0.75),
+    0 0 28px rgba(255, 61, 196, 0.35);
+  animation: signbootup 1.2s steps(4) both;
 }
 
-.hero-headline {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 500;
-  font-size: clamp(2.2rem, 5.2vw, 4.2rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-  color: var(--k-cream);
-  margin-bottom: 22px;
+/* the actual headline — one-thought sentence, single neon accent */
+.headline {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-weight: 700;
+  font-size: clamp(1.75rem, 3.2vw, 2.75rem);
+  line-height: 1.25;
+  color: var(--k-text);
+  margin-top: 26px;
+  letter-spacing: -0.01em;
+  text-transform: none;
 }
-.hero-headline .line { display: block; }
-.hero-headline em {
-  font-style: normal;
-  color: var(--acc-pink);
-  position: relative;
+.headline .line {
+  display: block;
+  margin-bottom: 6px;
 }
-.hero-headline em::after {
-  content: "";
-  position: absolute;
-  left: 0; right: 0;
-  bottom: -6px;
-  height: 3px;
-  background: var(--acc-pink);
-  box-shadow: 0 0 8px var(--acc-glow);
-  transform: scaleX(0);
-  transform-origin: left;
-  animation: underline 800ms 400ms var(--ease) forwards;
-}
-@keyframes underline {
-  to { transform: scaleX(1); }
+.headline .five {
+  display: inline;
+  color: var(--k-neon-pink);
 }
 
 .hero-sub {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(1.08rem, 1.5vw, 1.22rem);
-  line-height: 1.55;
-  color: var(--k-text);
-  margin-bottom: 28px;
-  max-width: 42ch;
-}
-.hero-sub strong { color: var(--k-cream); font-weight: 600; }
-.hero-sub .accent { color: var(--acc-cyan); }
-
-.hero-meta {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px 18px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--k-text-dim);
-  padding: 20px 22px;
-  border: var(--seam);
-  background: rgba(0, 0, 0, 0.2);
-  max-width: 420px;
-  margin-top: 10px;
-}
-.hero-meta .k {
-  color: var(--k-text-mute);
-  font-family: 'Silkscreen', monospace;
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  align-self: center;
-}
-.hero-meta .v { color: var(--k-cream); }
-.hero-meta .v em { color: var(--acc-cyan); font-style: normal; }
-
-/* CTA buttons */
-.btn-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 22px;
-  align-items: center;
-}
-.btn {
-  font-family: 'Silkscreen', monospace;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  padding: 12px 20px;
-  border: 1px solid var(--k-rule);
-  background: transparent;
-  color: var(--k-cream);
-  cursor: pointer;
-  transition: transform 160ms var(--ease-snap),
-              border-color 160ms var(--ease-snap),
-              color 160ms var(--ease-snap),
-              background 160ms var(--ease-snap);
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-.btn:hover { transform: translateY(-1px); border-color: var(--acc); color: var(--acc); }
-.btn:active { transform: translateY(0); }
-.btn.primary {
-  background: var(--acc);
-  color: var(--k-bg-deep);
-  border-color: var(--acc);
-  font-weight: 700;
-}
-.btn.primary:hover {
-  background: transparent;
-  color: var(--acc);
-}
-
-/* ═════════════════════════════════════════════════════════════════
-   CHAPTER 01 — THE FRAMING (honest disclosure)
-   ═════════════════════════════════════════════════════════════════ */
-.framing { --acc: var(--acc-amber); --acc-glow: rgba(255, 179, 71, 0.22); }
-.framing .frame-grid {
-  display: grid;
-  grid-template-columns: 1fr 1.6fr;
-  gap: 48px;
-  align-items: start;
-}
-@media (max-width: 900px) { .framing .frame-grid { grid-template-columns: 1fr; gap: 20px; } }
-
-.note-card {
-  border: 1px solid var(--k-rule);
-  border-left: 3px solid var(--acc);
-  padding: 24px 26px;
-  background: rgba(0, 0, 0, 0.25);
-  position: relative;
-}
-.note-card .stamp {
-  font-family: 'Silkscreen', monospace;
-  font-size: 9px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--acc);
-  margin-bottom: 10px;
-}
-.note-card h4 {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: var(--k-cream);
-  margin-bottom: 12px;
-  line-height: 1.3;
-}
-.note-card p {
-  font-size: 0.92rem;
-  color: var(--k-text-dim);
-  line-height: 1.7;
-}
-.note-card p + p { margin-top: 10px; }
-
-.product-card {
-  border: 1px solid var(--k-rule);
-  padding: 26px 28px;
-  background:
-    linear-gradient(180deg, rgba(18, 8, 41, 0.6), rgba(10, 5, 18, 0.8));
-  position: relative;
-}
-.product-card .kicker {
-  font-family: 'Silkscreen', monospace;
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--acc);
-  margin-bottom: 10px;
-}
-.product-card h3 {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 600;
-  font-size: 1.4rem;
-  color: var(--k-cream);
-  letter-spacing: -0.01em;
-  margin-bottom: 14px;
-}
-.product-card .row {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 10px 18px;
-  padding: 12px 0;
-  border-top: 1px dashed var(--k-rule-dim);
-  font-size: 0.9rem;
-}
-.product-card .row:first-of-type { border-top: none; }
-.product-card .row .k {
-  font-family: 'Silkscreen', monospace;
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--k-text-mute);
-  align-self: start;
-  padding-top: 2px;
-}
-.product-card .row .v { color: var(--k-text); }
-.product-card .row .v em { color: var(--acc); font-style: normal; font-weight: 600; }
-@media (max-width: 560px) {
-  .product-card .row { grid-template-columns: 1fr; gap: 4px; }
-}
-
-/* ═════════════════════════════════════════════════════════════════
-   CHAPTER TEMPLATE — header + annotated video reel
-   ═════════════════════════════════════════════════════════════════ */
-.ch-head {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  align-items: end;
-  margin-bottom: 48px;
-}
-@media (max-width: 900px) { .ch-head { grid-template-columns: 1fr; gap: 16px; } }
-
-.ch-head .prose-right { padding-bottom: 8px; }
-
-/* Annotated video frames */
-.reel {
-  display: grid;
-  gap: 48px;
-}
-.reel.two { grid-template-columns: 1fr 1fr; }
-.reel.three { grid-template-columns: 1fr 1fr 1fr; }
-@media (max-width: 1000px) {
-  .reel.two, .reel.three { grid-template-columns: 1fr; }
-}
-
-.clip {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 650ms var(--ease), transform 650ms var(--ease);
-}
-.clip.visible { opacity: 1; transform: translateY(0); }
-
-.clip-frame {
-  position: relative;
-  border: 1px solid var(--k-rule);
-  background: var(--k-bg-deep);
-  padding: 0;
-  overflow: hidden;
-  aspect-ratio: 1280 / 820;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
-    0 30px 60px -30px rgba(0, 0, 0, 0.8);
-  transition: border-color 240ms var(--ease), box-shadow 240ms var(--ease);
-}
-.clip-frame:hover {
-  border-color: var(--acc);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 0 0 1px var(--acc),
-    0 30px 60px -30px var(--acc-glow);
-}
-.clip-frame::before {
-  /* window chrome: three tiny pixel dots */
-  content: "";
-  position: absolute;
-  top: 9px; left: 12px;
-  width: 34px;
-  height: 6px;
-  background:
-    radial-gradient(circle at 3px 3px, rgba(255,61,196,0.7) 2px, transparent 2.5px),
-    radial-gradient(circle at 16px 3px, rgba(255,179,71,0.7) 2px, transparent 2.5px),
-    radial-gradient(circle at 29px 3px, rgba(180,255,61,0.7) 2px, transparent 2.5px);
-  z-index: 3;
-  pointer-events: none;
-}
-.clip-frame video {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.clip-frame img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Annotation pill that sits on the corner of a video, accent-tinted */
-.anno {
-  position: absolute;
-  z-index: 4;
-  font-family: 'Silkscreen', monospace;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--k-bg-deep);
-  background: var(--acc);
-  padding: 6px 10px 5px;
-  box-shadow: 0 0 0 1px var(--k-bg-deep), 0 0 12px var(--acc-glow);
-  max-width: 220px;
-  line-height: 1.4;
-  white-space: normal;
-}
-.anno.tr { top: 14px; right: 14px; }
-.anno.bl { bottom: 14px; left: 14px; }
-.anno.br { bottom: 14px; right: 14px; }
-.anno .arrow {
-  position: absolute;
-  width: 0; height: 0;
-}
-/* Arrow variants — bottom-left arrow pointing up-right (into video) */
-.anno.bl .arrow {
-  top: -6px; left: 18px;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 6px solid var(--acc);
-}
-.anno.tr .arrow {
-  bottom: -6px; right: 18px;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 6px solid var(--acc);
-}
-
-.clip-meta {
-  padding-top: 4px;
-  display: grid;
-  gap: 8px;
-}
-.clip-meta .row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-family: 'Silkscreen', monospace;
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--k-text-mute);
-}
-.clip-meta .row .cmd { color: var(--acc); }
-.clip-meta .row .dur { color: var(--k-text-dim); }
-.clip-meta h4 {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: var(--k-cream);
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-.clip-meta h4 em { color: var(--acc); font-style: normal; }
-.clip-meta p {
-  font-size: 0.9rem;
-  color: var(--k-text-dim);
-  line-height: 1.65;
-  max-width: 56ch;
-}
-.clip-meta .phases {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.78rem;
-  color: var(--k-text-mute);
-  padding: 8px 12px;
-  border: var(--seam);
-  background: rgba(0, 0, 0, 0.2);
-  margin-top: 4px;
-}
-.clip-meta .phases span { color: var(--acc); }
-
-/* Verdict chip — tiny colored label you can drop inline */
-.verdict {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'Silkscreen', monospace;
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  padding: 4px 8px;
-  border: 1px solid var(--acc);
-  color: var(--acc);
-  background: rgba(0, 0, 0, 0.3);
-  margin-left: 8px;
-}
-.verdict.go    { color: var(--acc-lime); border-color: var(--acc-lime); }
-.verdict.maybe { color: var(--acc-amber); border-color: var(--acc-amber); }
-.verdict.stop  { color: var(--acc-pink); border-color: var(--acc-pink); }
-
-/* ═════════════════════════════════════════════════════════════════
-   CHAPTER ACCENTS — override --acc per chapter
-   ═════════════════════════════════════════════════════════════════ */
-.ch-opportunity { --acc: var(--acc-violet); --acc-glow: rgba(167, 139, 250, 0.22); }
-.ch-feasibility { --acc: var(--acc-amber); --acc-glow: rgba(255, 179, 71, 0.22); }
-.ch-build       { --acc: var(--acc-cyan);  --acc-glow: rgba(0, 229, 255, 0.22); }
-.ch-business    { --acc: var(--acc-lime);  --acc-glow: rgba(180, 255, 61, 0.22); }
-.ch-launch      { --acc: var(--acc-pink);  --acc-glow: rgba(255, 61, 196, 0.22); }
-.ch-controls    { --acc: var(--acc-cyan);  --acc-glow: rgba(0, 229, 255, 0.22); }
-.ch-method      { --acc: var(--acc-amber); --acc-glow: rgba(255, 179, 71, 0.22); }
-.ch-close       { --acc: var(--acc-pink);  --acc-glow: rgba(255, 61, 196, 0.22); }
-
-/* ═════════════════════════════════════════════════════════════════
-   METHOD — terminal-y block
-   ═════════════════════════════════════════════════════════════════ */
-.method-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  align-items: start;
-}
-@media (max-width: 900px) { .method-grid { grid-template-columns: 1fr; } }
-
-.archetypes {
-  display: grid;
-  gap: 10px;
-}
-.arch {
-  display: grid;
-  grid-template-columns: 100px 1fr;
-  gap: 18px;
-  padding: 14px 0;
-  border-top: 1px dashed var(--k-rule-dim);
-}
-.arch:first-child { border-top: none; }
-.arch .role {
-  font-family: 'Silkscreen', monospace;
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--acc);
-  padding-top: 2px;
-}
-.arch .body {
-  font-size: 0.92rem;
-  color: var(--k-text-dim);
-  line-height: 1.6;
-}
-.arch .body strong { color: var(--k-cream); font-weight: 600; }
-
-.phase-strip {
-  border: 1px solid var(--k-rule);
-  background: rgba(0, 0, 0, 0.3);
-  padding: 22px;
-  margin-top: 24px;
-}
-.phase-strip .label {
-  font-family: 'Silkscreen', monospace;
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--k-text-mute);
-  margin-bottom: 12px;
-}
-.phase-strip .phases {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  align-items: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
   font-size: 0.88rem;
   color: var(--k-text);
+  line-height: 1.65;
+  max-width: 58ch;
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(10, 5, 18, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border-left: 2px solid var(--k-rule);
 }
-.phase-strip .phases .arrow { color: var(--acc); }
-.phase-strip .phases .final { color: var(--acc); font-weight: 700; }
+.hero-sub strong { color: var(--k-cream); font-weight: 700; }
+.hero-sub em { color: var(--k-neon-pink); }
 
-/* ═════════════════════════════════════════════════════════════════
-   CLOSE — install block
-   ═════════════════════════════════════════════════════════════════ */
-.close-card {
-  border: 1px solid var(--k-rule);
-  padding: 44px 44px 40px;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 0%,
-      rgba(255, 61, 196, 0.12) 0%,
-      transparent 70%),
-    rgba(10, 5, 18, 0.6);
-  text-align: center;
-  position: relative;
-}
-.close-card::before,
-.close-card::after {
-  content: "";
-  position: absolute;
-  width: 10px; height: 10px;
-  background: var(--acc);
-  box-shadow: 0 0 10px var(--acc-glow);
-}
-.close-card::before { top: -5px; left: -5px; }
-.close-card::after  { bottom: -5px; right: -5px; }
-.close-card h2 {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 600;
-  font-size: clamp(1.8rem, 3.2vw, 2.6rem);
-  color: var(--k-cream);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-bottom: 14px;
-}
-.close-card h2 em { color: var(--acc); font-style: normal; }
-.close-card .lede {
-  margin: 0 auto 26px;
-}
-.close-card pre {
-  font-family: 'JetBrains Mono', monospace;
+.hero-phaseline {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
   font-size: 0.82rem;
-  text-align: left;
-  padding: 18px 22px;
-  background: var(--k-bg-deep);
-  border: var(--seam);
-  color: var(--acc-lime);
-  line-height: 1.7;
-  margin: 0 auto 24px;
-  max-width: 560px;
-  overflow-x: auto;
-}
-.close-card pre .c { color: var(--k-text-mute); }
-.close-card .btn-row { justify-content: center; }
-
-/* ═════════════════════════════════════════════════════════════════
-   MARQUEE — the eleven modes, scrolling tape
-   ═════════════════════════════════════════════════════════════════ */
-.marquee {
-  padding: 28px 0;
-  border-top: var(--seam);
-  border-bottom: var(--seam);
-  overflow: hidden;
-  position: relative;
-  background: rgba(0, 0, 0, 0.25);
-}
-.marquee::before,
-.marquee::after {
-  content: "";
-  position: absolute;
-  top: 0; bottom: 0;
-  width: 80px;
-  z-index: 2;
-  pointer-events: none;
-}
-.marquee::before {
-  left: 0;
-  background: linear-gradient(90deg, var(--k-bg) 0%, transparent 100%);
-}
-.marquee::after {
-  right: 0;
-  background: linear-gradient(-90deg, var(--k-bg) 0%, transparent 100%);
-}
-.marquee-track {
-  display: flex;
-  gap: 44px;
-  align-items: center;
-  animation: scroll-tape 55s linear infinite;
-  white-space: nowrap;
-  font-family: 'Silkscreen', monospace;
-  font-size: 13px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
   color: var(--k-text-dim);
+  margin-top: 14px;
+  padding: 8px 12px;
+  display: inline-block;
+  background: rgba(10, 5, 18, 0.55);
+  border-left: 3px solid var(--k-neon-cyan);
+  letter-spacing: 0.02em;
+  line-height: 1.6;
 }
-.marquee-track span {
+.hero-phaseline .sep {
+  color: var(--k-neon-cyan);
+  opacity: 0.65;
+  padding: 0 2px;
+}
+
+.hero-cta {
+  margin-top: 28px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  padding: 11px 18px;
+  min-height: 40px;
+  border: 0;
+  position: relative;
+  cursor: pointer;
+  transition: transform 140ms ease-out, background-color 140ms ease-out, border-color 140ms ease-out;
 }
-.marquee-track span::before {
-  content: "";
-  width: 6px; height: 6px;
-  background: var(--acc-pink);
-  box-shadow: 0 0 6px rgba(255, 61, 196, 0.4);
+.btn:focus-visible {
+  outline: 2px solid var(--k-neon-pink);
+  outline-offset: 3px;
 }
-.marquee-track span:nth-child(3n)::before { background: var(--acc-cyan); box-shadow: 0 0 6px rgba(0, 229, 255, 0.4); }
-.marquee-track span:nth-child(3n+1)::before { background: var(--acc-lime); box-shadow: 0 0 6px rgba(180, 255, 61, 0.4); }
-@keyframes scroll-tape {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+.btn-primary {
+  background: var(--k-neon-pink);
+  color: var(--k-black);
+  border: 1px solid var(--k-neon-pink);
+}
+.btn-primary:hover {
+  background: var(--k-cream);
+  color: var(--k-black);
+  border-color: var(--k-cream);
+  transform: translateY(-1px);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--k-cream);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--k-cream);
+  border-color: var(--k-cream);
+  transform: translateY(-1px);
 }
 
 /* ─────────────────────────────────────────────────────────────
-   FOOTER
+   TERMINAL — pixel chrome
+   ───────────────────────────────────────────────────────────── */
+.terminal {
+  background: var(--k-black);
+  margin-top: 28px;
+  max-width: 640px;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.72rem;
+  position: relative;
+  box-shadow:
+    -4px 0 0 var(--k-neon-pink),
+    4px 0 0 var(--k-neon-pink),
+    0 -4px 0 var(--k-neon-pink),
+    0 4px 0 var(--k-neon-pink),
+    -4px -4px 0 var(--k-neon-pink),
+    4px 4px 0 var(--k-neon-pink),
+    -4px 4px 0 var(--k-neon-pink),
+    4px -4px 0 var(--k-neon-pink),
+    -8px 0 0 var(--k-black),
+    8px 0 0 var(--k-black),
+    0 -8px 0 var(--k-black),
+    0 8px 0 var(--k-black),
+    0 0 32px rgba(255, 61, 196, 0.45);
+}
+.terminal-head {
+  background: var(--k-brick);
+  border-bottom: 3px solid var(--k-neon-pink);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tdot {
+  width: 12px; height: 12px;
+  display: inline-block;
+  box-shadow: 0 0 0 1px var(--k-black);
+}
+.tdot.r { background: #ff5454; }
+.tdot.y { background: var(--k-amber); }
+.tdot.g { background: var(--k-neon-lime); }
+.terminal-title {
+  font-family: 'Silkscreen', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  margin-left: 14px;
+  letter-spacing: 0.04em;
+}
+.terminal-body {
+  padding: 18px 18px 20px;
+  white-space: pre-wrap;
+  word-break: normal;
+  color: var(--k-text-dim);
+  line-height: 1.55;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 22px, rgba(255, 61, 196, 0.025) 22px, rgba(255, 61, 196, 0.025) 23px);
+}
+@media (max-width: 720px) {
+  .terminal-body { font-size: 0.66rem; padding: 12px; }
+}
+
+.t-prompt   { color: var(--k-neon-pink); font-weight: 700; }
+.t-cmd      { color: var(--k-cream); font-weight: 700; }
+.t-flag     { color: var(--k-neon-cyan); }
+.t-str      { color: var(--k-amber); }
+.t-path     { color: var(--k-neon-lime); text-decoration: underline; text-decoration-color: var(--k-rule); }
+.t-num      { color: var(--k-neon-lime); }
+.t-comment  { color: #6a4f8a; font-style: italic; }
+.t-warn     { color: var(--k-amber); }
+.t-err      { color: var(--k-neon-pink); }
+.t-ok       { color: var(--k-neon-lime); }
+.t-out      { color: var(--k-text-dim); }
+.t-phase {
+  margin: 16px 0 8px;
+  color: var(--k-amber);
+  font-weight: 700;
+  text-shadow: 0 0 6px var(--k-amber);
+  font-family: 'Silkscreen', monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+.t-phase.cyan { color: var(--k-neon-cyan); text-shadow: 0 0 6px var(--k-neon-cyan); }
+.t-phase.mag  { color: var(--k-neon-pink); text-shadow: 0 0 6px var(--k-neon-pink); }
+.t-agent {
+  margin: 6px 0;
+  padding-left: 14px;
+  border-left: 3px solid var(--k-rule);
+}
+.t-agent.skeptic     { border-left-color: #ff5454; }
+.t-agent.pragmatist  { border-left-color: var(--k-neon-lime); }
+.t-agent.analyst     { border-left-color: var(--k-neon-cyan); }
+.t-agent.contrarian  { border-left-color: var(--k-neon-pink); }
+.t-agent.researcher  { border-left-color: var(--k-amber); }
+.t-agent-name {
+  font-family: 'Silkscreen', monospace;
+  color: var(--k-cream);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.t-verdict {
+  margin: 14px 0 4px;
+  padding: 14px 18px;
+  background: rgba(180, 255, 61, 0.06);
+  border: 2px solid var(--k-neon-lime);
+  box-shadow: 0 0 18px rgba(180, 255, 61, 0.35);
+}
+.t-verdict-head {
+  font-family: 'Silkscreen', monospace;
+  color: var(--k-neon-lime);
+  font-size: 12px;
+  text-shadow: 0 0 6px var(--k-neon-lime);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+.t-cursor::after {
+  content: "█";
+  color: var(--k-neon-pink);
+  animation: blink 1s steps(2) infinite;
+}
+.t-statusbar {
+  background: var(--k-brick);
+  border-top: 3px solid var(--k-neon-pink);
+  padding: 8px 14px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: var(--k-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.t-statusbar .pill {
+  padding: 3px 8px;
+  background: var(--k-black);
+  border: 1px solid currentColor;
+}
+.t-statusbar .pill.gold  { color: var(--k-amber); }
+.t-statusbar .pill.cyan  { color: var(--k-neon-cyan); }
+.t-statusbar .pill.green { color: var(--k-neon-lime); }
+.t-statusbar .quiet      { color: var(--k-rule); }
+.t-statusbar .spacer     { flex: 1; }
+
+/* ─────────────────────────────────────────────────────────────
+   SECTION HEADERS — neon BAND-style
+   ───────────────────────────────────────────────────────────── */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.section-num {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  letter-spacing: 0;
+}
+.section-head .kicker { color: var(--k-text-dim); }
+h2.display {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  line-height: 1.3;
+  text-transform: none;
+  letter-spacing: -0.01em;
+}
+.h2-neon {
+  color: var(--k-cream);
+}
+.h2-neon em {
+  color: var(--k-neon-pink);
+  font-style: normal;
+}
+
+.prose {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.94rem;
+  line-height: 1.7;
+  color: var(--k-text);
+}
+.prose strong { color: var(--k-cream); }
+.prose em { color: var(--k-neon-pink); }
+
+/* ─────────────────────────────────────────────────────────────
+   PROBLEM — pixel speech bubbles
+   ───────────────────────────────────────────────────────────── */
+.problem-lede {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: var(--k-text);
+  margin-top: 6px;
+}
+.problem-lede em { color: var(--k-neon-pink); }
+.problem-lede .amber { color: var(--k-neon-pink); }
+
+.bubble {
+  position: relative;
+  background: rgba(31, 16, 51, 0.5);
+  color: var(--k-text);
+  padding: 22px 24px 24px;
+  margin-top: 22px;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 2px solid var(--k-neon-pink);
+}
+.bubble::after { content: none; }
+.bubble .agent-tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  padding: 0;
+  margin-bottom: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.bubble.warn { border-left-color: var(--k-neon-lime); }
+.bubble.fail { border-left-color: var(--k-neon-cyan); }
+.bubble h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 10px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+.bubble h4 em { color: var(--k-neon-pink); font-style: normal; }
+.bubble p {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--k-text);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SUBWAY-TILE DIVIDER STRIP
+   ───────────────────────────────────────────────────────────── */
+.subway-divider { display: none; }
+
+/* ─────────────────────────────────────────────────────────────
+   STEPS (HOW)
+   ───────────────────────────────────────────────────────────── */
+.step {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  background: rgba(31, 16, 51, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.step-num {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--k-text-dim);
+  min-width: 32px;
+  letter-spacing: 0;
+}
+.step h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 6px;
+  letter-spacing: 0;
+}
+.step p {
+  font-size: 0.92rem;
+  color: var(--k-text);
+  line-height: 1.65;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MODES — pixel cards, asymmetric grid
+   ───────────────────────────────────────────────────────────── */
+.modes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+@media (max-width: 640px) { .modes-grid { grid-template-columns: 1fr; gap: 14px; } }
+
+.mode {
+  background: var(--k-brick);
+  padding: 24px 26px 24px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 2px solid var(--k-neon-pink);
+  transition: border-color 140ms ease-out, transform 140ms ease-out;
+}
+.mode:hover {
+  border-left-color: var(--k-neon-cyan);
+  transform: translateX(2px);
+}
+.mode-glyph { display: none; }
+.mode-id {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--k-text-dim);
+  display: block;
+  margin-bottom: 8px;
+  letter-spacing: 0;
+}
+.mode h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 12px;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+.mode p {
+  font-size: 0.94rem;
+  color: var(--k-text);
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+.mode-phases {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--k-text-dim);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+  word-break: normal;
+  line-height: 1.6;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DEMOS — pixel-rendered gif frames
+   ───────────────────────────────────────────────────────────── */
+.demo-frame {
+  background: var(--k-black);
+  padding: 0;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MODE GALLERY — viewport-constrained: header + tabs + video +
+   meta all fit inside a single 100vh screen on desktop.
+   Layout: 2-col grid (left: title + tabs + meta, right: video).
+   ───────────────────────────────────────────────────────────── */
+#demos {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 32px !important;
+  padding-bottom: 32px !important;
+}
+.mode-gallery {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 1.6fr);
+  gap: 24px;
+  align-items: stretch;
+}
+@media (max-width: 960px) {
+  .mode-gallery { grid-template-columns: 1fr; gap: 16px; }
+  #demos { min-height: auto; }
+}
+.mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--k-brick);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 14px;
+}
+@media (max-width: 480px) { .mode-tabs { grid-template-columns: 1fr; } }
+.mode-tab {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 7px 10px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  transition: color 140ms ease-out, background-color 140ms ease-out, border-color 140ms ease-out;
+}
+.mode-tab:hover {
+  color: var(--k-cream);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.mode-tab:focus-visible {
+  outline: 2px solid var(--k-neon-pink);
+  outline-offset: 2px;
+}
+.mode-tab.active {
+  color: var(--k-black);
+  background: var(--k-neon-pink);
+  border-color: var(--k-neon-pink);
+}
+.mode-tab.active .mode-tab-name,
+.mode-tab.active .mode-tab-id {
+  color: var(--k-black);
+}
+.mode-tab-name {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--k-cream);
+}
+.mode-tab-id {
+  font-size: 9px;
+  opacity: 0.75;
+  color: var(--k-text-dim);
+}
+.mode-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+.mode-meta-block {
+  margin-top: 8px;
+  padding: 14px 16px;
+  background: var(--k-brick);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.mode-meta-block .tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 10px;
+  color: var(--k-neon-lime);
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.mode-meta-block h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin: 0 0 8px;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+.mode-meta-block h4 em { color: var(--k-neon-pink); font-style: normal; }
+.mode-meta-block p {
+  font-size: 0.86rem;
+  color: var(--k-text);
+  line-height: 1.55;
+  margin: 0;
+}
+.mode-meta-block .mode-phases {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--k-text-dim);
+  line-height: 1.55;
+}
+.mode-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  align-self: start;
+}
+.mode-stage .demo-frame {
+  transition: opacity 180ms ease-out;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+}
+.mode-stage.loading .demo-frame {
+  opacity: 0.35;
+}
+.mode-stage video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  object-fit: contain;
+  background: var(--k-black);
+}
+.demo-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+.demo-meta {
+  padding: 18px 22px 22px;
+  background: var(--k-brick);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.demo-meta .tag {
+  display: inline-block;
+  font-family: 'Silkscreen', monospace;
+  font-size: 10px;
+  color: var(--k-neon-lime);
+  margin-bottom: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.demo-meta h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 10px;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.demo-meta h4 em { color: var(--k-neon-pink); font-style: normal; }
+.demo-meta p {
+  font-size: 0.9rem;
+  color: var(--k-text);
+  line-height: 1.65;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FEATURES — broadsheet
+   ───────────────────────────────────────────────────────────── */
+.feat-double {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+@media (max-width: 880px) { .feat-double { grid-template-columns: 1fr; } }
+.feat {
+  padding: 22px 22px 22px;
+  background: rgba(31, 16, 51, 0.5);
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 2px solid var(--k-neon-cyan);
+}
+.feat:nth-child(2n) { border-top-color: var(--k-neon-pink); }
+.feat:nth-child(3n) { border-top-color: var(--k-neon-lime); }
+.feat .num {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  letter-spacing: 0;
+  text-transform: none;
+  display: block;
+  margin-bottom: 10px;
+}
+.feat h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 10px;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.feat p {
+  font-size: 0.9rem;
+  color: var(--k-text);
+  line-height: 1.65;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   AUDIENCE BUBBLES
+   ───────────────────────────────────────────────────────────── */
+.audience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+@media (max-width: 880px) { .audience-grid { grid-template-columns: 1fr; } }
+
+.audience {
+  position: relative;
+  background: rgba(31, 16, 51, 0.5);
+  color: var(--k-text);
+  padding: 22px 24px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 2px solid var(--k-neon-cyan);
+}
+.audience:nth-child(2) { border-top-color: var(--k-neon-pink); }
+.audience:nth-child(3) { border-top-color: var(--k-neon-lime); }
+.audience::after { content: none; }
+.audience .init {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--k-text-dim);
+  margin-bottom: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.audience h4 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--k-cream);
+  margin-bottom: 10px;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.audience p {
+  font-size: 0.9rem;
+  color: var(--k-text);
+  line-height: 1.65;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   OSS BADGES
+   ───────────────────────────────────────────────────────────── */
+.oss-manifesto {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--k-text);
+  margin-bottom: 28px;
+  text-align: center;
+}
+.oss-meta {
+  font-family: 'Silkscreen', monospace;
+  font-size: 11px;
+  color: var(--k-text-dim);
+  text-align: center;
+  letter-spacing: 0.05em;
+  line-height: 1.8;
+}
+.oss-meta strong {
+  color: var(--k-cream);
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FAQ — pixel accordion
+   ───────────────────────────────────────────────────────────── */
+.faq details {
+  background: rgba(31, 16, 51, 0.5);
+  margin-bottom: 10px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.faq details[open] { border-color: rgba(255, 61, 196, 0.3); }
+.faq summary {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--k-cream);
+  padding: 18px 22px;
+  cursor: pointer;
+  letter-spacing: 0;
+  text-transform: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::before {
+  content: "+";
+  color: var(--k-neon-pink);
+  font-size: 16px;
+  font-weight: 700;
+  width: 14px;
+  text-align: center;
+}
+.faq details[open] summary::before { content: "−"; }
+.faq details[open] summary { border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.faq .answer {
+  padding: 16px 22px 22px;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--k-text);
+  line-height: 1.7;
+}
+.faq .answer strong { color: var(--k-cream); }
+.faq .answer em { color: var(--k-neon-pink); font-style: normal; }
+
+/* ─────────────────────────────────────────────────────────────
+   FINAL CTA
+   ───────────────────────────────────────────────────────────── */
+.final {
+  text-align: center;
+  padding: 80px 0 96px;
+}
+.final h2 {
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+  color: var(--k-cream);
+  line-height: 1.25;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  margin-bottom: 24px;
+}
+.final h2 em {
+  color: var(--k-neon-pink);
+  font-style: normal;
+}
+.final p {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.96rem;
+  color: var(--k-text-dim);
+  margin-bottom: 32px;
+  max-width: 56ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+.final .hero-cta { justify-content: center; }
+
+/* ─────────────────────────────────────────────────────────────
+   FOOTER COLOPHON
    ───────────────────────────────────────────────────────────── */
 footer {
   padding: 56px 0 72px;
-  border-top: var(--seam);
-  background: rgba(5, 2, 13, 0.7);
+  border-top: 1px solid var(--k-rule);
+  background: rgba(10, 5, 18, 0.7);
   position: relative;
+  z-index: 2;
 }
 .colophon {
   max-width: 900px;
@@ -1019,107 +1394,508 @@ footer {
   font-weight: 700;
   font-size: 20px;
   color: var(--k-cream);
-  letter-spacing: 0.22em;
-  margin-bottom: 10px;
-}
-.colophon-mark .dot {
-  display: inline-block;
-  width: 6px; height: 6px;
-  background: var(--acc-pink);
-  box-shadow: 0 0 6px rgba(255, 61, 196, 0.4);
-  transform: translateY(-1px);
-  margin-left: 4px;
+  text-shadow:
+    -1px 0 0 var(--k-neon-pink),
+    1px 0 0 var(--k-neon-pink),
+    0 0 8px rgba(255, 61, 196, 0.4);
+  letter-spacing: 0.18em;
+  margin-bottom: 12px;
 }
 .colophon-tag {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', monospace;
   font-size: 12px;
-  color: var(--k-text-mute);
-  margin-bottom: 22px;
+  color: var(--k-text-dim);
+  letter-spacing: 0;
+  text-transform: none;
+  margin-bottom: 24px;
 }
 .colophon-text {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: var(--k-text-dim);
-  line-height: 1.7;
+  line-height: 1.65;
   margin-bottom: 24px;
-  max-width: 56ch;
-  margin-left: auto;
-  margin-right: auto;
 }
-.colophon-text em { color: var(--acc-pink); font-style: normal; }
+.colophon-text em { color: var(--k-neon-pink); }
 .colophon-links {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 24px;
-  font-family: 'Silkscreen', monospace;
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  gap: 18px;
+  margin-bottom: 26px;
 }
 .colophon-links a {
+  font-family: 'Silkscreen', monospace;
+  font-size: 11px;
   color: var(--k-text-dim);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--k-rule);
   padding-bottom: 2px;
-  border-bottom: 1px solid var(--k-rule);
-  transition: color 160ms var(--ease), border-color 160ms var(--ease);
 }
 .colophon-links a:hover {
-  color: var(--acc-cyan);
-  border-bottom-color: var(--acc-cyan);
+  color: var(--k-neon-cyan);
+  border-bottom-color: var(--k-neon-cyan);
+  text-shadow: 0 0 6px var(--k-neon-cyan);
 }
 .colophon-stamp {
   font-family: 'Silkscreen', monospace;
-  font-size: 9px;
-  color: var(--k-text-mute);
-  letter-spacing: 0.14em;
+  font-size: 10px;
+  color: var(--k-rule);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.colophon-stamp em {
-  color: var(--k-text);
-  font-style: normal;
-}
+.colophon-stamp em { color: var(--k-text); font-style: normal; }
 .colophon-stamp em a {
-  color: var(--acc-pink);
+  color: var(--k-neon-pink) !important;
   text-decoration: underline;
+  text-decoration-color: var(--k-neon-pink);
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
+  transition: color 140ms ease-out, text-decoration-color 140ms ease-out;
+}
+.colophon-stamp em a:hover {
+  color: var(--k-cream) !important;
+  text-decoration-color: var(--k-cream);
+}
+.colophon-stamp code {
+  font-size: 0.95em;
+  color: var(--k-neon-cyan);
+  border-color: var(--k-neon-cyan);
+  background: rgba(0, 229, 255, 0.08);
 }
 
 /* ─────────────────────────────────────────────────────────────
-   REDUCED MOTION
+   MOBILE — 375px floor
    ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  section, .hero { padding: 28px 0 28px; }
+  .signboard { padding: 14px 18px 16px; }
+  .signboard h1 { font-size: 26px; letter-spacing: 2px; }
+  .headline { font-size: 1.3rem; line-height: 1.3; }
+  .headline .five { font-size: 1.4em; }
+  h2.display { font-size: 1.1rem; }
+  body { font-size: 0.9rem; }
+  .btn { font-size: 11px; padding: 9px 14px; }
+  .colophon-mark { font-size: 14px; letter-spacing: 2px; }
+  nav .wordmark { font-size: 11px; }
+  .terminal-body { font-size: 0.64rem; padding: 10px; }
+  .feat-double, .modes-grid, .audience-grid { gap: 12px; }
+  .hero-phaseline { font-size: 0.7rem; }
+}
+
+/* selection */
+::selection { background: var(--k-neon-pink); color: var(--k-black); }
+
+/* ═════════════════════════════════════════════════════════════════
+   SCENE SYSTEM — parallax + per-section atmospheric shift
+   Each <section> wraps its content in a .scene element. The .scene
+   stacks three decorative .scene-bg layers (far/mid/near) each with
+   its own gradient / clip-path, then GSAP moves them at different
+   speeds on scroll to create depth + hue drift.
+   ═════════════════════════════════════════════════════════════════ */
+.scene {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: var(--k-black);
+}
+/* Hairline section separator */
+.scene::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 50%;
+  width: 180px; height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 61, 196, 0.4) 50%,
+    transparent 100%);
+  z-index: 3;
+  pointer-events: none;
+}
+.scene.hero::before { display: none; }
+.scene-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+/* kill all the per-scene parallax layers — one global night backdrop only */
+.scene-bg--mid,
+.scene-bg--near,
+.scene-train,
+.scene-window-city { display: none !important; }
+.scene-bg--far {
+  z-index: 0;
+  opacity: 0.55;
+  background: linear-gradient(180deg,
+    rgba(26, 11, 61, 0.4) 0%,
+    rgba(45, 23, 96, 0.2) 50%,
+    rgba(26, 11, 61, 0.4) 100%) !important;
+}
+/* Alternating subtle section tints so they feel distinct without scenes */
+.scene:nth-of-type(even) .scene-bg--far {
+  background: linear-gradient(180deg,
+    rgba(31, 16, 51, 0.4) 0%,
+    rgba(26, 11, 61, 0.2) 50%,
+    rgba(31, 16, 51, 0.4) 100%) !important;
+}
+.scene > .grid,
+.scene > .container { position: relative; z-index: 2; }
+
+/* reveal primitives — GSAP toggles .in or animates directly */
+/* .reveal is a no-op now — content is always visible. GSAP only handles the hero entrance + hover lifts. */
+.reveal   { opacity: 1; transform: none; }
+.reveal.in { opacity: 1; transform: none; }
+.stagger > * { opacity: 0; transform: translateY(14px); will-change: opacity, transform; }
+
+/* ─── Hero scene: Main Street — under the FORGE sign ─────────── */
+.scene[data-scene="main-street"] .scene-bg--far {
+  background:
+    radial-gradient(ellipse 60% 35% at 50% 18%,
+      rgba(255, 61, 196, 0.28) 0%,
+      rgba(255, 61, 196, 0.10) 40%,
+      transparent 75%),
+    radial-gradient(ellipse 40% 25% at 20% 30%,
+      rgba(0, 229, 255, 0.14) 0%,
+      transparent 60%),
+    radial-gradient(ellipse 45% 30% at 82% 22%,
+      rgba(255, 179, 71, 0.16) 0%,
+      transparent 60%),
+    linear-gradient(180deg,
+      #1a0b3d 0%,
+      #2d1760 55%,
+      #1f1033 100%);
+}
+.scene[data-scene="main-street"] .scene-bg--mid {
+  background:
+    repeating-linear-gradient(90deg,
+      transparent 0 38px,
+      rgba(255, 61, 196, 0.04) 38px 40px),
+    linear-gradient(180deg,
+      transparent 0%, transparent 55%,
+      rgba(10, 5, 18, 0.35) 85%, rgba(10, 5, 18, 0.55) 100%);
+}
+.scene[data-scene="main-street"] .scene-bg--near {
+  background:
+    radial-gradient(circle at 50% 10%,
+      rgba(255, 61, 196, 0.35) 0%,
+      rgba(255, 61, 196, 0.12) 12%,
+      transparent 28%);
+}
+
+/* ─── Problem scene: Dark Alley — navy, brick, dripping neon ── */
+.scene[data-scene="alley"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(15, 8, 35, 0.92) 0%,
+      rgba(25, 12, 55, 0.82) 60%,
+      rgba(10, 5, 18, 0.95) 100%);
+}
+.scene[data-scene="alley"] .scene-bg--mid {
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(31, 16, 51, 0.45) 0 24px,
+      rgba(10, 5, 18, 0.55) 24px 26px,
+      rgba(31, 16, 51, 0.45) 26px 50px,
+      rgba(10, 5, 18, 0.55) 50px 52px),
+    repeating-linear-gradient(90deg,
+      transparent 0 82px,
+      rgba(255, 255, 255, 0.04) 82px 84px);
+}
+.scene[data-scene="alley"] .scene-bg--near {
+  background:
+    radial-gradient(ellipse 30% 60% at 12% 42%,
+      rgba(255, 179, 71, 0.22) 0%,
+      rgba(255, 179, 71, 0.06) 40%,
+      transparent 70%),
+    radial-gradient(ellipse 24% 50% at 88% 68%,
+      rgba(255, 61, 196, 0.16) 0%,
+      rgba(255, 61, 196, 0.04) 45%,
+      transparent 72%);
+}
+
+/* ─── How scene: Subway platform — cyan tile, train blur ────── */
+.scene[data-scene="subway-platform"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(20, 30, 70, 0.85) 0%,
+      rgba(10, 20, 55, 0.9) 70%,
+      rgba(5, 10, 30, 0.95) 100%);
+}
+.scene[data-scene="subway-platform"] .scene-bg--mid {
+  background:
+    /* tile grout */
+    repeating-linear-gradient(90deg,
+      rgba(210, 220, 240, 0.055) 0 46px,
+      rgba(10, 5, 18, 0.5) 46px 48px),
+    repeating-linear-gradient(0deg,
+      rgba(210, 220, 240, 0.055) 0 28px,
+      rgba(10, 5, 18, 0.5) 28px 30px);
+}
+.scene[data-scene="subway-platform"] .scene-bg--near {
+  background:
+    /* yellow warning strip */
+    linear-gradient(180deg,
+      transparent 0%, transparent 86%,
+      rgba(255, 230, 0, 0.42) 86%, rgba(255, 230, 0, 0.42) 90%,
+      transparent 90%),
+    radial-gradient(ellipse 40% 30% at 50% 92%,
+      rgba(0, 229, 255, 0.18) 0%,
+      transparent 70%);
+}
+/* passing train element — absolutely positioned inside subway scene */
+.scene-train {
+  position: absolute;
+  top: 38%;
+  left: -120%;
+  width: 90%;
+  height: 120px;
+  z-index: 1;
+  pointer-events: none;
+  will-change: transform;
+  background:
+    linear-gradient(180deg,
+      rgba(10, 5, 18, 0.0) 0%,
+      rgba(10, 5, 18, 0.0) 18%,
+      rgba(40, 25, 80, 0.9) 18%,
+      rgba(40, 25, 80, 0.9) 78%,
+      rgba(10, 5, 18, 0.0) 78%),
+    /* train windows */
+    repeating-linear-gradient(90deg,
+      transparent 0 18px,
+      rgba(255, 214, 102, 0.75) 18px 52px,
+      transparent 52px 72px);
+  filter: blur(1.5px);
+  opacity: 0.6;
+}
+
+/* ─── Modes scene: Neon market — hanging signs, magenta+cyan ── */
+.scene[data-scene="neon-market"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(40, 10, 60, 0.8) 0%,
+      rgba(20, 8, 48, 0.9) 100%);
+}
+.scene[data-scene="neon-market"] .scene-bg--mid {
+  background:
+    /* hanging neon rectangles */
+    repeating-linear-gradient(90deg,
+      transparent 0 92px,
+      rgba(255, 61, 196, 0.14) 92px 100px,
+      transparent 100px 196px,
+      rgba(0, 229, 255, 0.12) 196px 204px);
+}
+.scene[data-scene="neon-market"] .scene-bg--near {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 61, 196, 0.22) 0%, transparent 12%),
+    radial-gradient(circle at 42% 8%,  rgba(0, 229, 255, 0.20) 0%, transparent 10%),
+    radial-gradient(circle at 68% 16%, rgba(180, 255, 61, 0.18) 0%, transparent 10%),
+    radial-gradient(circle at 88% 10%, rgba(255, 179, 71, 0.22) 0%, transparent 12%);
+}
+
+/* ─── Demos scene: Rooftop view — clear violet + distant city ─ */
+.scene[data-scene="rooftop"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(50, 24, 90, 0.75) 0%,
+      rgba(30, 14, 68, 0.85) 55%,
+      rgba(15, 8, 35, 0.95) 100%);
+}
+.scene[data-scene="rooftop"] .scene-bg--mid {
+  background:
+    radial-gradient(1px 1px at 10% 20%, rgba(255,244,216,0.7), transparent 50%),
+    radial-gradient(1px 1px at 22% 32%, rgba(255,244,216,0.55), transparent 50%),
+    radial-gradient(1px 1px at 38% 16%, rgba(255,244,216,0.6), transparent 50%),
+    radial-gradient(1px 1px at 54% 24%, rgba(208,192,232,0.55), transparent 50%),
+    radial-gradient(1px 1px at 68% 14%, rgba(255,244,216,0.7), transparent 50%),
+    radial-gradient(1px 1px at 82% 28%, rgba(255,244,216,0.5), transparent 50%),
+    radial-gradient(1px 1px at 91% 18%, rgba(208,192,232,0.6), transparent 50%),
+    radial-gradient(ellipse 45% 12% at 50% 82%,
+      rgba(255, 61, 196, 0.15) 0%,
+      transparent 70%);
+}
+.scene[data-scene="rooftop"] .scene-bg--near {
+  background:
+    linear-gradient(180deg,
+      transparent 0%, transparent 78%,
+      rgba(10, 5, 18, 0.55) 92%, rgba(10, 5, 18, 0.7) 100%);
+}
+
+/* ─── Features scene: Back alley — amber + steam ─────────────── */
+.scene[data-scene="back-alley"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(30, 14, 50, 0.9) 0%,
+      rgba(45, 22, 20, 0.75) 60%,
+      rgba(15, 8, 18, 0.95) 100%);
+}
+.scene[data-scene="back-alley"] .scene-bg--mid {
+  background:
+    /* brick wall */
+    repeating-linear-gradient(0deg,
+      rgba(60, 28, 15, 0.28) 0 14px,
+      rgba(10, 5, 18, 0.6) 14px 16px),
+    repeating-linear-gradient(90deg,
+      transparent 0 62px,
+      rgba(10, 5, 18, 0.4) 62px 64px);
+}
+.scene[data-scene="back-alley"] .scene-bg--near {
+  background:
+    radial-gradient(ellipse 22% 40% at 20% 30%,
+      rgba(255, 179, 71, 0.28) 0%,
+      rgba(255, 179, 71, 0.08) 45%,
+      transparent 72%),
+    radial-gradient(ellipse 22% 40% at 78% 65%,
+      rgba(255, 179, 71, 0.22) 0%,
+      rgba(255, 179, 71, 0.06) 45%,
+      transparent 72%);
+}
+
+/* ─── For whom scene: Band stage — spotlights ────────────────── */
+.scene[data-scene="band-stage"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(50, 12, 65, 0.9) 0%,
+      rgba(25, 8, 50, 0.95) 100%);
+}
+.scene[data-scene="band-stage"] .scene-bg--mid {
+  background:
+    /* spotlight cone left */
+    linear-gradient(175deg,
+      rgba(255, 61, 196, 0.22) 0%,
+      rgba(255, 61, 196, 0.06) 18%,
+      transparent 35%),
+    /* spotlight cone right */
+    linear-gradient(185deg,
+      rgba(0, 229, 255, 0.18) 0%,
+      rgba(0, 229, 255, 0.04) 20%,
+      transparent 38%);
+}
+.scene[data-scene="band-stage"] .scene-bg--near {
+  background:
+    /* stage floor */
+    linear-gradient(180deg,
+      transparent 0%, transparent 82%,
+      rgba(120, 20, 60, 0.35) 82%, rgba(40, 8, 28, 0.6) 100%);
+}
+
+/* ─── FAQ scene: Subway car interior ─────────────────────────── */
+.scene[data-scene="subway-car"] .scene-bg--far {
+  background:
+    linear-gradient(180deg,
+      rgba(48, 32, 12, 0.82) 0%,
+      rgba(35, 22, 8, 0.92) 100%);
+}
+.scene[data-scene="subway-car"] .scene-bg--mid {
+  background:
+    /* horizontal window strip */
+    linear-gradient(180deg,
+      transparent 0%, transparent 24%,
+      rgba(10, 5, 18, 0.7) 24%, rgba(10, 5, 18, 0.7) 44%,
+      transparent 44%);
+}
+.scene[data-scene="subway-car"] .scene-bg--near {
+  background:
+    /* overhead warm light */
+    linear-gradient(180deg,
+      rgba(255, 230, 140, 0.18) 0%,
+      transparent 18%);
+}
+/* the cityscape-passing-the-window element */
+.scene-window-city {
+  position: absolute;
+  top: 24%;
+  left: 0;
+  width: 220%;
+  height: 20%;
+  z-index: 1;
+  pointer-events: none;
+  will-change: transform;
+  background:
+    /* pixel building silhouettes passing by */
+    repeating-linear-gradient(90deg,
+      rgba(20, 8, 40, 0.95) 0 34px,
+      rgba(40, 16, 70, 0.9) 34px 38px,
+      rgba(20, 8, 40, 0.95) 38px 70px,
+      rgba(30, 12, 58, 0.85) 70px 74px),
+    /* window pinpoints */
+    radial-gradient(1px 1px at 14% 40%, rgba(255,214,102,0.85), transparent 50%),
+    radial-gradient(1px 1px at 28% 55%, rgba(255,214,102,0.75), transparent 50%),
+    radial-gradient(1px 1px at 44% 35%, rgba(255,214,102,0.85), transparent 50%),
+    radial-gradient(1px 1px at 60% 50%, rgba(255,214,102,0.7), transparent 50%),
+    radial-gradient(1px 1px at 76% 38%, rgba(255,214,102,0.8), transparent 50%),
+    radial-gradient(1px 1px at 90% 58%, rgba(255,214,102,0.7), transparent 50%);
+  clip-path: polygon(
+    0 60%, 4% 60%, 4% 20%, 9% 20%, 9% 50%, 14% 50%,
+    14% 30%, 19% 30%, 19% 60%, 24% 60%, 24% 10%, 30% 10%,
+    30% 55%, 36% 55%, 36% 35%, 42% 35%, 42% 60%, 48% 60%,
+    48% 25%, 54% 25%, 54% 50%, 60% 50%, 60% 15%, 66% 15%,
+    66% 55%, 72% 55%, 72% 30%, 78% 30%, 78% 60%, 84% 60%,
+    84% 20%, 90% 20%, 90% 50%, 96% 50%, 96% 35%, 100% 35%,
+    100% 100%, 0 100%
+  );
+  opacity: 0.85;
+}
+
+/* ─── Final CTA scene: push-in sign ──────────────────────────── */
+.scene[data-scene="signboard-closeup"] .scene-bg--far {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%,
+      rgba(255, 61, 196, 0.3) 0%,
+      rgba(255, 61, 196, 0.08) 40%,
+      rgba(10, 5, 18, 0.85) 80%);
+}
+.scene[data-scene="signboard-closeup"] .scene-bg--mid {
+  background:
+    radial-gradient(ellipse 35% 30% at 50% 50%,
+      rgba(255, 179, 71, 0.22) 0%,
+      transparent 60%);
+}
+
+/* mobile — suppress heavy parallax, keep reveals */
+@media (max-width: 640px) {
+  .scene-bg { opacity: 0.4; }
+  .scene-train, .scene-window-city { display: none; }
+}
+
+/* reduced motion — flat + instant */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
-  .clip { opacity: 1; transform: none; }
-  .marquee-track { animation: none; }
-  .signboard h1 { animation: none; }
+  .scene-bg { transform: none !important; }
+  .scene-train, .scene-window-city { display: none; }
+  .reveal { opacity: 1; transform: none; }
+  .stagger > * { opacity: 1; transform: none; }
+  .flicker, .flicker2, .flicker3 { animation: none; }
 }
 
 </style>
+
+<!-- GSAP via CDN — used only for the hero entrance + hover micro-lifts. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 </head>
 <body>
 
-<div class="progress" id="progress"></div>
+<div class="cityscape" aria-hidden="true">
+  <div class="layer-back"></div>
+  <div class="layer-front"></div>
+</div>
 
 <nav>
   <div class="inner">
     <a href="#" class="wordmark">
-      <span class="dot"></span> FORGE
-      <span class="tag">// a deliberation engine</span>
+      FORGE
+      <span class="tag">// deliberation engine</span>
     </a>
     <div class="links">
-      <a href="#case">Case study</a>
-      <a href="#ch-opportunity">Opportunity</a>
-      <a href="#ch-build">Build</a>
-      <a href="#ch-business">Raise</a>
-      <a href="#ch-controls">Controls</a>
-      <a href="#ch-method">Method</a>
-      <a href="https://github.com/SaharBarak/forge" class="star">★ GitHub</a>
+      <a href="#problem">Pain</a>
+      <a href="#how">Method</a>
+      <a href="#modes">Modes</a>
+      <a href="#control">Control</a>
+      <a href="#demos">Exhibit</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/SaharBarak/forge" class="ghstar">★ GitHub</a>
     </div>
   </div>
 </nav>
@@ -1127,920 +1903,961 @@ footer {
 <main>
 
 <!-- ══════════════════════════════════════════════════════════════
-     HERO — the tension
+     HERO — KERNING CITY SIGNBOARD
      ══════════════════════════════════════════════════════════════ -->
-<section class="hero" id="top">
-  <div class="wrap">
+<section class="hero scene" data-scene="main-street">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
+  <div class="grid">
 
-    <div class="dateline">
-      <span>vol. 01</span>
-      <span class="sep">/</span>
-      <span>a product in eleven sessions</span>
-      <span class="sep">/</span>
-      <span>recorded, unabridged</span>
-      <span class="sep">/</span>
-      <span class="live">engine live</span>
-    </div>
+    <div class="col-1-7 fade-in d1">
+      <div class="hero-dateline">
+        <span>forge v0.1</span>
+        <span class="sep">//</span>
+        <span>multi-agent deliberation</span>
+        <span class="sep">//</span>
+        <span>cli-first</span>
+        <span class="sep">//</span>
+        <span>mit</span>
+        <span class="sep">//</span>
+        <span class="live">engine live</span>
+      </div>
 
-    <div class="signboard">
-      <h1>FORGE</h1>
-      <div class="glyph">
-        MULTI-AGENT<br>
-        <span class="dim">/</span> DELIBERATION<br>
-        <span class="dim">/</span> ENGINE
+      <div class="signboard fade-in d2">
+        <h1>FORGE</h1>
       </div>
     </div>
 
-    <div class="hero-grid">
-      <div>
-        <h2 class="hero-headline">
-          <span class="line">Your town's zoning fight</span>
-          <span class="line">is happening <em>on Twitter.</em></span>
-        </h2>
-        <p class="hero-sub">
-          This page is a case study. A founding team builds <strong>CivicVote</strong> —
-          a decentralized voting platform for local municipalities — and runs every
-          phase of the lifecycle through <span class="accent">Forge</span>. Eleven recorded
-          sessions. Real verdicts. You watch the engine work on a real product, so you
-          can see what it'll do with yours.
-        </p>
-        <div class="btn-row">
-          <a href="#case" class="btn primary">Read the case study</a>
-          <a href="#install" class="btn">$ bun link forge</a>
-        </div>
+    <div class="col-8-12 fade-in d3" style="align-self: end; padding-bottom: 6px;">
+      <p class="hero-sub">
+        Three hours re-prompting one model gets you a <strong>longer draft</strong>,
+        not a decision. <strong>Forge</strong> runs five reasoning archetypes —
+        <em>skeptic, pragmatist, analyst, advocate, contrarian</em> — through a
+        deterministic phase machine until they actually converge on something you can ship.
+      </p>
+      <div class="hero-phaseline" aria-label="phase machine sequence">
+        discovery <span class="sep">→</span> research <span class="sep">→</span> synthesis <span class="sep">→</span> drafting <span class="sep">→</span> verdict
       </div>
-
-      <div>
-        <div class="hero-meta">
-          <span class="k">subject</span>
-          <span class="v">CivicVote <em>— hyperlocal voting, DID-based identity</em></span>
-          <span class="k">operator</span>
-          <span class="v">a hypothetical founding team (not shipped)</span>
-          <span class="k">tool</span>
-          <span class="v">Forge — five archetypes, eleven modes</span>
-          <span class="k">artifacts</span>
-          <span class="v">11 recorded sessions <em>— all below</em></span>
-          <span class="k">integrity</span>
-          <span class="v">CivicVote is the example; Forge is the product.</span>
-        </div>
+      <div class="hero-cta">
+        <a href="#install" class="btn btn-primary">$ bun link forge</a>
+        <a href="https://github.com/SaharBarak/forge" class="btn btn-ghost">★ Star on GitHub</a>
       </div>
     </div>
 
-  </div>
-</section>
-
-<div class="seam" style="--acc: var(--acc-amber); --acc-glow: rgba(255,179,71,0.22);"></div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     CH. 01 — THE FRAMING (honest disclosure)
-     ══════════════════════════════════════════════════════════════ -->
-<section class="framing" id="case">
-  <div class="wrap">
-
-    <div class="chapter-mark">
-      <span class="num">CH. 01</span>
-      <span class="pip"></span>
-      <span>the honest framing</span>
-    </div>
-
-    <h2 class="display">
-      CivicVote doesn't exist yet.<br>
-      <em>That's kind of the point.</em>
-    </h2>
-
-    <div class="frame-grid" style="margin-top: 36px;">
-      <div class="note-card">
-        <div class="stamp">editor's note</div>
-        <h4>A product is the only honest way to show what a deliberation engine does.</h4>
-        <p>
-          Feature lists lie. Demo videos in isolation lie. So we pointed Forge at
-          one made-up-but-plausible product — a civic voting platform for towns the size
-          of <strong>Beer Sheva or Setúbal</strong> — and ran every mode end-to-end.
-        </p>
-        <p>
-          The sessions below are real. The verdicts are real. <em>The product isn't shipping.</em>
-          But the shape of the work <em>would</em> look like this if it were yours.
-        </p>
-      </div>
-
-      <div class="product-card">
-        <div class="kicker">the subject</div>
-        <h3>CivicVote — decentralized local-municipal voting.</h3>
-        <div class="row">
-          <span class="k">Pitch</span>
-          <span class="v">Restore the <em>true public-local narrative</em> — local decisions decided locally, not captured by national political feeds.</span>
-        </div>
-        <div class="row">
-          <span class="k">Identity</span>
-          <span class="v">DID-based (<code>did:key</code>). No phone numbers. Coercion-resistant, spam-resistant.</span>
-        </div>
-        <div class="row">
-          <span class="k">Infra</span>
-          <span class="v">Local-first — runs on the municipality's servers, not a global SaaS.</span>
-        </div>
-        <div class="row">
-          <span class="k">Tallies</span>
-          <span class="v">Verifiable — every voter can confirm their vote was counted without revealing how they voted.</span>
-        </div>
-        <div class="row">
-          <span class="k">The tension</span>
-          <span class="v">Today, zoning fights get hijacked by Twitter. Council meetings collapse to <em>5% turnout</em>. CivicVote is the missing layer.</span>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<div class="seam ch-opportunity"></div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     CH. 02 — OPPORTUNITY (ideation + idea validation)
-     ══════════════════════════════════════════════════════════════ -->
-<section class="ch-opportunity" id="ch-opportunity">
-  <div class="wrap">
-
-    <div class="ch-head">
-      <div>
-        <div class="chapter-mark">
-          <span class="num">CH. 02</span>
-          <span class="pip"></span>
-          <span>is there even a problem?</span>
-        </div>
-        <h2 class="display">
-          First: <em>is anyone</em><br>actually asking for this?
-        </h2>
-      </div>
-      <div class="prose-right">
-        <p class="prose">
-          Before writing a line of crypto code, the team runs two modes back-to-back.
-          <code>ideation</code> scouts r/civictech, municipality mailing lists, and
-          OpenGov forums for the unresolved pain. <code>idea-validation</code> then
-          stress-tests the strongest candidate — is this actually demanded, or is
-          it solutionism? <strong>The Skeptic killed the first two pitches.</strong>
-        </p>
-      </div>
-    </div>
-
-    <div class="reel two">
-
-      <!-- IDEATION -->
-      <div class="clip">
-        <div class="clip-frame">
-          <video src="demo/modes/ideation.mp4" autoplay muted loop playsinline preload="metadata"></video>
-          <div class="anno tr">
-            <span class="arrow"></span>
-            Scouts r/civictech.<br>Ranks by demand × feasibility.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">forge -m ideation</span>
-            <span class="dur">phase 1 of 2 · ~6 min</span>
-          </div>
-          <h4>Scout a domain. <em>Rank the pain.</em></h4>
-          <p>
-            Five archetypes fan out across civic-tech communities, pattern-match recurring complaints,
-            and rank candidate products. Output: a sortable shortlist of real problems — not a brainstorm dump.
-          </p>
-          <div class="phases">scout <span>→</span> pattern <span>→</span> ideate <span>→</span> rank</div>
-        </div>
-      </div>
-
-      <!-- IDEA-VALIDATION -->
-      <div class="clip">
-        <div class="clip-frame">
-          <video src="demo/modes/idea-validation.mp4" autoplay muted loop playsinline preload="metadata"></video>
-          <div class="anno bl">
-            <span class="arrow"></span>
-            Skeptic demands evidence.<br>Verdict: GO with caveats.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">forge -m idea-validation</span>
-            <span class="dur">phase 2 of 2 · ~9 min</span>
-          </div>
-          <h4>GO / NO-GO / PIVOT — <em>forced verdict.</em> <span class="verdict go">GO</span></h4>
-          <p>
-            Pragmatist forces closure, Analyst traces second-order effects, Contrarian names
-            what a real attacker does with this. Session cannot end without a structured verdict
-            and the reasoning attached.
-          </p>
-          <div class="phases">understand <span>→</span> research <span>→</span> stress-test <span>→</span> verdict</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<div class="seam ch-feasibility"></div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     CH. 03 — FEASIBILITY (will-it-work + red-team)
-     ══════════════════════════════════════════════════════════════ -->
-<section class="ch-feasibility" id="ch-feasibility">
-  <div class="wrap">
-
-    <div class="ch-head">
-      <div>
-        <div class="chapter-mark">
-          <span class="num">CH. 03</span>
-          <span class="pip"></span>
-          <span>can it survive contact with reality?</span>
-        </div>
-        <h2 class="display">
-          A verdict is easier<br>
-          when <em>five archetypes</em> disagree first.
-        </h2>
-      </div>
-      <div class="prose-right">
-        <p class="prose">
-          The validation verdict said <code>GO-with-caveats</code>. So the team runs the two
-          modes that usually kill new ventures: <code>will-it-work</code> for feasibility —
-          <em>can we get 30% turnout in a 50k-person pilot?</em> — and <code>red-team</code>
-          for the adversaries nobody wants to think about until launch night.
-        </p>
-      </div>
-    </div>
-
-    <div class="reel two">
-
-      <!-- WILL-IT-WORK -->
-      <div class="clip">
-        <div class="clip-frame">
-          <video src="demo/modes/will-it-work.mp4" autoplay muted loop playsinline preload="metadata"></video>
-          <div class="anno tr">
-            <span class="arrow"></span>
-            MAYBE-IF:<br>pilot city under 100k.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">forge -m will-it-work</span>
-            <span class="dur">~11 min · forced verdict</span>
-          </div>
-          <h4>Will 30% of a town actually turn out? <span class="verdict maybe">MAYBE-IF</span></h4>
-          <p>
-            No fence-sitting. No "it depends." The engine forces a <code>YES / NO / MAYBE-IF</code>
-            with explicit conditions. Pilot constrained to towns where a civic-engagement baseline already exists.
-          </p>
-          <div class="phases">define <span>→</span> evidence <span>→</span> debate <span>→</span> verdict</div>
-        </div>
-      </div>
-
-      <!-- RED-TEAM -->
-      <div class="clip">
-        <div class="clip-frame">
-          <video src="demo/modes/red-team.mp4" autoplay muted loop playsinline preload="metadata"></video>
-          <div class="anno bl">
-            <span class="arrow"></span>
-            Named threat: coercive spouse.<br>Mitigation: re-vote window.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">forge -m red-team</span>
-            <span class="dur">~14 min · ranked mitigations</span>
-          </div>
-          <h4>Who attacks this, and <em>how?</em></h4>
-          <p>
-            Named adversaries: nation-state manipulation, local incumbents, coercive employers and
-            spouses. Each adversary gets a concrete kill chain. Defender archetype scores attacks
-            against real detection capacity. Output: a ranked mitigation plan, not a risk matrix.
-          </p>
-          <div class="phases">recon <span>→</span> threat-model <span>→</span> attack-chains <span>→</span> mitigations</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<div class="seam ch-build"></div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     CH. 04 — BUILD (tech-review)
-     ══════════════════════════════════════════════════════════════ -->
-<section class="ch-build" id="ch-build">
-  <div class="wrap">
-
-    <div class="ch-head">
-      <div>
-        <div class="chapter-mark">
-          <span class="num">CH. 04</span>
-          <span class="pip"></span>
-          <span>the code exists. is it any good?</span>
-        </div>
-        <h2 class="display">
-          Four specialists audit<br>the <em>voting protocol.</em>
-        </h2>
-      </div>
-      <div class="prose-right">
-        <p class="prose">
-          Code is written. Ballot encryption, tally verification, DID registration — it all runs.
-          Before a single resident touches it, the team runs <code>tech-review</code>: architect
-          reads module boundaries, perf engineer hunts hot paths, security reviewer traces untrusted
-          input, test engineer asks what regression would actually ship. Output is a findings report
-          with file paths and severity — not vibes.
-        </p>
-      </div>
-    </div>
-
-    <div class="reel">
-      <div class="clip">
-        <div class="clip-frame">
-          <video src="demo/modes/tech-review.mp4" autoplay muted loop playsinline preload="metadata"></video>
-          <div class="anno tr">
-            <span class="arrow"></span>
-            High-sev finding:<br>nonce re-use in ballot commit.
-          </div>
-          <div class="anno bl">
-            <span class="arrow"></span>
-            Each finding has a file path.<br>Not hand-waved.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">forge -m tech-review</span>
-            <span class="dur">~18 min · findings by severity</span>
-          </div>
-          <h4>Architect, perf, security, tests — all in one pass.</h4>
-          <p>
-            One of the archetypes pauses the debate to <strong>read your actual source files</strong> —
-            not a summary, the files — and comes back with citations. Decisions grounded in what you
-            shipped, not what someone remembered.
-          </p>
-          <div class="phases">recon <span>→</span> architecture-read <span>→</span> hotspot-dive <span>→</span> report</div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<div class="seam ch-business"></div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     CH. 05 — BUSINESS (plan + GTM + pitch)
-     ══════════════════════════════════════════════════════════════ -->
-<section class="ch-business" id="ch-business">
-  <div class="wrap">
-
-    <div class="ch-head">
-      <div>
-        <div class="chapter-mark">
-          <span class="num">CH. 05</span>
-          <span class="pip"></span>
-          <span>the boring parts that decide everything</span>
-        </div>
-        <h2 class="display">
-          Who pays. Where first.<br>
-          <em>And can we raise on it?</em>
-        </h2>
-      </div>
-      <div class="prose-right">
-        <p class="prose">
-          The team runs three modes in sequence. <code>business-plan</code> builds the model
-          (municipalities? states? philanthropic?). <code>gtm-strategy</code> picks pilot city #1
-          out of three candidates. <code>vc-pitch</code> simulates a Series-A partner meeting
-          before the real room. Each verdict feeds the next session.
-        </p>
-      </div>
-    </div>
-
-    <div class="reel three">
-
-      <!-- BUSINESS-PLAN -->
-      <div class="clip">
-        <div class="clip-frame">
-          <video src="demo/modes/business-plan.mp4" autoplay muted loop playsinline preload="metadata"></video>
-          <div class="anno br">
-            <span class="arrow"></span>
-            Model: per-referendum fee +<br>annual municipal license.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">forge -m business-plan</span>
-            <span class="dur">~13 min</span>
-          </div>
-          <h4>Problem, market, model, GTM — <em>one fundable memo.</em></h4>
-          <p>
-            Each phase has its own success criteria, so the session ends with a document a partner
-            can read in five minutes — not five disconnected notes.
-          </p>
-          <div class="phases">problem <span>→</span> market <span>→</span> model <span>→</span> gtm <span>→</span> synthesis</div>
-        </div>
-      </div>
-
-      <!-- GTM-STRATEGY -->
-      <div class="clip">
-        <div class="clip-frame">
-          <video src="demo/modes/gtm-strategy.mp4" autoplay muted loop playsinline preload="metadata"></video>
-          <div class="anno tr">
-            <span class="arrow"></span>
-            Pilot #1: Setúbal, PT<br>(120k, EU civic funding).
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">forge -m gtm-strategy</span>
-            <span class="dur">~10 min</span>
-          </div>
-          <h4>Pick pilot city #1. <em>Defend the choice.</em></h4>
-          <p>
-            Beer Sheva, Ramla, or Setúbal? Agents argue ICP, positioning, and sequencing, then
-            commit to a concrete week-by-week rollout — not a quarterly wishlist.
-          </p>
-          <div class="phases">audience <span>→</span> positioning <span>→</span> channels <span>→</span> tactics</div>
-        </div>
-      </div>
-
-      <!-- VC-PITCH -->
-      <div class="clip">
-        <div class="clip-frame">
-          <video src="demo/modes/vc-pitch.mp4" autoplay muted loop playsinline preload="metadata"></video>
-          <div class="anno bl">
-            <span class="arrow"></span>
-            Verdict: FOLLOW.<br>Diligence: turnout data from pilot.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">forge -m vc-pitch</span>
-            <span class="dur">~15 min · PASS / FOLLOW / INVEST</span>
-          </div>
-          <h4>Partner meeting, simulated. <span class="verdict maybe">FOLLOW</span></h4>
-          <p>
-            GP pattern-matches thesis, Associate grills unit economics, LP proxy tests fund fit,
-            Founder defends the vision. Ends in a one-page investment memo you can forward to IC.
-          </p>
-          <div class="phases">pitch-digest <span>→</span> market-probe <span>→</span> unit-economics <span>→</span> partner-debate <span>→</span> memo</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<div class="seam ch-launch"></div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     CH. 06 — LAUNCH (site-survey + copywrite)
-     ══════════════════════════════════════════════════════════════ -->
-<section class="ch-launch" id="ch-launch">
-  <div class="wrap">
-
-    <div class="ch-head">
-      <div>
-        <div class="chapter-mark">
-          <span class="num">CH. 06</span>
-          <span class="pip"></span>
-          <span>the last mile before the mayor sees it</span>
-        </div>
-        <h2 class="display">
-          A landing page that<br>
-          <em>a procurement officer</em> can read in 90 seconds.
-        </h2>
-      </div>
-      <div class="prose-right">
-        <p class="prose">
-          Municipal procurement is its own dialect. The team runs <code>site-survey</code> on an
-          existing civic-tech competitor to diagnose what's failing, then <code>copywrite</code>
-          to draft every section of civicvote.example — hero, value props, CTA — written for the
-          person who signs the PO, not the crypto crowd.
-        </p>
-      </div>
-    </div>
-
-    <div class="reel two">
-
-      <!-- SITE-SURVEY -->
-      <div class="clip">
-        <div class="clip-frame">
-          <video src="demo/modes/site-survey.mp4" autoplay muted loop playsinline preload="metadata"></video>
-          <div class="anno tr">
-            <span class="arrow"></span>
-            Diagnosis: "decentralized"<br>is a red flag to city hall.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">forge -m site-survey</span>
-            <span class="dur">~9 min · before/after rewrites</span>
-          </div>
-          <h4>Audit an existing page. <em>Fix it in the same run.</em></h4>
-          <p>
-            Analyze, diagnose, research what converts, produce before/after rewrites for every section.
-            One session, both halves.
-          </p>
-          <div class="phases">analyze <span>→</span> diagnose <span>→</span> research <span>→</span> rewrite</div>
-        </div>
-      </div>
-
-      <!-- COPYWRITE -->
-      <div class="clip">
-        <div class="clip-frame">
-          <video src="demo/modes/copywrite.mp4" autoplay muted loop playsinline preload="metadata"></video>
-          <div class="anno bl">
-            <span class="arrow"></span>
-            Can't exit until every<br>requiredOutput ships.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">forge -m copywrite</span>
-            <span class="dur">~12 min · section-by-section</span>
-          </div>
-          <h4>Debate positioning. <em>Then draft, section by section.</em></h4>
-          <p>
-            Five archetypes argue over the hero line for twenty messages, then the phase machine
-            forces synthesis and drafting. Session can't exit until every <code>requiredOutput</code>
-            is present.
-          </p>
-          <div class="phases">discovery <span>→</span> research <span>→</span> ideation <span>→</span> synthesis <span>→</span> drafting</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<div class="seam ch-controls"></div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     CH. 07 — CONTROLS (agent control + skill picker)
-     ══════════════════════════════════════════════════════════════ -->
-<section class="ch-controls" id="ch-controls">
-  <div class="wrap">
-
-    <div class="ch-head">
-      <div>
-        <div class="chapter-mark">
-          <span class="num">CH. 07</span>
-          <span class="pip"></span>
-          <span>you're not just watching the debate</span>
-        </div>
-        <h2 class="display">
-          Every agent,<br><em>your hand on the dial.</em>
-        </h2>
-      </div>
-      <div class="prose-right">
-        <p class="prose">
-          The reason this isn't just "ChatGPT with extra steps": while a session runs,
-          two keybinds change the whole character of the deliberation.
-          <strong>Press <code>a</code></strong> to swap any agent's model mid-session.
-          <strong>Press <code>k</code></strong> to load a project-specific skill into
-          the right archetype. Changes apply on the next turn — no restart.
-        </p>
-      </div>
-    </div>
-
-    <div class="reel two">
-
-      <!-- AGENT CONTROL -->
-      <div class="clip">
-        <div class="clip-frame">
-          <img src="demo/agent-control.gif"
-               alt="Forge Agent Control panel: per-agent model swap and pause" loading="lazy">
-          <div class="anno tr">
-            <span class="arrow"></span>
-            Skeptic: Claude Opus.<br>Pragmatist: Gemini 2.5.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">keybind · a</span>
-            <span class="dur">live · no restart</span>
-          </div>
-          <h4>The <em>panel.</em></h4>
-          <p>
-            Every alive agent, with state, role, current model, pause badge. <code>←→</code>
-            cycles the model, <code>p</code> switches provider, <code>space</code> pauses,
-            <code>s</code> forces a speak turn. Close with <code>esc</code>; changes apply immediately.
-          </p>
-        </div>
-      </div>
-
-      <!-- SKILL PICKER -->
-      <div class="clip">
-        <div class="clip-frame">
-          <img src="demo/skill-picker.gif"
-               alt="Forge Skill Picker: toggle project/user/plugin skills per agent" loading="lazy">
-          <div class="anno bl">
-            <span class="arrow"></span>
-            Cryptographic-protocol skill<br>loaded into security archetype.
-          </div>
-        </div>
-        <div class="clip-meta">
-          <div class="row">
-            <span class="cmd">keybind · k</span>
-            <span class="dur">project + user + plugin</span>
-          </div>
-          <h4>Skills on demand, <em>per agent.</em></h4>
-          <p>
-            Browse everything the loader found — <code>skills/</code>, <code>~/.claude/skills/forge/</code>,
-            plugin skills, <code>skills.sh list</code> output. <code>space</code> toggles.
-            The agent's next response incorporates the new knowledge without a restart.
-          </p>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════════════════
-     MARQUEE — the eleven modes, scrolling tape
-     ══════════════════════════════════════════════════════════════ -->
-<div class="marquee" aria-hidden="true">
-  <div class="marquee-track">
-    <span>ideation</span><span>idea-validation</span><span>will-it-work</span>
-    <span>red-team</span><span>tech-review</span><span>business-plan</span>
-    <span>gtm-strategy</span><span>vc-pitch</span><span>site-survey</span>
-    <span>copywrite</span><span>custom</span>
-    <span>ideation</span><span>idea-validation</span><span>will-it-work</span>
-    <span>red-team</span><span>tech-review</span><span>business-plan</span>
-    <span>gtm-strategy</span><span>vc-pitch</span><span>site-survey</span>
-    <span>copywrite</span><span>custom</span>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     CH. 08 — METHOD (how the engine actually works)
-     ══════════════════════════════════════════════════════════════ -->
-<section class="ch-method" id="ch-method">
-  <div class="wrap">
-
-    <div class="ch-head">
-      <div>
-        <div class="chapter-mark">
-          <span class="num">CH. 08</span>
-          <span class="pip"></span>
-          <span>the engine, stripped down</span>
-        </div>
-        <h2 class="display">
-          Five archetypes.<br>
-          A <em>phase machine.</em> A verdict.
-        </h2>
-      </div>
-      <div class="prose-right">
-        <p class="prose">
-          Three hours re-prompting one model gets you a longer draft, not a decision. Forge forces
-          convergence by running five <strong>culture-neutral reasoning archetypes</strong> through
-          a deterministic phase machine. <em>The content of each turn is free; the structure is not.</em>
-        </p>
-      </div>
-    </div>
-
-    <div class="method-grid">
-
-      <div>
-        <div class="chapter-mark" style="margin-bottom: 16px;">
-          <span class="pip"></span>
-          <span>the ensemble</span>
-        </div>
-        <div class="archetypes">
-          <div class="arch">
-            <span class="role">Skeptic</span>
-            <span class="body"><strong>Demands evidence.</strong> Kills arguments that lean on vibes. Named the coercive-spouse threat model.</span>
-          </div>
-          <div class="arch">
-            <span class="role">Pragmatist</span>
-            <span class="body"><strong>Forces closure.</strong> "What's the actual verdict." Shut down the five-message digression on ZK proofs.</span>
-          </div>
-          <div class="arch">
-            <span class="role">Analyst</span>
-            <span class="body"><strong>Traces second-order effects.</strong> Found that per-referendum pricing kills civil-society use cases.</span>
-          </div>
-          <div class="arch">
-            <span class="role">Advocate</span>
-            <span class="body"><strong>Holds the thesis.</strong> Defends the vision when the Skeptic is about to talk the team out of shipping.</span>
-          </div>
-          <div class="arch">
-            <span class="role">Contrarian</span>
-            <span class="body"><strong>Asks the uncomfortable question.</strong> "What if low turnout is the feature, not the bug?"</span>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div class="chapter-mark" style="margin-bottom: 16px;">
-          <span class="pip"></span>
-          <span>the phase machine</span>
-        </div>
-        <p class="prose">
-          Every mode is a config: phase sequence, per-phase focus, success criteria, required outputs.
-          The engine enforces them. When a phase satisfies its criteria, it advances. When agents
-          start repeating themselves, the next phase triggers automatically. You always walk away
-          with a result — not a half-finished thread.
-        </p>
-        <div class="phase-strip">
-          <div class="label">canonical arc</div>
-          <div class="phases">
-            <span>discovery</span>
-            <span class="arrow">→</span>
-            <span>research</span>
-            <span class="arrow">→</span>
-            <span>synthesis</span>
-            <span class="arrow">→</span>
-            <span>drafting</span>
-            <span class="arrow">→</span>
-            <span class="final">verdict</span>
-          </div>
-        </div>
-        <div class="phase-strip" style="margin-top: 14px;">
-          <div class="label">audit trail per session</div>
-          <div class="phases" style="font-size: 0.82rem;">
-            <span>per-agent message logs</span>
-            <span class="arrow">·</span>
-            <span>consensus directory</span>
-            <span class="arrow">·</span>
-            <span>resolved skill bundle</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-  </div>
-</section>
-
-<div class="seam ch-close"></div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     CLOSE — install
-     ══════════════════════════════════════════════════════════════ -->
-<section class="ch-close" id="install">
-  <div class="wrap">
-
-    <div class="chapter-mark" style="justify-content: center;">
-      <span class="num">END</span>
-      <span class="pip"></span>
-      <span>your turn</span>
-    </div>
-
-    <div class="close-card">
-      <h2>
-        CivicVote was the example.<br>
-        <em>Your product is the actual point.</em>
+    <div class="col-full fade-in d4">
+      <h2 class="headline">
+        <span class="line">You don't need</span>
+        <span class="line">a smarter AI.</span>
+        <span class="line">You need <span class="five">f</span>ive that disagree.</span>
       </h2>
-      <p class="lede" style="max-width: 54ch;">
-        Clone the repo, link the binary, point it at a decision you've been dragging around for weeks.
-        If you already run Claude Code, your auth carries through — no new API key, no vendor portal, no monthly line item.
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     DEMOS — mode gallery (primary section right after hero)
+     Eight recorded forge sessions, one per deliberation mode.
+     Default tab = copywrite (the primary "after hero" demo).
+     ══════════════════════════════════════════════════════════════ -->
+<section id="demos" class="scene" data-scene="rooftop">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
+  <div class="grid">
+    <div class="col-full mode-gallery" id="mode-gallery">
+
+      <!-- LEFT column: section header + tabs + meta -->
+      <div class="mode-side">
+        <div class="section-head" style="margin-bottom: 8px;">
+          <span class="section-num">§ 02</span>
+          <span class="kicker">see forge run</span>
+        </div>
+        <h2 class="display h2-neon" style="margin-bottom: 14px;">
+          Real terminal sessions.<br><em>Pick a mode.</em>
+        </h2>
+
+        <div class="mode-tabs" role="tablist" aria-label="Forge deliberation modes">
+          <button class="mode-tab active" role="tab" aria-selected="true" data-mode="copywrite">
+            <span class="mode-tab-name">Copywriting</span>
+            <span class="mode-tab-id">forge -m copywrite</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="will-it-work">
+            <span class="mode-tab-name">Will It Work?</span>
+            <span class="mode-tab-id">forge -m will-it-work</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="idea-validation">
+            <span class="mode-tab-name">Idea Validation</span>
+            <span class="mode-tab-id">forge -m idea-validation</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="ideation">
+            <span class="mode-tab-name">Ideation</span>
+            <span class="mode-tab-id">forge -m ideation</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="business-plan">
+            <span class="mode-tab-name">Business Plan</span>
+            <span class="mode-tab-id">forge -m business-plan</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="gtm-strategy">
+            <span class="mode-tab-name">Go-to-Market</span>
+            <span class="mode-tab-id">forge -m gtm-strategy</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="site-survey">
+            <span class="mode-tab-name">Site Survey</span>
+            <span class="mode-tab-id">forge -m site-survey</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="vc-pitch">
+            <span class="mode-tab-name">VC Pitch</span>
+            <span class="mode-tab-id">forge -m vc-pitch</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="tech-review">
+            <span class="mode-tab-name">Tech Review</span>
+            <span class="mode-tab-id">forge -m tech-review</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="red-team">
+            <span class="mode-tab-name">Red Team</span>
+            <span class="mode-tab-id">forge -m red-team</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="custom">
+            <span class="mode-tab-name">Custom</span>
+            <span class="mode-tab-id">forge -m custom</span>
+          </button>
+        </div>
+
+        <div class="mode-meta-block">
+          <span class="tag" id="mode-tag">▶ recorded · forge start -m copywrite</span>
+          <h4 id="mode-title">Copywriting — section-by-section drafting.</h4>
+          <p id="mode-description">Five archetypes debate positioning, then draft every required section one at a time. The session can't exit until every <code>requiredOutput</code> ships. Real deliberation captured live.</p>
+          <div id="mode-phases" class="mode-phases">discovery → research → ideation → synthesis → drafting</div>
+        </div>
+      </div>
+
+      <!-- RIGHT column: video stage -->
+      <div class="mode-stage">
+        <div class="demo-frame">
+          <video id="mode-video"
+                 src="demo/modes/copywrite.mp4"
+                 autoplay muted loop playsinline preload="metadata"></video>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  var MODES = {
+    'copywrite': {
+      title: 'Copywriting — section-by-section drafting.',
+      tag: '▶ recorded · forge start -m copywrite',
+      description: 'Five archetypes debate positioning, then draft every required section one at a time. The session can\'t exit until every requiredOutput ships. Real deliberation captured live.',
+      phases: 'discovery → research → ideation → synthesis → drafting'
+    },
+    'will-it-work': {
+      title: 'Will It Work? — forced YES / NO / MAYBE-IF verdict.',
+      tag: '▶ recorded · forge start -m will-it-work',
+      description: 'Define the question, gather evidence, structured debate, then a forced verdict. No fence-sitting, no "it depends". Postgres → Cockroach migration, live.',
+      phases: 'define → evidence → debate → verdict'
+    },
+    'idea-validation': {
+      title: 'Idea Validation — GO / NO-GO / PIVOT.',
+      tag: '▶ recorded · forge start -m idea-validation',
+      description: 'Stress-test an idea from every angle. Skeptic demands evidence, pragmatist forces closure, analyst traces second-order effects. Ends in a structured verdict with reasoning.',
+      phases: 'understand → research → stress-test → verdict'
+    },
+    'ideation': {
+      title: 'Ideation — scout, pattern, ideate, rank.',
+      tag: '▶ recorded · forge start -m ideation',
+      description: 'Scout a domain for real problems, pattern-match across signals, generate ideas, then rank by demand × feasibility × moat. The output is a sortable shortlist, not a brainstorm dump.',
+      phases: 'scout → pattern → ideate → rank'
+    },
+    'business-plan': {
+      title: 'Business Plan — end-to-end, one session.',
+      tag: '▶ recorded · forge start -m business-plan',
+      description: 'Problem, market, model, GTM, and synthesis — each phase has its own success criteria, so the session ends with a fundable document instead of five disconnected notes.',
+      phases: 'problem → market → model → gtm → synthesis'
+    },
+    'gtm-strategy': {
+      title: 'Go-to-Market — launch plan with a timeline.',
+      tag: '▶ recorded · forge start -m gtm-strategy',
+      description: 'ICP, positioning, channels, tactics, and a week-by-week rollout. Agents argue over sequencing, then commit to a concrete plan you can actually execute.',
+      phases: 'audience → positioning → channels → tactics'
+    },
+    'site-survey': {
+      title: 'Site Survey & Rewrite — audit then fix.',
+      tag: '▶ recorded · forge start -m site-survey',
+      description: 'Analyze an existing landing page, diagnose what\'s dead, research what converts, then produce before/after rewrites for every section. Audit + fix, one run.',
+      phases: 'analyze → diagnose → research → rewrite'
+    },
+    'vc-pitch': {
+      title: 'VC Pitch — partner meeting → investment memo.',
+      tag: '▶ recorded · forge start -m vc-pitch',
+      description: 'A simulated partner meeting: GP pattern-matches the thesis, Associate grills the unit economics, LP proxy tests fund fit, Founder defends the vision. Ends in a one-page memo with a PASS / FOLLOW / INVEST verdict.',
+      phases: 'pitch-digest → market-probe → unit-economics → partner-debate → memo'
+    },
+    'tech-review': {
+      title: 'Tech Review — specialist panel audits a repo.',
+      tag: '▶ recorded · forge start -m tech-review',
+      description: 'Architect reads the module boundaries, Perf engineer hunts the hot paths, Security reviewer traces untrusted input, Test engineer asks what regression would actually ship. Output is a findings report with paths and severity.',
+      phases: 'recon → architecture-read → hotspot-dive → report'
+    },
+    'red-team': {
+      title: 'Red Team — adversarial review with ranked mitigations.',
+      tag: '▶ recorded · forge start -m red-team',
+      description: 'Name a specific adversary, draft concrete kill chains, have the Defender score each attack against real detection capacity. Output is a prioritized mitigation plan, not a risk matrix nobody reads.',
+      phases: 'recon → threat-model → attack-chains → mitigations'
+    },
+    'custom': {
+      title: 'Custom — your phases, your outputs.',
+      tag: '▶ recorded · forge start -m custom',
+      description: 'Define your own phase sequence, per-phase focus, success criteria, and required outputs. The deliberation engine doesn\'t care — it runs whatever workflow you give it.',
+      phases: 'your phases → your outputs'
+    }
+  };
+
+  var video = document.getElementById('mode-video');
+  var title = document.getElementById('mode-title');
+  var tag = document.getElementById('mode-tag');
+  var description = document.getElementById('mode-description');
+  var phases = document.getElementById('mode-phases');
+  var stage = document.querySelector('.mode-stage');
+  var tabs = document.querySelectorAll('.mode-tab');
+
+  function selectMode(mode) {
+    var info = MODES[mode];
+    if (!info) return;
+    stage.classList.add('loading');
+    // Swap the video source — cache-bust so it restarts from frame 0
+    video.pause();
+    video.src = 'demo/modes/' + mode + '.mp4?t=' + Date.now();
+    video.load();
+    video.play().catch(function() {}); // autoplay may be blocked until interaction
+    title.textContent = info.title;
+    tag.textContent = info.tag;
+    description.textContent = info.description;
+    phases.textContent = info.phases;
+    tabs.forEach(function(t) {
+      var active = t.dataset.mode === mode;
+      t.classList.toggle('active', active);
+      t.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    video.addEventListener('loadeddata', function onload() {
+      stage.classList.remove('loading');
+      video.removeEventListener('loadeddata', onload);
+    });
+  }
+
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      selectMode(tab.dataset.mode);
+    });
+  });
+})();
+</script>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     PROBLEM — pixel speech bubbles
+     ══════════════════════════════════════════════════════════════ -->
+<section id="problem" class="scene" data-scene="alley">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
+  <div class="grid">
+
+    <div class="col-1-7">
+      <div class="section-head">
+        <span class="section-num">§ 03</span>
+        <span class="kicker">the actual pain</span>
+      </div>
+      <h2 class="display h2-neon">
+        Open chat with one model<br><em>doesn't ship decisions.</em>
+      </h2>
+    </div>
+
+    <div class="col-8-12" style="align-self: end;">
+      <p class="problem-lede">
+        You've spent three hours with Claude on a single architecture call. The doc is longer.
+        The verdict is <span class="amber">no closer.</span> You're not stuck because the model
+        isn't smart — you're stuck because nothing in the loop is <em>forcing convergence</em>,
+        and there's no one in the room willing to disagree with you.
+      </p>
+    </div>
+
+    <div class="col-1-6">
+      <div class="bubble">
+        <span class="agent-tag">err · sycophancy_loop</span>
+        <h4>Your AI agrees with <em>everything</em>.</h4>
+        <p>Single-model sessions become sycophancy spirals. There's no critic, no skeptic, no contrarian — just one model nodding along to whatever you said last. The more you prompt, the more it confirms what you already thought.</p>
+      </div>
+    </div>
+
+    <div class="col-7-12" style="display: flex; flex-direction: column; gap: 28px;">
+      <div class="bubble warn">
+        <span class="agent-tag">warn · no_termination</span>
+        <h4>Re-prompting is the new <em>doom-scroll</em>.</h4>
+        <p>Hours of "make it better," "try again," "go deeper." No structure, no closure — an infinite refinement loop with no termination condition built in.</p>
+      </div>
+      <div class="bubble fail">
+        <span class="agent-tag">fail · no_verdict</span>
+        <h4>You walk away with vibes, <em>not a verdict</em>.</h4>
+        <p>Open-ended chat has no forcing function. The thread sprawls, the doc bloats, and you're left convinced something in there must be the answer. It isn't.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     HOW IT WORKS
+     ══════════════════════════════════════════════════════════════ -->
+<section id="how" class="scene" data-scene="subway-platform">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
+  <div class="scene-train" aria-hidden="true"></div>
+  <div class="grid">
+
+    <div class="col-1-6">
+      <div class="section-head">
+        <span class="section-num">§ 04</span>
+        <span class="kicker">the method</span>
+      </div>
+      <h2 class="display h2-neon" style="margin-bottom: 18px;">
+        Pick a mode.<br>
+        Run the phases.<br>
+        Get a <em>verdict.</em>
+      </h2>
+      <p class="prose">
+        Forge orchestrates agents through a deterministic state machine. Each phase enforces its
+        own focus, message limits, and loop detection — so deliberations
+        <strong>converge instead of spiraling.</strong>
+      </p>
+    </div>
+
+    <div class="col-7-12">
+      <div class="step">
+        <div class="step-num">i.</div>
+        <div>
+          <h4>Pick your mode.</h4>
+          <p>Choose from eleven deliberation workflows — copywriting, idea validation, ideation, feasibility, site survey, business plan, GTM, VC pitch, technical review, red team — or write your own.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">ii.</div>
+        <div>
+          <h4>Define the question.</h4>
+          <p>Set your goal. Select which archetypes participate. Configure round limits to prevent runaway discussion.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">iii.</div>
+        <div>
+          <h4>Watch structured phases.</h4>
+          <p>The session moves automatically through <em>Discovery → Research → Synthesis → Drafting → Verdict</em>. No one gets stuck on framing forever.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">iv.</div>
+        <div>
+          <h4>Get forced closure.</h4>
+          <p>Loop detection and message limits prevent circular debate. Agents are pushed through evidence gathering to consensus.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">v.</div>
+        <div>
+          <h4>Export the result.</h4>
+          <p>Full transcript, final draft, per-section decisions. Markdown, JSON, or HTML.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODES — eleven pixel cards
+     ══════════════════════════════════════════════════════════════ -->
+<section id="modes" class="scene" data-scene="neon-market">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
+  <div class="grid">
+
+    <div class="col-1-7">
+      <div class="section-head">
+        <span class="section-num">§ 05</span>
+        <span class="kicker">eleven modes shipped</span>
+      </div>
+      <h2 class="display h2-neon">
+        Each mode embeds a<br><em>proven decision</em> framework.
+      </h2>
+    </div>
+    <div class="col-9-12" style="align-self: end; padding-bottom: 6px;">
+      <p class="prose">
+        Modes aren't just prompts — they're full workflows with defined phases, message limits,
+        success criteria, and loop detection tuned for that decision type. Not sure which one fits?
+        <strong>Series-A pitch →</strong> <code>vc-pitch</code>.
+        <strong>Migration anxiety →</strong> <code>will-it-work</code>.
+        <strong>Code audit →</strong> <code>tech-review</code>.
+        <strong>Launch review →</strong> <code>red-team</code>.
+      </p>
+    </div>
+
+    <div class="col-full" style="margin-top: 28px;">
+      <div class="modes-grid">
+
+        <div class="mode">
+          <span class="mode-glyph">01</span>
+          <div class="mode-id">copywrite</div>
+          <h4>Copywriting</h4>
+          <p>Create compelling web copy that converts. Agents debate positioning, then draft section-by-section.</p>
+          <div class="mode-phases">discovery → research → ideation → synthesis → drafting</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">02</span>
+          <div class="mode-id">idea-validation</div>
+          <h4>Idea Validation</h4>
+          <p>Critically evaluate whether an idea is viable. Ends in a GO / NO-GO / PIVOT verdict with reasoning.</p>
+          <div class="mode-phases">understand → research → stress-test → verdict</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">03</span>
+          <div class="mode-id">ideation</div>
+          <h4>Ideation</h4>
+          <p>Scout Reddit, forums, and market gaps for real problems. Outputs a ranked list of ideas with evidence.</p>
+          <div class="mode-phases">scout → pattern → ideate → rank</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">04</span>
+          <div class="mode-id">will-it-work</div>
+          <h4>Will It Work?</h4>
+          <p>Reach a definitive YES / NO / MAYBE-IF conclusion. No fence-sitting. No "it depends".</p>
+          <div class="mode-phases">define → evidence → debate → verdict</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">05</span>
+          <div class="mode-id">site-survey</div>
+          <h4>Site Survey &amp; Rewrite</h4>
+          <p>Analyze an existing website and produce before/after copy rewrites for every section.</p>
+          <div class="mode-phases">analyze → diagnose → research → rewrite</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">06</span>
+          <div class="mode-id">business-plan</div>
+          <h4>Business Plan</h4>
+          <p>Build a structured business plan with problem, market, model, GTM, and an executive summary.</p>
+          <div class="mode-phases">problem → market → model → gtm → synthesis</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">07</span>
+          <div class="mode-id">gtm-strategy</div>
+          <h4>Go-to-Market</h4>
+          <p>Launch strategy with ICP, positioning, channels, tactics, and a week-by-week timeline.</p>
+          <div class="mode-phases">audience → positioning → channels → tactics</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">08</span>
+          <div class="mode-id">vc-pitch</div>
+          <h4>VC Pitch Meeting</h4>
+          <p>Run a Series-A pitch through a simulated partner meeting. Ends in a one-page investment memo — thesis, risks, verdict (PASS / FOLLOW / INVEST), next diligence.</p>
+          <div class="mode-phases">pitch-digest → market-probe → unit-economics → partner-debate → memo</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">09</span>
+          <div class="mode-id">tech-review</div>
+          <h4>Technical Review</h4>
+          <p>Specialist panel (architect, perf, security, tests) audits a GitHub repo. Outputs findings by severity with file paths and a prioritized fix list.</p>
+          <div class="mode-phases">recon → architecture-read → hotspot-dive → report</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">10</span>
+          <div class="mode-id">red-team</div>
+          <h4>Red Team</h4>
+          <p>Adversarial review of a system, plan, or launch. Names a realistic adversary, drafts kill chains, scores them against defender capability, ranks mitigations.</p>
+          <div class="mode-phases">recon → threat-model → attack-chains → mitigations</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">11</span>
+          <div class="mode-id">custom</div>
+          <h4>Custom</h4>
+          <p>Define your own phase sequence, agent focus, and success criteria. The engine handles the rest.</p>
+          <div class="mode-phases">your phases → your outputs</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     AGENT CONTROL — Phase 2 differentiator
+     ══════════════════════════════════════════════════════════════ -->
+<section id="control" class="scene" data-scene="back-alley">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
+  <div class="grid">
+
+    <div class="col-1-7">
+      <div class="section-head">
+        <span class="section-num">§ 06</span>
+        <span class="kicker">live operator control</span>
+      </div>
+      <h2 class="display h2-neon">
+        Every agent, <em>your hand on the dial.</em>
+      </h2>
+    </div>
+    <div class="col-9-12" style="align-self: end; padding-bottom: 6px;">
+      <p class="prose">
+        Press <code>a</code> in any running session. Swap each agent's model —
+        <strong>Claude, Gemini, OpenAI</strong> — cycle providers, pause a loud voice,
+        or force a specific perspective to speak next. Every change applies to the next
+        turn without restarting.
+      </p>
+    </div>
+
+    <div class="col-1-6" style="margin-top: 32px;">
+      <div class="demo-frame">
+        <img src="demo/agent-control.gif"
+             alt="Forge Agent Control panel: per-agent model swap and pause"
+             loading="lazy"
+             width="1280" height="820">
+        <div class="demo-meta">
+          <span class="tag">▶ recorded · a keybind</span>
+          <h4>The <em>panel</em>.</h4>
+          <p>Press <code>a</code> and every alive agent shows up — state, role, current model, pause badge.
+          <code>←→</code> cycle the model, <code>p</code> switches provider, <code>space</code> pauses,
+          <code>s</code> forces a speak turn. Close with <code>esc</code>, changes apply immediately.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-7-12" style="margin-top: 32px;">
+      <div class="demo-frame">
+        <img src="demo/skill-picker.gif"
+             alt="Forge Skill Picker: toggle project/user/plugin/hook-sourced skills per agent"
+             loading="lazy"
+             width="1280" height="820">
+        <div class="demo-meta">
+          <span class="tag">▶ recorded · k in the panel</span>
+          <h4>Skills on demand, <em>per agent</em>.</h4>
+          <p>From Agent Control hit <code>k</code> — browse everything the loader found
+          (<code>skills/</code>, <code>~/.claude/skills/forge/</code>, plugin skills,
+          <code>skills.sh list</code> output). <code>space</code> toggles; the agent's next response
+          incorporates the new knowledge without a restart.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     FEATURES — pixel cards in three columns
+     ══════════════════════════════════════════════════════════════ -->
+<section id="features" class="scene" data-scene="back-alley">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
+  <div class="grid">
+
+    <div class="col-full">
+      <div class="section-head">
+        <span class="section-num">§ 07</span>
+        <span class="kicker">what's inside</span>
+      </div>
+      <h2 class="display h2-neon" style="margin-bottom: 32px;">
+        Built for decisions<br><em>that actually ship.</em>
+      </h2>
+    </div>
+
+    <div class="col-full">
+      <div class="feat-double">
+        <div class="feat">
+          <span class="num">i. the ensemble</span>
+          <h4>Multi-archetype deliberation.</h4>
+          <p>Five culture-neutral reasoning archetypes — <em>skeptic, pragmatist, analyst, advocate, contrarian</em> — each bringing a distinct stance. No made-up names, no personalities, just roles.</p>
+        </div>
+        <div class="feat">
+          <span class="num">ii. the scribe</span>
+          <h4>Grounded in your real code.</h4>
+          <p>When the debate needs facts, one of the archetypes pauses to <em>read your actual source files</em> — not a summary, the files — and comes back with citations. Decisions grounded in what you shipped, not what someone remembered.</p>
+        </div>
+        <div class="feat">
+          <span class="num">iii. the machine</span>
+          <h4>Every session ends with a verdict.</h4>
+          <p>Sessions run through a fixed arc: <em>Discovery → Research → Synthesis → Drafting → Verdict</em>. No spinning forever on framing. No session without an exit door.</p>
+        </div>
+        <div class="feat">
+          <span class="num">iv. the key</span>
+          <h4>No new subscription. No new key.</h4>
+          <p>If you can already run Claude Code, Forge works. Your existing auth carries through — no paste-in API key, no vendor portal, no extra monthly line item.</p>
+        </div>
+        <div class="feat">
+          <span class="num">v. the bell</span>
+          <h4>Circular debate gets interrupted.</h4>
+          <p>When agents start repeating themselves, the session notices and forces the next phase. Repeat questions get capped. You always walk away with a result — not a half-finished thread.</p>
+        </div>
+        <div class="feat">
+          <span class="num">vi. the chamber</span>
+          <h4>Watch it happen in your terminal.</h4>
+          <p>Phases, turns, who's speaking, who's being disputed — all live, in place. No dashboards to open, no browser tabs to juggle, no heavyweight desktop app. Just the deliberation, rendered.</p>
+        </div>
+        <div class="feat">
+          <span class="num">vii. the console</span>
+          <h4>Live operator control.</h4>
+          <p>Press <code>a</code> to open Agent Control — swap each agent's model (Claude / Gemini / more coming), toggle skills with <code>k</code>, pause a loud voice, or force-speak a specific perspective. Every change applies to the next turn without restarting the session.</p>
+        </div>
+        <div class="feat">
+          <span class="num">viii. the archive</span>
+          <h4>Every session is a self-describing artifact.</h4>
+          <p>Each run produces a workdir with per-agent message logs, a consensus directory that auto-captures anything tagged <code>[CONSENSUS]</code> or <code>[SYNTHESIS]</code>, and the resolved skill bundle each agent was primed with. Audit the decision, diff it against another run, or hand it to the next reviewer.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     FOR WHOM — speech bubbles
+     ══════════════════════════════════════════════════════════════ -->
+<section id="forwhom" class="scene" data-scene="band-stage">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
+  <div class="grid">
+
+    <div class="col-1-7">
+      <div class="section-head">
+        <span class="section-num">§ 08</span>
+        <span class="kicker">who runs forge</span>
+      </div>
+      <h2 class="display h2-neon">
+        Built for the people<br><em>who ship.</em>
+      </h2>
+    </div>
+
+    <div class="col-full" style="margin-top: 28px;">
+      <div class="audience-grid">
+        <div class="audience">
+          <div class="init">D.</div>
+          <h4>Developers.</h4>
+          <p>Stop architecture debates that span weeks. Run <code>will-it-work</code> to force evidence-based decisions on technical choices, or <code>tech-review</code> for a specialist audit of a repo with architect, perf, security, and test voices at the table.</p>
+        </div>
+        <div class="audience">
+          <div class="init">P.</div>
+          <h4>Product Managers.</h4>
+          <p>Turn endless product discussions into concrete decisions. Run <code>idea-validation</code> for systematic GO/NO-GO/PIVOT, or <code>copywrite</code> to progress through discovery → drafting instead of cycling feedback.</p>
+        </div>
+        <div class="audience">
+          <div class="init">F.</div>
+          <h4>Founders &amp; VCs.</h4>
+          <p>Pressure-test the pitch before the real room. <code>vc-pitch</code> simulates a partner meeting — GP, Associate, LP proxy, Founder — and ends in a one-page investment memo you can forward to the investment committee.</p>
+        </div>
+        <div class="audience">
+          <div class="init">S.</div>
+          <h4>Security teams.</h4>
+          <p>Red-team a launch, a feature, or a whole system with <code>red-team</code>. Names a realistic adversary, drafts kill chains, and the Defender persona scores each attack against real detection capacity. Output is a ranked mitigation plan, not a risk matrix.</p>
+        </div>
+        <div class="audience">
+          <div class="init">A.</div>
+          <h4>Architects &amp; staff engineers.</h4>
+          <p>Swap models per agent (Claude + Gemini today) to pit different reasoning styles against each other on the same design question. Live skill picker loads your company's architecture guidance into the right persona without touching the prompt.</p>
+        </div>
+        <div class="audience">
+          <div class="init">R.</div>
+          <h4>AI researchers.</h4>
+          <p>Study structured multi-agent deliberation in a real, running system. Every turn, phase transition, model swap, and consensus artifact is logged to disk — not hidden behind a black-box API you can't inspect.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     OPEN SOURCE
+     ══════════════════════════════════════════════════════════════ -->
+<section id="oss">
+  <div class="grid">
+    <div class="col-full" style="text-align: center;">
+      <div class="section-head" style="justify-content: center;">
+        <span class="kicker">open source · no chains</span>
+      </div>
+      <h2 class="display h2-neon">
+        MIT licensed.<br><em>No vendor dependencies.</em>
+      </h2>
+    </div>
+
+    <div class="col-2-11" style="margin-top: 26px;">
+      <p class="oss-manifesto">
+        Forge runs <strong>locally, on your machine, against your data</strong>. Most decision tools
+        lock you into a SaaS subscription — Forge doesn't even want your email. The whole engine lives
+        in a single open repo you can read, fork, or rewrite. Every mode, every archetype, every phase
+        rule is <strong>inspectable and forkable</strong>. No permission required.
       </p>
 
-      <pre><code><span class="c"># install (~60 seconds)</span>
-git clone https://github.com/SaharBarak/forge.git
-cd forge
-bun install && bun link
+      <p class="oss-meta">
+        <strong>MIT</strong> · <strong>Terminal-native</strong> · <strong>Zero API-key lock-in</strong> · <strong>Local by default</strong> · <strong>Fork friendly</strong>
+      </p>
+    </div>
+  </div>
+</section>
 
-<span class="c"># optional — wire in Gemini alongside Claude</span>
-export GEMINI_API_KEY=...
 
-<span class="c"># run it against your actual decision</span>
-forge start -m will-it-work -g "Migrate to Cockroach?"</code></pre>
+<!-- ══════════════════════════════════════════════════════════════
+     FAQ
+     ══════════════════════════════════════════════════════════════ -->
+<section id="faq" class="scene" data-scene="subway-car">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
+  <div class="scene-window-city" aria-hidden="true"></div>
+  <div class="grid">
 
-      <div class="btn-row">
-        <a href="https://github.com/SaharBarak/forge" class="btn primary">★ Star on GitHub</a>
-        <a href="#case" class="btn">Reread the case study</a>
+    <div class="col-1-6">
+      <div class="section-head">
+        <span class="section-num">§ 09</span>
+        <span class="kicker">frequently asked</span>
+      </div>
+      <h2 class="display h2-neon">
+        Stuff people ask<br><em>first.</em>
+      </h2>
+      <p class="prose" style="max-width: 36ch; margin-top: 16px;">
+        If it's not answered here, the answer is probably in the <a href="https://github.com/SaharBarak/forge" style="color: var(--k-neon-cyan); text-decoration: underline;">repo</a>.
+        Otherwise open an issue — we read them.
+      </p>
+    </div>
+
+    <div class="col-7-12">
+      <div class="faq">
+        <details>
+          <summary>How is this different from Claude or GPT directly?</summary>
+          <p class="answer">
+            A single model agrees with whatever you said last. Forge runs <em>five archetypes who don't</em>
+            through a fixed workflow — <strong>Will It Work</strong>
+            (<code>define → evidence → debate → verdict</code>), <strong>VC Pitch</strong>
+            (<code>pitch → market → unit-economics → debate → memo</code>), <strong>Red Team</strong>
+            (<code>recon → threat-model → attack-chains → mitigations</code>), or any of eight others.
+            You don't get a nicer draft — you get a real decision, with the disagreement visible and the
+            verdict attributable.
+          </p>
+        </details>
+        <details>
+          <summary>Can I run different models for different agents?</summary>
+          <p class="answer">
+            Yes. Press <code>a</code> in the running TUI to open the Agent Control panel. From there
+            you can assign each agent its own provider and model — e.g. run the Skeptic on Claude Opus,
+            the Pragmatist on Gemini 2.5 Flash, and the Analyst on GPT-4o. Changes apply to the very
+            next response, no restart. Anthropic ships always-on; Gemini activates when
+            <code>GEMINI_API_KEY</code> is set; OpenAI activates when <code>OPENAI_API_KEY</code> is set.
+          </p>
+        </details>
+        <details>
+          <summary>Can I bring my own skills?</summary>
+          <p class="answer">
+            Yes. Drop markdown files in <code>skills/</code> (per-agent, per-mode, or shared), or ship
+            a <code>skills.sh</code> in the project root that populates them at session start. Press
+            <code>k</code> on an agent in the control panel to browse the full catalog and toggle
+            individual skills live. User-level skills at <code>~/.claude/skills/forge/*.md</code>
+            are also discovered automatically.
+          </p>
+        </details>
+        <details>
+          <summary>What does it cost to run?</summary>
+          <p class="answer">
+            Forge itself is free. Inference costs pass through to whichever model provider you route
+            each agent to. If you already pay for Claude Pro/Max your Anthropic calls inherit that;
+            Gemini billing goes to Google. The TUI shows a per-session cost meter so you know
+            order-of-magnitude before it matters.
+          </p>
+        </details>
+        <details>
+          <summary>Does it work offline?</summary>
+          <p class="answer">
+            The deliberation engine is local, but the models aren't. A self-hosted provider
+            (Ollama, LM Studio, vLLM) would drop in as another <code>IProvider</code> — scoped for a
+            later phase but the interface is ready.
+          </p>
+        </details>
+        <details>
+          <summary>Do I need an API key?</summary>
+          <p class="answer">
+            No. If you can already run <code>claude</code> in your terminal, Forge works — your existing
+            Claude Code auth carries through. No pasted API key, no new vendor portal, no extra monthly
+            bill. Your session is your session.
+          </p>
+        </details>
+        <details>
+          <summary>Is the debate deterministic?</summary>
+          <p class="answer">
+            The <em>structure</em> is deterministic — phases run in order, message limits are enforced,
+            and research requests are serialized. The <em>content</em> of each turn is not: different
+            runs will surface different evidence and arguments, but the shape of the deliberation is
+            always the same.
+          </p>
+        </details>
+        <details>
+          <summary>Can I use my own models?</summary>
+          <p class="answer">
+            Yes. The agent runner is a swappable interface — Claude Code is the default, but you can
+            wire in GPT, Gemini, a local Llama, or anything else that can answer a prompt. The
+            deliberation engine doesn't care which model is behind each archetype.
+          </p>
+        </details>
+        <details>
+          <summary>How do I extend it with new modes?</summary>
+          <p class="answer">
+            Every mode is a small config object: phase sequence, per-phase focus, success criteria,
+            required sections. Copy an existing one, change the shape, register it, and it shows up in
+            the CLI — no changes to the core engine. Custom modes ship alongside the built-in ten.
+          </p>
+        </details>
       </div>
     </div>
 
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     FINAL CTA — under the signboard
+     ══════════════════════════════════════════════════════════════ -->
+<section class="final scene" id="install" data-scene="signboard-closeup">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="grid">
+    <div class="col-full">
+      <h2>
+        Stop <em>talking.</em><br>
+        Start <em>deciding.</em>
+      </h2>
+      <p>
+        Clone the repo, link the binary, and turn your next decision into a structured workflow instead of another endless meeting.
+        If you already run Claude Code, your auth carries through — no API key needed for the Anthropic path.
+      </p>
+
+      <div class="demo-frame" style="max-width: 640px; margin: 24px auto 28px;">
+        <div class="demo-meta" style="text-align: left;">
+          <span class="tag">▶ install · ~60 seconds</span>
+          <pre style="margin: 14px 0 0 0; padding: 14px 18px; background: #0a0512; border: 1px solid var(--k-brick-2); color: var(--k-neon-lime); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.6; text-align: left; overflow-x: auto;"><code>git clone https://github.com/SaharBarak/forge.git
+cd forge
+bun install
+bun link
+
+# optional — wire in Gemini alongside Claude
+export GEMINI_API_KEY=...
+
+forge start -m will-it-work -g "Migrate to Cockroach?"</code></pre>
+        </div>
+      </div>
+
+      <div class="hero-cta">
+        <a href="https://github.com/SaharBarak/forge" class="btn btn-primary">★ Star on GitHub</a>
+        <a href="#modes" class="btn btn-ghost">Browse Modes</a>
+      </div>
+    </div>
   </div>
 </section>
 
 </main>
+
 
 <!-- ══════════════════════════════════════════════════════════════
      FOOTER — colophon
      ══════════════════════════════════════════════════════════════ -->
 <footer>
   <div class="colophon">
-    <div class="colophon-mark">FORGE<span class="dot"></span></div>
-    <div class="colophon-tag">— a multi-agent deliberation engine —</div>
+    <div class="colophon-mark">FORGE</div>
+    <div class="colophon-tag">— multi-agent deliberation engine —</div>
 
     <p class="colophon-text">
       Built for decisions that ship. No tracking scripts, no analytics, no SaaS subscriptions — and no
-      onboarding flow asking for your email. <em>Open source, local first, yours to fork.</em>
-      CivicVote is a fictional case study; Forge is the product.
+      onboarding flow asking for your email. Open source, local first, yours to fork.
     </p>
 
     <div class="colophon-links">
       <a href="https://github.com/SaharBarak/forge">GitHub</a>
       <a href="https://github.com/SaharBarak/forge/issues">Issues</a>
-      <a href="https://github.com/SaharBarak/forge/blob/main/LICENSE">MIT</a>
-      <a href="#ch-method">Method</a>
-      <a href="#case">Case study</a>
-      <a href="#install">Install</a>
+      <a href="https://github.com/SaharBarak/forge/blob/main/LICENSE">MIT License</a>
+      <a href="#how">Method</a>
+      <a href="#modes">Modes</a>
+      <a href="#faq">FAQ</a>
     </div>
 
     <div class="colophon-stamp">
-      <em>MIT &copy; <a href="https://saharbarak.dev" target="_blank" rel="noopener">SaharBarak</a></em> · 2026 · local-first · fork-friendly
+      <em>MIT © <a href="https://saharbarak.dev" target="_blank" rel="noopener">SaharBarak</a></em> · 2026 · local-first · fork-friendly
     </div>
   </div>
 </footer>
 
 <!-- ══════════════════════════════════════════════════════════════
-     SCRIPT — scroll progress, reveals, chapter accent handoff,
-     one-at-a-time video playback (reduce CPU on mobile).
-     Zero dependencies, no framework.
+     GSAP — scene parallax, scroll-driven reveals, pinned hero,
+     horizontal subway hijack, page-load timeline, hover tilts.
+     Gracefully no-ops if GSAP didn't load, if reduced-motion is
+     set, or on ≤640px where heavy parallax is disabled.
      ══════════════════════════════════════════════════════════════ -->
 <script>
-(function() {
+(function () {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ── Progress bar, rAF-gated ─────────────────────────────────── */
-  const progress = document.getElementById('progress');
-  let ticking = false;
-  function onScroll() {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
-      progress.style.width = pct + '%';
-      ticking = false;
-    });
+  // tag content for reveal — done in JS so CSS doesn't need to list every selector
+  // No reveal tagging — content is visible by default. GSAP only animates the hero entrance + hovers.
+
+  if (reducedMotion) {
+    return;
   }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
 
-  /* ── Chapter accent handoff — the progress bar + nav brand dot
-       adopt the accent color of whichever chapter is currently in
-       view. One change at a time: the bar only switches color when
-       a new chapter crosses the 30%-from-top threshold. ───────── */
-  const chapters = [
-    { el: document.getElementById('top'),             c: '#ff3dc4', g: 'rgba(255,61,196,0.22)' },
-    { el: document.getElementById('case'),            c: '#ffb347', g: 'rgba(255,179,71,0.22)' },
-    { el: document.getElementById('ch-opportunity'),  c: '#a78bfa', g: 'rgba(167,139,250,0.22)' },
-    { el: document.getElementById('ch-feasibility'),  c: '#ffb347', g: 'rgba(255,179,71,0.22)' },
-    { el: document.getElementById('ch-build'),        c: '#00e5ff', g: 'rgba(0,229,255,0.22)' },
-    { el: document.getElementById('ch-business'),     c: '#b4ff3d', g: 'rgba(180,255,61,0.22)' },
-    { el: document.getElementById('ch-launch'),       c: '#ff3dc4', g: 'rgba(255,61,196,0.22)' },
-    { el: document.getElementById('ch-controls'),     c: '#00e5ff', g: 'rgba(0,229,255,0.22)' },
-    { el: document.getElementById('ch-method'),       c: '#ffb347', g: 'rgba(255,179,71,0.22)' },
-    { el: document.getElementById('install'),         c: '#ff3dc4', g: 'rgba(255,61,196,0.22)' }
-  ].filter(ch => ch.el);
+  const init = () => {
+    if (typeof gsap === 'undefined') {
+      return; // GSAP failed to load — content is already visible
+    }
 
-  const chObs = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const ch = chapters.find(x => x.el === entry.target);
-        if (!ch) return;
-        progress.style.background = ch.c;
-        progress.style.boxShadow = '0 0 8px ' + ch.g;
-        const dot = document.querySelector('nav .wordmark .dot');
-        if (dot) {
-          dot.style.background = ch.c;
-          dot.style.boxShadow = '0 0 8px ' + ch.g;
-        }
-      }
+    // ── Page-load entrance — fast, single beat (~350ms total) ──
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out', duration: 0.32 } });
+    tl.from('nav', { y: -16, opacity: 0, duration: 0.22 })
+      .from('.signboard', { opacity: 0, y: 10 }, '-=0.12')
+      .from('.hero .headline .line', { opacity: 0, y: 12, stagger: 0.04 }, '-=0.18')
+      .from('.hero .hero-sub, .hero .hero-phaseline, .hero .hero-cta', {
+        opacity: 0, y: 10, stagger: 0.04
+      }, '-=0.18');
+
+    // ── Button + card hover micro-lifts ──
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.addEventListener('mouseenter', () => gsap.to(btn, { y: -2, duration: 0.12, ease: 'power2.out' }));
+      btn.addEventListener('mouseleave', () => gsap.to(btn, { y: 0, duration: 0.12, ease: 'power2.out' }));
     });
-  }, { rootMargin: '-30% 0px -50% 0px', threshold: 0 });
-
-  chapters.forEach(ch => chObs.observe(ch.el));
-
-  /* ── Clip reveals — staggered, once per element ──────────────── */
-  if (!reducedMotion) {
-    const revealObs = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          revealObs.unobserve(entry.target);
-        }
-      });
-    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
-    document.querySelectorAll('.clip').forEach((el, i) => {
-      el.style.transitionDelay = (i % 3 * 0.08) + 's';
-      revealObs.observe(el);
+    document.querySelectorAll('.mode, .feat, .audience, .demo-frame, .step').forEach(card => {
+      card.addEventListener('mouseenter', () => gsap.to(card, { y: -2, duration: 0.14, ease: 'power2.out' }));
+      card.addEventListener('mouseleave', () => gsap.to(card, { y: 0, duration: 0.14, ease: 'power2.out' }));
     });
+  };
+
+  if (document.readyState === 'complete') {
+    init();
   } else {
-    document.querySelectorAll('.clip').forEach(el => el.classList.add('visible'));
-  }
-
-  /* ── One video at a time — pauses off-screen clips to save CPU.
-       Videos already autoplay/loop/muted. We just toggle playback
-       based on visibility, using IntersectionObserver thresholds. */
-  const videos = document.querySelectorAll('.clip-frame video');
-  if (videos.length > 0) {
-    const vObs = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const v = entry.target;
-        if (entry.isIntersecting && entry.intersectionRatio > 0.35) {
-          const p = v.play();
-          if (p && p.catch) p.catch(() => {});
-        } else if (entry.intersectionRatio < 0.1) {
-          v.pause();
-        }
-      });
-    }, { threshold: [0, 0.1, 0.35, 0.6] });
-    videos.forEach(v => {
-      v.pause();
-      vObs.observe(v);
-    });
+    window.addEventListener('load', init);
   }
 })();
 </script>
