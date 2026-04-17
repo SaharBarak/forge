@@ -26,6 +26,7 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.20",
     "@anthropic-ai/sdk": "^0.30.0",
+    "@google/genai": "^1.50.1",
     "@huggingface/transformers": "^4.0.1",
     "@noble/ed25519": "^3.0.1",
     "@noble/hashes": "^2.0.1",
@@ -45,6 +46,7 @@
     "ink-text-input": "^5.0.1",
     "marked": "^12.0.0",
     "neverthrow": "^8.2.0",
+    "openai": "^6.34.0",
     "puppeteer": "^24.37.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
