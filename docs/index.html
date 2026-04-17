@@ -1892,6 +1892,7 @@ footer {
       <a href="#problem">Pain</a>
       <a href="#how">Method</a>
       <a href="#modes">Modes</a>
+      <a href="#control">Control</a>
       <a href="#demos">Exhibit</a>
       <a href="#faq">FAQ</a>
       <a href="https://github.com/SaharBarak/forge" class="ghstar">★ GitHub</a>
@@ -1939,7 +1940,7 @@ footer {
         discovery <span class="sep">→</span> research <span class="sep">→</span> synthesis <span class="sep">→</span> drafting <span class="sep">→</span> verdict
       </div>
       <div class="hero-cta">
-        <a href="#install" class="btn btn-primary">$ npm i -g forge-cli</a>
+        <a href="#install" class="btn btn-primary">$ bun link forge</a>
         <a href="https://github.com/SaharBarak/forge" class="btn btn-ghost">★ Star on GitHub</a>
       </div>
     </div>
@@ -2213,7 +2214,7 @@ footer {
         <div class="step-num">i.</div>
         <div>
           <h4>Pick your mode.</h4>
-          <p>Choose from eight deliberation workflows designed for different decision types — or write your own.</p>
+          <p>Choose from eleven deliberation workflows — copywriting, idea validation, ideation, feasibility, site survey, business plan, GTM, VC pitch, technical review, red team — or write your own.</p>
         </div>
       </div>
       <div class="step">
@@ -2251,7 +2252,7 @@ footer {
 
 
 <!-- ══════════════════════════════════════════════════════════════
-     MODES — eight pixel cards
+     MODES — eleven pixel cards
      ══════════════════════════════════════════════════════════════ -->
 <section id="modes" class="scene" data-scene="neon-market">
   <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
@@ -2262,7 +2263,7 @@ footer {
     <div class="col-1-7">
       <div class="section-head">
         <span class="section-num">§ 05</span>
-        <span class="kicker">eight modes shipped</span>
+        <span class="kicker">eleven modes shipped</span>
       </div>
       <h2 class="display h2-neon">
         Each mode embeds a<br><em>proven decision</em> framework.
@@ -2271,7 +2272,11 @@ footer {
     <div class="col-9-12" style="align-self: end; padding-bottom: 6px;">
       <p class="prose">
         Modes aren't just prompts — they're full workflows with defined phases, message limits,
-        success criteria, and loop detection tuned for that decision type.
+        success criteria, and loop detection tuned for that decision type. Not sure which one fits?
+        <strong>Series-A pitch →</strong> <code>vc-pitch</code>.
+        <strong>Migration anxiety →</strong> <code>will-it-work</code>.
+        <strong>Code audit →</strong> <code>tech-review</code>.
+        <strong>Launch review →</strong> <code>red-team</code>.
       </p>
     </div>
 
@@ -2336,6 +2341,30 @@ footer {
 
         <div class="mode">
           <span class="mode-glyph">08</span>
+          <div class="mode-id">vc-pitch</div>
+          <h4>VC Pitch Meeting</h4>
+          <p>Run a Series-A pitch through a simulated partner meeting. Ends in a one-page investment memo — thesis, risks, verdict (PASS / FOLLOW / INVEST), next diligence.</p>
+          <div class="mode-phases">pitch-digest → market-probe → unit-economics → partner-debate → memo</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">09</span>
+          <div class="mode-id">tech-review</div>
+          <h4>Technical Review</h4>
+          <p>Specialist panel (architect, perf, security, tests) audits a GitHub repo. Outputs findings by severity with file paths and a prioritized fix list.</p>
+          <div class="mode-phases">recon → architecture-read → hotspot-dive → report</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">10</span>
+          <div class="mode-id">red-team</div>
+          <h4>Red Team</h4>
+          <p>Adversarial review of a system, plan, or launch. Names a realistic adversary, drafts kill chains, scores them against defender capability, ranks mitigations.</p>
+          <div class="mode-phases">recon → threat-model → attack-chains → mitigations</div>
+        </div>
+
+        <div class="mode">
+          <span class="mode-glyph">11</span>
           <div class="mode-id">custom</div>
           <h4>Custom</h4>
           <p>Define your own phase sequence, agent focus, and success criteria. The engine handles the rest.</p>
@@ -2349,8 +2378,67 @@ footer {
 
 
 <!-- ══════════════════════════════════════════════════════════════
-     DEMOS — pixel-rendered gif frames
+     AGENT CONTROL — Phase 2 differentiator
      ══════════════════════════════════════════════════════════════ -->
+<section id="control" class="scene" data-scene="back-alley">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--near" aria-hidden="true"></div>
+  <div class="grid">
+
+    <div class="col-1-7">
+      <div class="section-head">
+        <span class="section-num">§ 06</span>
+        <span class="kicker">live operator control</span>
+      </div>
+      <h2 class="display h2-neon">
+        Every agent, <em>your hand on the dial.</em>
+      </h2>
+    </div>
+    <div class="col-9-12" style="align-self: end; padding-bottom: 6px;">
+      <p class="prose">
+        Press <code>a</code> in any running session. Swap each agent's model —
+        <strong>Claude, Gemini, OpenAI</strong> — cycle providers, pause a loud voice,
+        or force a specific perspective to speak next. Every change applies to the next
+        turn without restarting.
+      </p>
+    </div>
+
+    <div class="col-1-6" style="margin-top: 32px;">
+      <div class="demo-frame">
+        <img src="demo/agent-control.gif"
+             alt="Forge Agent Control panel: per-agent model swap and pause"
+             loading="lazy"
+             width="1280" height="820">
+        <div class="demo-meta">
+          <span class="tag">▶ recorded · a keybind</span>
+          <h4>The <em>panel</em>.</h4>
+          <p>Press <code>a</code> and every alive agent shows up — state, role, current model, pause badge.
+          <code>←→</code> cycle the model, <code>p</code> switches provider, <code>space</code> pauses,
+          <code>s</code> forces a speak turn. Close with <code>esc</code>, changes apply immediately.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-7-12" style="margin-top: 32px;">
+      <div class="demo-frame">
+        <img src="demo/skill-picker.gif"
+             alt="Forge Skill Picker: toggle project/user/plugin/hook-sourced skills per agent"
+             loading="lazy"
+             width="1280" height="820">
+        <div class="demo-meta">
+          <span class="tag">▶ recorded · k in the panel</span>
+          <h4>Skills on demand, <em>per agent</em>.</h4>
+          <p>From Agent Control hit <code>k</code> — browse everything the loader found
+          (<code>skills/</code>, <code>~/.claude/skills/forge/</code>, plugin skills,
+          <code>skills.sh list</code> output). <code>space</code> toggles; the agent's next response
+          incorporates the new knowledge without a restart.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
 
 
 <!-- ══════════════════════════════════════════════════════════════
@@ -2364,7 +2452,7 @@ footer {
 
     <div class="col-full">
       <div class="section-head">
-        <span class="section-num">§ 06</span>
+        <span class="section-num">§ 07</span>
         <span class="kicker">what's inside</span>
       </div>
       <h2 class="display h2-neon" style="margin-bottom: 32px;">
@@ -2404,6 +2492,16 @@ footer {
           <h4>Watch it happen in your terminal.</h4>
           <p>Phases, turns, who's speaking, who's being disputed — all live, in place. No dashboards to open, no browser tabs to juggle, no heavyweight desktop app. Just the deliberation, rendered.</p>
         </div>
+        <div class="feat">
+          <span class="num">vii. the console</span>
+          <h4>Live operator control.</h4>
+          <p>Press <code>a</code> to open Agent Control — swap each agent's model (Claude / Gemini / more coming), toggle skills with <code>k</code>, pause a loud voice, or force-speak a specific perspective. Every change applies to the next turn without restarting the session.</p>
+        </div>
+        <div class="feat">
+          <span class="num">viii. the archive</span>
+          <h4>Every session is a self-describing artifact.</h4>
+          <p>Each run produces a workdir with per-agent message logs, a consensus directory that auto-captures anything tagged <code>[CONSENSUS]</code> or <code>[SYNTHESIS]</code>, and the resolved skill bundle each agent was primed with. Audit the decision, diff it against another run, or hand it to the next reviewer.</p>
+        </div>
       </div>
     </div>
 
@@ -2422,7 +2520,7 @@ footer {
 
     <div class="col-1-7">
       <div class="section-head">
-        <span class="section-num">§ 07</span>
+        <span class="section-num">§ 08</span>
         <span class="kicker">who runs forge</span>
       </div>
       <h2 class="display h2-neon">
@@ -2435,7 +2533,7 @@ footer {
         <div class="audience">
           <div class="init">D.</div>
           <h4>Developers.</h4>
-          <p>Stop architecture debates that span weeks. Run <code>will-it-work</code> mode to force evidence-based decisions on technical choices. The structured debate phase prevents seniority from overriding evidence.</p>
+          <p>Stop architecture debates that span weeks. Run <code>will-it-work</code> to force evidence-based decisions on technical choices, or <code>tech-review</code> for a specialist audit of a repo with architect, perf, security, and test voices at the table.</p>
         </div>
         <div class="audience">
           <div class="init">P.</div>
@@ -2443,9 +2541,24 @@ footer {
           <p>Turn endless product discussions into concrete decisions. Run <code>idea-validation</code> for systematic GO/NO-GO/PIVOT, or <code>copywrite</code> to progress through discovery → drafting instead of cycling feedback.</p>
         </div>
         <div class="audience">
+          <div class="init">F.</div>
+          <h4>Founders &amp; VCs.</h4>
+          <p>Pressure-test the pitch before the real room. <code>vc-pitch</code> simulates a partner meeting — GP, Associate, LP proxy, Founder — and ends in a one-page investment memo you can forward to the investment committee.</p>
+        </div>
+        <div class="audience">
+          <div class="init">S.</div>
+          <h4>Security teams.</h4>
+          <p>Red-team a launch, a feature, or a whole system with <code>red-team</code>. Names a realistic adversary, drafts kill chains, and the Defender persona scores each attack against real detection capacity. Output is a ranked mitigation plan, not a risk matrix.</p>
+        </div>
+        <div class="audience">
+          <div class="init">A.</div>
+          <h4>Architects &amp; staff engineers.</h4>
+          <p>Swap models per agent (Claude + Gemini today) to pit different reasoning styles against each other on the same design question. Live skill picker loads your company's architecture guidance into the right persona without touching the prompt.</p>
+        </div>
+        <div class="audience">
           <div class="init">R.</div>
-          <h4>AI Researchers.</h4>
-          <p>Study structured multi-agent deliberation in a real, running system. Every turn, phase transition, and consensus point is logged and replayable — not hidden behind a black-box API you can't inspect.</p>
+          <h4>AI researchers.</h4>
+          <p>Study structured multi-agent deliberation in a real, running system. Every turn, phase transition, model swap, and consensus artifact is logged to disk — not hidden behind a black-box API you can't inspect.</p>
         </div>
       </div>
     </div>
@@ -2495,7 +2608,7 @@ footer {
 
     <div class="col-1-6">
       <div class="section-head">
-        <span class="section-num">§ 08</span>
+        <span class="section-num">§ 09</span>
         <span class="kicker">frequently asked</span>
       </div>
       <h2 class="display h2-neon">
@@ -2514,10 +2627,48 @@ footer {
           <p class="answer">
             A single model agrees with whatever you said last. Forge runs <em>five archetypes who don't</em>
             through a fixed workflow — <strong>Will It Work</strong>
-            (<code>define → evidence → debate → verdict</code>), <strong>Copywriting</strong>
-            (<code>discovery → research → ideation → synthesis → drafting</code>), or any of six others.
+            (<code>define → evidence → debate → verdict</code>), <strong>VC Pitch</strong>
+            (<code>pitch → market → unit-economics → debate → memo</code>), <strong>Red Team</strong>
+            (<code>recon → threat-model → attack-chains → mitigations</code>), or any of eight others.
             You don't get a nicer draft — you get a real decision, with the disagreement visible and the
             verdict attributable.
+          </p>
+        </details>
+        <details>
+          <summary>Can I run different models for different agents?</summary>
+          <p class="answer">
+            Yes. Press <code>a</code> in the running TUI to open the Agent Control panel. From there
+            you can assign each agent its own provider and model — e.g. run the Skeptic on Claude Opus,
+            the Pragmatist on Gemini 2.5 Flash, and the Analyst on GPT-4o. Changes apply to the very
+            next response, no restart. Anthropic ships always-on; Gemini activates when
+            <code>GEMINI_API_KEY</code> is set; OpenAI activates when <code>OPENAI_API_KEY</code> is set.
+          </p>
+        </details>
+        <details>
+          <summary>Can I bring my own skills?</summary>
+          <p class="answer">
+            Yes. Drop markdown files in <code>skills/</code> (per-agent, per-mode, or shared), or ship
+            a <code>skills.sh</code> in the project root that populates them at session start. Press
+            <code>k</code> on an agent in the control panel to browse the full catalog and toggle
+            individual skills live. User-level skills at <code>~/.claude/skills/forge/*.md</code>
+            are also discovered automatically.
+          </p>
+        </details>
+        <details>
+          <summary>What does it cost to run?</summary>
+          <p class="answer">
+            Forge itself is free. Inference costs pass through to whichever model provider you route
+            each agent to. If you already pay for Claude Pro/Max your Anthropic calls inherit that;
+            Gemini billing goes to Google. The TUI shows a per-session cost meter so you know
+            order-of-magnitude before it matters.
+          </p>
+        </details>
+        <details>
+          <summary>Does it work offline?</summary>
+          <p class="answer">
+            The deliberation engine is local, but the models aren't. A self-hosted provider
+            (Ollama, LM Studio, vLLM) would drop in as another <code>IProvider</code> — scoped for a
+            later phase but the interface is ready.
           </p>
         </details>
         <details>
@@ -2550,7 +2701,7 @@ footer {
           <p class="answer">
             Every mode is a small config object: phase sequence, per-phase focus, success criteria,
             required sections. Copy an existing one, change the shape, register it, and it shows up in
-            the CLI — no changes to the core engine. Custom modes ship alongside the built-in eight.
+            the CLI — no changes to the core engine. Custom modes ship alongside the built-in ten.
           </p>
         </details>
       </div>
@@ -2573,10 +2724,27 @@ footer {
         Start <em>deciding.</em>
       </h2>
       <p>
-        Download Forge CLI and turn your next decision into a structured workflow instead of another endless meeting.
+        Clone the repo, link the binary, and turn your next decision into a structured workflow instead of another endless meeting.
+        If you already run Claude Code, your auth carries through — no API key needed for the Anthropic path.
       </p>
+
+      <div class="demo-frame" style="max-width: 640px; margin: 24px auto 28px;">
+        <div class="demo-meta" style="text-align: left;">
+          <span class="tag">▶ install · ~60 seconds</span>
+          <pre style="margin: 14px 0 0 0; padding: 14px 18px; background: #0a0512; border: 1px solid var(--k-brick-2); color: var(--k-neon-lime); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.6; text-align: left; overflow-x: auto;"><code>git clone https://github.com/SaharBarak/forge.git
+cd forge
+bun install
+bun link
+
+# optional — wire in Gemini alongside Claude
+export GEMINI_API_KEY=...
+
+forge start -m will-it-work -g "Migrate to Cockroach?"</code></pre>
+        </div>
+      </div>
+
       <div class="hero-cta">
-        <a href="https://github.com/SaharBarak/forge" class="btn btn-primary">Get Forge on GitHub →</a>
+        <a href="https://github.com/SaharBarak/forge" class="btn btn-primary">★ Star on GitHub</a>
         <a href="#modes" class="btn btn-ghost">Browse Modes</a>
       </div>
     </div>

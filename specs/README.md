@@ -28,6 +28,7 @@ Core technical design decisions and system structure.
 | [ADAPTERS](./architecture/ADAPTERS.md) | Complete | IAgentRunner, IFileSystem interfaces |
 | [PERSISTENCE](./architecture/PERSISTENCE.md) | Complete | Session save/load, memory state |
 | [UI_ARCHITECTURE](./architecture/UI_ARCHITECTURE.md) | Complete | Electron, CLI, terminal shells |
+| [PROVIDERS](./architecture/PROVIDERS.md) | Complete | Pluggable model providers (Anthropic, Gemini) |
 
 ---
 
@@ -44,6 +45,8 @@ User-facing capabilities and workflows.
 | [CONSENSUS_TRACKING](./features/CONSENSUS_TRACKING.md) | Complete | Agreement detection, synthesis |
 | [HUMAN_PARTICIPATION](./features/HUMAN_PARTICIPATION.md) | Complete | User input, steering, feedback |
 | [EXPORT_SYSTEM](./features/EXPORT_SYSTEM.md) | Partial | Markdown, JSON, HTML export |
+| [AGENT_CONTROL](./features/AGENT_CONTROL.md) | Complete | Live per-agent model/skill/pause/force-speak panel (keybind `a`) |
+| [SKILLS_SYSTEM](./features/SKILLS_SYSTEM.md) | Complete | `skills.sh` hook + per-agent bundles + live picker |
 
 ---
 
@@ -60,6 +63,9 @@ Session modes that define deliberation goals and constraints.
 | [SITE_SURVEY_MODE](./modes/SITE_SURVEY_MODE.md) | Complete | Existing site analysis |
 | [BUSINESS_PLAN_MODE](./modes/BUSINESS_PLAN_MODE.md) | Complete | Business planning |
 | [GTM_STRATEGY_MODE](./modes/GTM_STRATEGY_MODE.md) | Complete | Go-to-market strategy |
+| VC_PITCH_MODE | Complete (spec TBD) | Simulated partner meeting → investment memo |
+| TECH_REVIEW_MODE | Complete (spec TBD) | Specialist panel reviews a GitHub repo |
+| RED_TEAM_MODE | Complete (spec TBD) | Adversarial review with kill chains + mitigations |
 
 ---
 
