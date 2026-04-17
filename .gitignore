@@ -49,3 +49,6 @@ docs/next/
 # Runtime databases (claude-flow, ruvector)
 .swarm/
 ruvector.db
+
+# batch_generate.py intermediate tapes — not source
+docs/demo/forge-*.tape
