@@ -1,0 +1,74 @@
+# Forge — short CLI demo batch for the cli-demo-generator skill.
+#
+# Generates GIFs for the non-interactive `forge skills *` subcommands
+# plus a quick `forge --help` + `forge agents` overview. These don't
+# need live LLM calls, so they're fast to record and safe to re-run.
+#
+# Usage:
+#   python3 ~/.claude/skills/cli-demo-generator/scripts/batch_generate.py \
+#     scripts/demo/cli-demos.yaml \
+#     --output-dir docs/demo
+#
+# For the longer interactive TUI demos (mode sessions, Agent Control,
+# Skill Picker) run the hand-crafted .tape files directly:
+#   vhs scripts/demo/modes/vc-pitch.tape
+#   vhs scripts/demo/modes/tech-review.tape
+#   vhs scripts/demo/modes/red-team.tape
+#   vhs scripts/demo/agent-control.tape
+#   vhs scripts/demo/skill-picker.tape
+
+demos:
+  - name: "forge help"
+    output: "forge-help.gif"
+    title: "forge --help"
+    theme: "Catppuccin Mocha"
+    font_size: 13
+    width: 1280
+    height: 720
+    commands:
+      - "forge --help"
+
+  - name: "forge agents"
+    output: "forge-agents.gif"
+    title: "Available agents"
+    theme: "Catppuccin Mocha"
+    font_size: 13
+    width: 1280
+    height: 720
+    commands:
+      - "forge agents"
+
+  - name: "forge skills list"
+    output: "forge-skills-list.gif"
+    title: "forge skills list"
+    theme: "Catppuccin Mocha"
+    font_size: 13
+    width: 1280
+    height: 720
+    bootstrap:
+      - "mkdir -p /tmp/forge-demo/skills && cd /tmp/forge-demo"
+      - "printf '# Architecture Patterns\\n\\nModule boundaries.\\n' > skills/architecture.md"
+      - "printf '# OWASP Top 10\\n\\nAuth, injection, crypto.\\n' > skills/owasp.md"
+      - "printf '# Performance\\n\\nN+1, caching, async.\\n' > skills/performance.md"
+    commands:
+      - "cd /tmp/forge-demo && forge skills list"
+      - "forge skills show architecture"
+
+  - name: "forge skills apply"
+    output: "forge-skills-apply.gif"
+    title: "forge skills apply"
+    theme: "Catppuccin Mocha"
+    font_size: 13
+    width: 1280
+    height: 720
+    bootstrap:
+      - "mkdir -p /tmp/forge-apply-demo/output/sessions/demo-session && cd /tmp/forge-apply-demo"
+      - "mkdir -p skills && printf '# Payments\\n\\nFlow review.\\n' > skills/payments.md"
+      - |
+        printf '{
+          "architect": {"providerId":"anthropic","modelId":"claude-sonnet-4-20250514"},
+          "security-reviewer": {"providerId":"anthropic","modelId":"claude-sonnet-4-20250514"}
+        }\n' > output/sessions/demo-session/agent-configs.json
+    commands:
+      - "cd /tmp/forge-apply-demo && forge skills apply security-reviewer payments --session demo-session"
+      - "cat output/sessions/demo-session/agent-configs.json"

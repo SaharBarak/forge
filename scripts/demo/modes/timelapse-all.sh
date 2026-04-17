@@ -1,14 +1,15 @@
 #!/bin/bash
-# Timelapse all 8 mode recordings into watchable gifs.
+# Timelapse all 11 mode recordings into watchable gifs.
 # Input:  docs/demo/modes/<mode>-raw.gif  (raw 60-180s recordings)
 # Output: docs/demo/modes/<mode>.gif       (6x speedup, ~10-30s, smaller)
 #
 # Uses ffmpeg with palettegen+paletteuse for a clean gif encode.
+# Phase 2 adds vc-pitch, tech-review, red-team to the set.
 
 set -e
 cd "$(dirname "$0")/../../.."
 
-MODES=(copywrite will-it-work idea-validation ideation business-plan gtm-strategy site-survey custom)
+MODES=(copywrite will-it-work idea-validation ideation business-plan gtm-strategy site-survey custom vc-pitch tech-review red-team)
 SPEED="${SPEED:-6}"     # 6x speedup by default
 FPS="${FPS:-18}"        # output fps
 
