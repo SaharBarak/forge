@@ -6,6 +6,7 @@
  */
 
 import type { AgentPersona, ResearcherAgent } from '../types';
+import { SPECIALIST_PERSONAS } from './personas-specialist';
 
 // ============================================================================
 // COPYWRITING EXPERTISE (shared by all agents)
@@ -238,6 +239,9 @@ export const AGENT_PERSONAS: AgentPersona[] = [
     speakingStyle: 'Provocative, counterfactual. "What if the opposite is true?", "why shouldn\'t we do X instead?".',
     color: 'cyan',
   },
+  // Specialist personas for the VC-pitch, tech-review and red-team modes
+  // live in personas-specialist.ts to keep this file under the 500-line cap.
+  ...SPECIALIST_PERSONAS,
 ];
 
 // ============================================================================

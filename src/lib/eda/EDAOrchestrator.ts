@@ -15,6 +15,9 @@ import { ModeController } from '../modes/ModeController';
 import { getModeById, getDefaultMode } from '../modes';
 import { parseGoalSections, extractSection, type RequiredSection } from './GoalParser';
 import { introspectProject } from '../research/ProjectIntrospector';
+import type { ProviderRegistry, AgentRuntimeConfig } from '../providers';
+import type { SkillCatalog } from '../skills';
+import { WorkdirManager } from './WorkdirManager';
 
 export type EDAEventType =
   | 'phase_change'
@@ -27,7 +30,9 @@ export type EDAEventType =
   | 'error'
   | 'floor_status'
   | 'draft_section'
-  | 'intervention'; // ModeController interventions (goal_reminder, loop_detected, etc.)
+  | 'intervention' // ModeController interventions (goal_reminder, loop_detected, etc.)
+  | 'agent_config_change'
+  | 'agent_skills_change';
 
 // SessionPhase is imported from types/index.ts (10 phases: initialization, context_loading, research, brainstorming, argumentation, synthesis, drafting, review, consensus, finalization)
 export type { SessionPhase };
@@ -59,6 +64,35 @@ export type EDACallback = (event: EDAEvent) => void;
 export interface EDAOrchestratorOptions {
   agentRunner?: IAgentRunner;
   fileSystem?: IFileSystem;
+  /**
+   * Optional provider registry. When supplied, per-agent runtime configs
+   * (see `getAgentConfig` / `updateAgentConfig`) route queries through
+   * the chosen provider+model. Absent in Electron/legacy paths which
+   * still use a single injected `agentRunner`.
+   */
+  providers?: ProviderRegistry;
+  /**
+   * Seed per-agent runtime configs. The orchestrator defaults any missing
+   * agent to the registry's default provider+model on `start()`.
+   */
+  initialAgentConfigs?: Record<string, AgentRuntimeConfig>;
+  /**
+   * Absolute path to the session's on-disk workdir. When supplied,
+   * the orchestrator creates per-agent folders, a consensus dir, and
+   * persists each agent's resolved skills for self-describing sessions.
+   */
+  sessionWorkdir?: string;
+  /**
+   * Per-agent skill bundle (already includes shared + mode layers).
+   * Overrides the single shared `skills` positional arg for agents
+   * present in the map.
+   */
+  perAgentSkills?: Map<string, string>;
+  /**
+   * Catalog of all discoverable skills. Enables the TUI skill picker
+   * to browse and toggle skills per-agent at runtime.
+   */
+  skillCatalog?: SkillCatalog;
   /**
    * When true, `start()` also kicks off a deterministic phase executor
    * (Discovery → Synthesis → Drafting → Finalization) that drives agents
@@ -113,6 +147,24 @@ export class EDAOrchestrator {
   private agentRunner: IAgentRunner | undefined;
   private fileSystem: IFileSystem | undefined;
 
+  // Per-agent runtime config — provider, model, paused, system suffix.
+  // The agent listeners resolve this map on every query, so mutations
+  // via `updateAgentConfig` take effect immediately.
+  private providers: ProviderRegistry | undefined;
+  private agentConfigs: Map<string, AgentRuntimeConfig> = new Map();
+
+  // Per-agent skills (combined shared + mode + agent-specific) and
+  // on-disk workdir layout. Both are optional — when absent the
+  // orchestrator falls back to the legacy single-skills-string path.
+  private perAgentSkills: Map<string, string> | undefined;
+  private workdir: WorkdirManager | undefined;
+
+  // Skill catalog + per-agent overrides. When an agent has overrides
+  // set (via the TUI Skill picker), the orchestrator assembles their
+  // bundle from the catalog instead of the init-time perAgentSkills.
+  private skillCatalog: SkillCatalog | undefined;
+  private agentSkillOverrides: Map<string, string[]> = new Map();
+
   // Mode controller for goal anchoring and loop detection
   private modeController: ModeController;
 
@@ -129,7 +181,28 @@ export class EDAOrchestrator {
     this.floorManager = new FloorManager(this.bus);
     this.agentRunner = options?.agentRunner;
     this.fileSystem = options?.fileSystem;
+    this.providers = options?.providers;
+    this.perAgentSkills = options?.perAgentSkills;
+    this.skillCatalog = options?.skillCatalog;
     this.autoRunPhaseMachine = options?.autoRunPhaseMachine ?? false;
+    if (options?.sessionWorkdir && options?.fileSystem) {
+      this.workdir = new WorkdirManager(options.fileSystem, {
+        sessionDir: options.sessionWorkdir,
+        agentIds: session.config.enabledAgents,
+      });
+    }
+
+    // Seed per-agent configs: initial overrides → registry default.
+    if (this.providers) {
+      const def = this.providers.getDefault();
+      const seed = options?.initialAgentConfigs ?? {};
+      for (const agentId of session.config.enabledAgents) {
+        this.agentConfigs.set(agentId, seed[agentId] ?? {
+          providerId: def.id,
+          modelId: def.defaultModelId(),
+        });
+      }
+    }
     if (options?.phaseMachineOptions?.speakTimeoutMs !== undefined) {
       this.speakTimeoutMs = options.phaseMachineOptions.speakTimeoutMs;
     }
@@ -201,13 +274,38 @@ ${firstPhase?.agentFocus || 'Begin the discussion'}
 
     // Combine mode instructions with skills
     const modeInstructions = this.modeController.getAgentInstructions();
-    const combinedSkills = this.skills
+    const fallbackSkills = this.skills
       ? `${this.skills}\n\n## Mode Instructions\n${modeInstructions}`
       : `## Mode Instructions\n${modeInstructions}`;
 
-    // Start agents listening with skills and mode instructions
-    for (const listener of this.agentListeners.values()) {
-      listener.start(this.session.config, this.context, combinedSkills);
+    // Initialize the per-session workdir and persist each agent's
+    // resolved skill bundle. Non-fatal on failure so a broken FS
+    // never blocks a deliberation.
+    if (this.workdir) {
+      try {
+        await this.workdir.init();
+        if (this.perAgentSkills) {
+          await this.workdir.writeSkills(this.perAgentSkills);
+        }
+      } catch (err) {
+        console.error('[EDAOrchestrator] workdir init failed:', err);
+      }
+    }
+
+    // Start each listener with its own composed skill+workspace bundle.
+    // Per-agent skills override the shared fallback; workspace info tells
+    // the agent where it can scratch files and where consensus artifacts
+    // live, which matters when the provider routes to Claude Code (tools
+    // enabled) vs. a pure-chat provider (prompt-only).
+    for (const [agentId, listener] of this.agentListeners) {
+      const agentSkillLayer = this.perAgentSkills?.get(agentId);
+      const composedSkills = this.composeAgentSkills(
+        agentId,
+        agentSkillLayer,
+        modeInstructions,
+        fallbackSkills
+      );
+      listener.start(this.session.config, this.context, composedSkills);
     }
 
     // Load optional brief and inject the kickoff system message. Then,
@@ -313,6 +411,18 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
 
         this.emit('agent_message', { agentId: payload.fromAgent, message: payload.message });
 
+        // Persist per-agent message log + consensus artifacts. Both are
+        // best-effort — FS failures get logged but must never crash the
+        // deliberation loop.
+        if (this.workdir && payload.fromAgent !== 'system') {
+          void this.workdir
+            .appendAgentMessage(payload.message)
+            .catch((err) => console.error('[workdir] appendAgentMessage failed:', err));
+          this.maybeCaptureConsensus(payload.message).catch((err) =>
+            console.error('[workdir] recordConsensus failed:', err)
+          );
+        }
+
         // Check for research requests
         this.checkForResearchRequests(payload.message);
 
@@ -362,7 +472,10 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
           // calls per incoming message and unbounded memory growth.
           skipAutonomousEval: true,
         },
-        this.agentRunner
+        this.agentRunner,
+        this.providers,
+        (id) => this.getAgentConfig(id),
+        (id) => this.resolveAgentSkills(id)
       );
 
       this.agentListeners.set(agentId, listener);
@@ -1686,5 +1799,208 @@ ${draft}
    */
   getMessages(): Message[] {
     return this.bus.getAllMessages();
+  }
+
+  // ─── Per-agent runtime control ───────────────────────────────────────
+
+  /**
+   * Read the current runtime config for an agent. When no provider
+   * registry is configured (legacy path) returns a harmless default so
+   * the UI can still render a row.
+   */
+  getAgentConfig(agentId: string): AgentRuntimeConfig {
+    const existing = this.agentConfigs.get(agentId);
+    if (existing) return existing;
+    const fallback: AgentRuntimeConfig = this.providers
+      ? {
+          providerId: this.providers.getDefault().id,
+          modelId: this.providers.getDefault().defaultModelId(),
+        }
+      : { providerId: 'anthropic', modelId: 'claude-sonnet-4-20250514' };
+    this.agentConfigs.set(agentId, fallback);
+    return fallback;
+  }
+
+  /** Snapshot of all agent configs — used by the control panel. */
+  getAllAgentConfigs(): ReadonlyMap<string, AgentRuntimeConfig> {
+    for (const id of this.session.config.enabledAgents) this.getAgentConfig(id);
+    return this.agentConfigs;
+  }
+
+  /**
+   * Mutate an agent's runtime config. Emits `agent_config_change` so the
+   * UI can re-render. The next `query`/`evaluate` call will pick up the
+   * change since listeners resolve config on each call.
+   */
+  updateAgentConfig(agentId: string, patch: Partial<AgentRuntimeConfig>): AgentRuntimeConfig {
+    const current = this.getAgentConfig(agentId);
+    const next: AgentRuntimeConfig = { ...current, ...patch };
+    this.agentConfigs.set(agentId, next);
+    this.emit('agent_config_change', { agentId, config: next });
+    return next;
+  }
+
+  /** Provider registry accessor for the UI. */
+  getProviders(): ProviderRegistry | undefined {
+    return this.providers;
+  }
+
+  /**
+   * Force an agent to take the floor and speak on the current context.
+   * Returns null if the agent isn't registered or is mid-flight.
+   */
+  async forceSpeak(agentId: string, reason = 'operator prompt'): Promise<Message | null> {
+    const listener = this.agentListeners.get(agentId);
+    if (!listener) return null;
+    return listener.speakNow(reason);
+  }
+
+  /**
+   * Inject an ad-hoc system prompt into an agent's next response. Stored
+   * on the runtime config and cleared after one use by the UI.
+   */
+  injectSystemSuffix(agentId: string, suffix: string): void {
+    this.updateAgentConfig(agentId, { systemSuffix: suffix });
+  }
+
+  // ─── Skills + workdir helpers ────────────────────────────────────────
+
+  /**
+   * Build the full skill+workspace bundle for a single agent. Shape:
+   *
+   *   <agent-specific skills or fallback>
+   *   ---
+   *   ## Mode Instructions
+   *   <mode instructions>
+   *   ---
+   *   ## Session Workspace
+   *   - Agent workdir: <path>
+   *   - Consensus dir: <path>
+   *   - Tag synthesized/agreed content with [CONSENSUS] or [SYNTHESIS]
+   *     so the orchestrator captures it into the consensus dir.
+   */
+  private composeAgentSkills(
+    agentId: string,
+    agentSkillLayer: string | undefined,
+    modeInstructions: string,
+    fallbackSkills: string
+  ): string {
+    const parts: string[] = [];
+    if (agentSkillLayer && agentSkillLayer.trim()) {
+      parts.push(agentSkillLayer.trim());
+      parts.push(`## Mode Instructions\n${modeInstructions}`);
+    } else {
+      parts.push(fallbackSkills);
+    }
+
+    if (this.workdir) {
+      const paths = this.workdir.getAgentPaths(agentId);
+      const consensusDir = this.workdir.getConsensusDir();
+      parts.push(
+        [
+          '## Session Workspace',
+          paths ? `- Your workdir: ${paths.dir}` : null,
+          paths ? `- Scratch notes dir: ${paths.notesDir}` : null,
+          `- Consensus dir: ${consensusDir}`,
+          '- When the group agrees on a concrete deliverable, tag your',
+          '  message with [CONSENSUS] or [SYNTHESIS] and the orchestrator',
+          '  will save it as a consensus artifact automatically.',
+        ]
+          .filter(Boolean)
+          .join('\n')
+      );
+    }
+
+    return parts.join('\n\n---\n\n');
+  }
+
+  /**
+   * If a message looks like consensus material, record it. The signal
+   * is either the `[CONSENSUS]` / `[SYNTHESIS]` type-tag convention
+   * the agents use, or a Message with `type === 'synthesis'` which is
+   * the canonical consensus type in the bus.
+   */
+  private async maybeCaptureConsensus(message: Message): Promise<void> {
+    if (!this.workdir) return;
+    const tagMatch = /\[(CONSENSUS|SYNTHESIS)\]/i.exec(message.content);
+    const isConsensus =
+      message.type === 'synthesis' || message.type === 'consensus' || tagMatch !== null;
+    if (!isConsensus) return;
+
+    const reason = tagMatch ? `tag ${tagMatch[0]}` : `message.type=${message.type}`;
+    await this.workdir.recordConsensus(message, {
+      phaseId: this.modeController.getProgress().currentPhase,
+      reason,
+    });
+  }
+
+  /**
+   * Exposes the workdir manager so the UI can show the consensus dir
+   * path in the header or an "Artifacts" pane.
+   */
+  getWorkdir(): WorkdirManager | undefined {
+    return this.workdir;
+  }
+
+  // ─── Live skill control ──────────────────────────────────────────────
+
+  /** Skill catalog exposed to the UI skill picker. */
+  getSkillCatalog(): SkillCatalog | undefined {
+    return this.skillCatalog;
+  }
+
+  /**
+   * IDs currently applied to an agent. If the operator has set
+   * overrides, those win; otherwise we infer from which catalog
+   * entries appear in the agent's init-time bundle.
+   */
+  getAgentSkillIds(agentId: string): string[] {
+    const override = this.agentSkillOverrides.get(agentId);
+    if (override) return [...override];
+    if (!this.skillCatalog) return [];
+    const bundle = this.perAgentSkills?.get(agentId) ?? '';
+    if (!bundle.trim()) return [];
+    // Best-effort: match any catalog entry whose content appears in
+    // the init bundle. Matches are substring so ordering doesn't matter.
+    return this.skillCatalog.entries
+      .filter((e) => e.content.trim() && bundle.includes(e.content.trim()))
+      .map((e) => e.id);
+  }
+
+  /**
+   * Replace an agent's applied skill IDs. Emits `agent_skills_change`
+   * so the TUI can re-render; the next query picks up the new bundle
+   * via the resolver wired into AgentListener.
+   */
+  setAgentSkillIds(agentId: string, skillIds: ReadonlyArray<string>): void {
+    this.agentSkillOverrides.set(agentId, [...skillIds]);
+    this.emit('agent_skills_change', { agentId, skillIds: [...skillIds] });
+  }
+
+  /** Toggle a single skill on/off for an agent. */
+  toggleAgentSkill(agentId: string, skillId: string): void {
+    const current = this.getAgentSkillIds(agentId);
+    const next = current.includes(skillId)
+      ? current.filter((id) => id !== skillId)
+      : [...current, skillId];
+    this.setAgentSkillIds(agentId, next);
+  }
+
+  /**
+   * Compose the active skill bundle for an agent. Invoked by the
+   * listener resolver on every query — cheap by design since it just
+   * looks up strings the catalog already cached in memory.
+   */
+  resolveAgentSkills(agentId: string): string | undefined {
+    const override = this.agentSkillOverrides.get(agentId);
+    if (override && this.skillCatalog) {
+      const pieces = override
+        .map((id) => this.skillCatalog!.get(id))
+        .filter((e): e is NonNullable<typeof e> => e !== undefined)
+        .map((e) => e.content.trim())
+        .filter(Boolean);
+      return pieces.join('\n\n---\n\n');
+    }
+    return this.perAgentSkills?.get(agentId);
   }
 }

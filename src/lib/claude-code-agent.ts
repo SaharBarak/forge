@@ -6,6 +6,11 @@
 
 import type { AgentPersona, SessionConfig, ContextData } from '../types';
 import type { IAgentRunner } from './interfaces';
+import type {
+  ProviderRegistry,
+  AgentRuntimeConfig,
+  AgentRuntimeConfigResolver,
+} from './providers';
 
 export interface AgentQueryOptions {
   systemPrompt: string;
@@ -181,31 +186,98 @@ export class ElectronAgentRunner implements IAgentRunner {
  */
 export class ClaudeCodeAgent {
   private persona: AgentPersona;
-  private systemPrompt: string;
+  /**
+   * Persona + session base — built once at construction. Skills are
+   * composed in live so the Skill picker can toggle them mid-session
+   * without reconstructing the agent.
+   */
+  private basePrompt: string;
+  /** Initial per-agent skills bundle — used when no override resolver fires. */
+  private initialSkills: string | undefined;
   private runner: IAgentRunner;
+  /**
+   * Optional runtime config resolver. When supplied (CLI / OpenTUI path),
+   * each call looks up the agent's current provider+model, which lets the
+   * user reassign models mid-session from the Agent Control panel without
+   * recreating the agent. When absent (legacy paths), we fall back to the
+   * injected runner with its hardcoded defaults.
+   */
+  private providers: ProviderRegistry | undefined;
+  private resolveConfig: AgentRuntimeConfigResolver | undefined;
+  /**
+   * Live resolver for per-agent skills. Queried on every query so
+   * toggles via the TUI skill picker apply to the next response.
+   */
+  private resolveSkills: ((agentId: string) => string | undefined) | undefined;
 
   constructor(
     persona: AgentPersona,
     config: SessionConfig,
     context?: ContextData,
     skills?: string,
-    runner?: IAgentRunner
+    runner?: IAgentRunner,
+    providers?: ProviderRegistry,
+    resolveConfig?: AgentRuntimeConfigResolver,
+    resolveSkills?: (agentId: string) => string | undefined
   ) {
     this.persona = persona;
-    this.systemPrompt = generateAgentSystemPrompt(persona, config, context, skills);
+    // Build the base without skills so live resolvers can override cleanly.
+    this.basePrompt = generateAgentSystemPrompt(persona, config, context, undefined);
+    this.initialSkills = skills;
     // Use provided runner or default to Electron runner
     this.runner = runner || new ElectronAgentRunner();
+    this.providers = providers;
+    this.resolveConfig = resolveConfig;
+    this.resolveSkills = resolveSkills;
+  }
+
+  private effectiveConfig(): AgentRuntimeConfig | undefined {
+    return this.resolveConfig?.(this.persona.id);
+  }
+
+  private effectiveSkills(): string | undefined {
+    const live = this.resolveSkills?.(this.persona.id);
+    return live !== undefined ? live : this.initialSkills;
+  }
+
+  private effectiveSystemPrompt(): string {
+    const cfg = this.effectiveConfig();
+    const skills = this.effectiveSkills();
+    const parts: string[] = [this.basePrompt];
+    if (skills && skills.trim()) {
+      parts.push(`## Available Skills\n${skills}`);
+    }
+    if (cfg?.systemSuffix) {
+      parts.push(`## Operator Directive\n${cfg.systemSuffix}`);
+    }
+    return parts.join('\n\n');
+  }
+
+  /**
+   * Route a query through the registered provider if we have one, else
+   * fall through to the legacy injected runner. Keeps both code paths
+   * alive while the Electron build still uses the old wiring.
+   */
+  private async routedQuery(prompt: string, systemPrompt: string): Promise<{
+    success: boolean;
+    content?: string;
+    sessionId?: string;
+    usage?: AgentResponse['usage'];
+    error?: string;
+  }> {
+    const cfg = this.effectiveConfig();
+    if (cfg && this.providers) {
+      const provider = this.providers.tryGet(cfg.providerId) ?? this.providers.getDefault();
+      return provider.query({ prompt, systemPrompt, model: cfg.modelId });
+    }
+    return this.runner.query({ prompt, systemPrompt, model: 'claude-sonnet-4-20250514' });
   }
 
   /**
    * Send a prompt and get a response
    */
   async query(conversationContext: string): Promise<AgentResponse> {
-    const result = await this.runner.query({
-      prompt: conversationContext,
-      systemPrompt: this.systemPrompt,
-      model: 'claude-sonnet-4-20250514',
-    });
+    const result = await this.routedQuery(conversationContext, this.effectiveSystemPrompt());
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to run agent query');
@@ -248,7 +320,10 @@ Respond ONLY with JSON:
   "responseType": "argument" | "question" | "proposal" | "agreement" | "disagreement" | ""
 }`;
 
-    const result = await this.runner.evaluate({ evalPrompt });
+    const cfg = this.effectiveConfig();
+    const result = cfg && this.providers
+      ? await (this.providers.tryGet(cfg.providerId) ?? this.providers.getDefault()).evaluate({ evalPrompt })
+      : await this.runner.evaluate({ evalPrompt });
 
     return {
       urgency: result.urgency,

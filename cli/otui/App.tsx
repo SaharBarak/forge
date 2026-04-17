@@ -17,12 +17,14 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useKeyboard } from '@opentui/react';
 import type { Message, Session, SessionPhase } from '../../src/types';
 import type { EDAOrchestrator, EDAEvent } from '../../src/lib/eda/EDAOrchestrator';
 import type { SessionPersistence } from '../adapters/SessionPersistence';
 import type { SessionMode } from '../../src/lib/modes';
 import type { ModeProgress } from '../../src/lib/modes/ModeController';
 import { getAgentById } from '../../src/agents/personas';
+import { AgentControlPanel } from './AgentControlPanel';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -60,6 +62,20 @@ const AGENT_COLOR: Record<string, string> = {
   analyst: '#00e5ff',
   advocate: '#e879f9',
   contrarian: '#fb923c',
+  // VC roles
+  'vc-partner': '#e879f9',
+  'vc-associate': '#00e5ff',
+  'lp-skeptic': '#facc15',
+  'founder-voice': '#ff5454',
+  // Tech-review roles
+  architect: '#60a5fa',
+  'perf-engineer': '#00e5ff',
+  'security-reviewer': '#ff5454',
+  'test-engineer': '#facc15',
+  // Red-team roles
+  'attack-planner': '#ff5454',
+  'social-engineer': '#e879f9',
+  'blue-team-lead': '#60a5fa',
 };
 
 const agentColor = (id: string): string => AGENT_COLOR[id] || '#f5e6ff';
@@ -413,6 +429,15 @@ export function OpenTuiApp({
   const [modeProgress, setModeProgress] = useState<ModeProgress>(() =>
     orchestrator.getModeController().getProgress()
   );
+  const [showControl, setShowControl] = useState(false);
+
+  // Global keybind: `a` opens the Agent Control panel. The panel owns
+  // keyboard input while mounted, so this handler only fires when closed.
+  useKeyboard((event) => {
+    if (showControl) return;
+    const key = (event.name ?? '').toLowerCase();
+    if (key === 'a') setShowControl(true);
+  });
 
   const startRef = useRef<number>(Date.now());
   const [elapsed, setElapsed] = useState(0);
@@ -506,6 +531,18 @@ export function OpenTuiApp({
   void persistence;
   void onExit;
 
+  if (showControl) {
+    return (
+      <AgentControlPanel
+        orchestrator={orchestrator}
+        agentIds={session.config.enabledAgents}
+        currentSpeaker={currentSpeaker}
+        agentStates={agentStates}
+        onClose={() => setShowControl(false)}
+      />
+    );
+  }
+
   return (
     <box flexDirection="column" height="100%">
       <HeaderBar
@@ -536,6 +573,12 @@ export function OpenTuiApp({
           producedOutputs={modeProgress.outputsProduced}
           totalMessages={modeProgress.totalMessages}
         />
+      </box>
+
+      <box flexDirection="row" justifyContent="flex-end" marginTop={1}>
+        <text fg="#6b6b76">press </text>
+        <text fg="#e879f9">a</text>
+        <text fg="#6b6b76"> for agent control</text>
       </box>
     </box>
   );

@@ -6,6 +6,7 @@
 
 import type { AgentPersona, Message, SessionConfig, ContextData } from '../../types';
 import type { IAgentRunner } from '../interfaces';
+import type { ProviderRegistry, AgentRuntimeConfigResolver } from '../providers';
 import { MessageBus, FloorRequest } from './MessageBus';
 import { ClaudeCodeAgent } from '../claude-code-agent';
 import { getAgentById } from '../../agents/personas';
@@ -51,18 +52,32 @@ export class AgentListener {
 
   // Optional injected runner (for CLI)
   private agentRunner: IAgentRunner | undefined;
+  private providers: ProviderRegistry | undefined;
+  private resolveConfig: AgentRuntimeConfigResolver | undefined;
+  private resolveSkills: ((agentId: string) => string | undefined) | undefined;
 
   constructor(
     agent: AgentPersona,
     bus: MessageBus,
     config: Partial<AgentListenerConfig> = {},
-    agentRunner?: IAgentRunner
+    agentRunner?: IAgentRunner,
+    providers?: ProviderRegistry,
+    resolveConfig?: AgentRuntimeConfigResolver,
+    resolveSkills?: (agentId: string) => string | undefined
   ) {
     this.id = agent.id;
     this.agent = agent;
     this.bus = bus;
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.agentRunner = agentRunner;
+    this.providers = providers;
+    this.resolveConfig = resolveConfig;
+    this.resolveSkills = resolveSkills;
+  }
+
+  /** True if the operator paused this agent via the Control panel. */
+  private isPaused(): boolean {
+    return this.resolveConfig?.(this.id)?.paused === true;
   }
 
   /**
@@ -73,13 +88,18 @@ export class AgentListener {
     this.state = 'listening';
     this.messagesSinceSpoke = 0;
 
-    // Initialize Claude Code Agent with optional injected runner
+    // Initialize Claude Code Agent with optional injected runner + per-agent
+    // runtime config resolver. The resolver is called on every query, so
+    // mid-session model changes take effect immediately.
     this.claudeAgent = new ClaudeCodeAgent(
       this.agent,
       sessionConfig,
       context,
       skills,
-      this.agentRunner
+      this.agentRunner,
+      this.providers,
+      this.resolveConfig,
+      this.resolveSkills
     );
 
     // Subscribe to events
@@ -195,6 +215,7 @@ export class AgentListener {
   private async evaluateAndReact(): Promise<void> {
     if (!this.sessionConfig || !this.claudeAgent) return;
     if (this.state !== 'listening') return;
+    if (this.isPaused()) return;
 
     // Check minimum silence
     if (this.messagesSinceSpoke < this.config.minSilenceBeforeReact) {

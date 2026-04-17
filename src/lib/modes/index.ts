@@ -786,6 +786,303 @@ RULES:
 };
 
 // =============================================================================
+// VC PITCH MODE - Simulate a venture-capital partner meeting
+// =============================================================================
+
+export const VC_PITCH_MODE: SessionMode = {
+  id: 'vc-pitch',
+  name: 'VC Pitch Meeting',
+  nameHe: 'פגישת משקיעים',
+  description: 'Run a pitch through a simulated partner meeting and produce an investment memo',
+  icon: '💼',
+
+  goalReminder: {
+    frequency: 10,
+    template: `🎯 **PARTNER MEETING FOCUS**: {goal}
+
+We are here to decide: PASS / FOLLOW / INVEST.
+
+Work through:
+1. Thesis & wedge — why now, why this team
+2. Market sizing — TAM/SAM/SOM with evidence
+3. Unit economics — CAC, LTV, retention, payback
+4. Risks — the one thing that kills this
+
+No monologues. Each voice must carry a decision-ready question or assertion.`
+  },
+
+  phases: [
+    {
+      id: 'pitch-digest',
+      name: 'Pitch Digest',
+      order: 1,
+      maxMessages: 10,
+      autoTransition: true,
+      transitionCriteria: 'Thesis and wedge understood',
+      agentFocus: 'Let the Founder voice the thesis in one sentence. Partners restate the wedge.'
+    },
+    {
+      id: 'market-probe',
+      name: 'Market Probe',
+      order: 2,
+      maxMessages: 15,
+      autoTransition: true,
+      transitionCriteria: 'Market structure assessed',
+      agentFocus: 'Probe TAM/SAM/SOM. Comparable companies. Timing — why now?'
+    },
+    {
+      id: 'unit-economics',
+      name: 'Unit Economics Grill',
+      order: 3,
+      maxMessages: 15,
+      autoTransition: true,
+      transitionCriteria: 'Numbers stress-tested',
+      agentFocus: 'Associate drives. CAC, LTV, payback, gross margin, retention curves.'
+    },
+    {
+      id: 'partner-debate',
+      name: 'Partner Debate',
+      order: 4,
+      maxMessages: 12,
+      autoTransition: true,
+      transitionCriteria: 'Positions stated',
+      agentFocus: 'Each partner declares a leaning. LP proxy tests fit against thesis.'
+    },
+    {
+      id: 'investment-memo',
+      name: 'Investment Memo',
+      order: 5,
+      maxMessages: 10,
+      autoTransition: false,
+      transitionCriteria: 'Memo drafted',
+      agentFocus: 'Synthesize a one-page memo: thesis, risks, verdict, proposed terms, next diligence.'
+    }
+  ],
+
+  research: {
+    maxRequests: 8,
+    maxPerTopic: 2,
+    requiredBeforeSynthesis: 2
+  },
+
+  loopDetection: {
+    enabled: true,
+    maxSimilarMessages: 3,
+    maxRoundsWithoutProgress: 3,
+    intervention: `⚠️ The room is stalling. Move to positions.
+
+Each partner: PASS / FOLLOW / INVEST + one sentence. LP proxy: does this fit the fund?
+Founder: the one thing you\'d change in the round structure.`
+  },
+
+  successCriteria: {
+    minConsensusPoints: 2,
+    requiredOutputs: ['thesis', 'risks', 'verdict', 'next_diligence'],
+    maxMessages: 60
+  },
+
+  agentInstructions: `You are in a partner meeting, not a cheerleader session.
+
+RULES:
+- Founders: own the numbers. "We don\'t know yet" is acceptable; making them up is not.
+- Partners: one sharp question per turn beats five vague ones.
+- Every claim about market or retention needs a comparable or a source.
+- End with a verdict: PASS, FOLLOW (track, don\'t invest now), or INVEST with proposed cheque.
+- The deliverable is an investment memo a GP could forward to the investment committee.`
+};
+
+// =============================================================================
+// TECH REVIEW MODE - Review a GitHub repo as a specialist panel
+// =============================================================================
+
+export const TECH_REVIEW_MODE: SessionMode = {
+  id: 'tech-review',
+  name: 'Technical Review',
+  nameHe: 'סקירה טכנית',
+  description: 'Specialist panel reviews a GitHub repo — architecture, perf, security, tests',
+  icon: '🧪',
+
+  goalReminder: {
+    frequency: 8,
+    template: `🎯 **REVIEW TARGET**: {goal}
+
+The goal should include a GitHub repo URL (e.g. github.com/org/repo) and what we are reviewing for.
+
+Each reviewer must deliver their findings in the standard format:
+- FINDING: what, where (path:line when possible), severity (high/medium/low), evidence.
+
+We are producing an actionable review report, not a vibe check.`
+  },
+
+  phases: [
+    {
+      id: 'recon',
+      name: 'Recon',
+      order: 1,
+      maxMessages: 10,
+      autoTransition: true,
+      transitionCriteria: 'Repo shape understood',
+      agentFocus: 'Scan README, module tree, dependencies. State what the repo claims to do.'
+    },
+    {
+      id: 'architecture-read',
+      name: 'Architecture Read',
+      order: 2,
+      maxMessages: 15,
+      autoTransition: true,
+      transitionCriteria: 'Structure assessed',
+      agentFocus: 'Architect drives. Map layers, data flow, module boundaries, obvious smells.'
+    },
+    {
+      id: 'hotspot-dive',
+      name: 'Hotspot Dive',
+      order: 3,
+      maxMessages: 20,
+      autoTransition: true,
+      transitionCriteria: 'Specialist concerns raised',
+      agentFocus: 'Perf, Security, and Test reviewers each raise their top 3 findings with file paths.'
+    },
+    {
+      id: 'report',
+      name: 'Review Report',
+      order: 4,
+      maxMessages: 12,
+      autoTransition: false,
+      transitionCriteria: 'Report synthesized',
+      agentFocus: 'Consolidate findings by severity. Recommend the top 3 things to fix this week.'
+    }
+  ],
+
+  research: {
+    maxRequests: 10,
+    maxPerTopic: 3,
+    requiredBeforeSynthesis: 2
+  },
+
+  loopDetection: {
+    enabled: true,
+    maxSimilarMessages: 3,
+    maxRoundsWithoutProgress: 3,
+    intervention: `⚠️ We\'re re-debating. Move to findings.
+
+Each reviewer: list your TOP 2 findings as FINDING / severity / path:line / evidence.
+Stop re-litigating style; name concrete risks.`
+  },
+
+  successCriteria: {
+    minConsensusPoints: 2,
+    requiredOutputs: ['architecture_summary', 'findings_by_severity', 'recommended_fixes'],
+    maxMessages: 70
+  },
+
+  agentInstructions: `You are reviewing a real codebase. Be specific.
+
+RULES:
+- Prefer file paths and line numbers over generalities. "It\'s messy" is useless.
+- Format findings as: FINDING · severity · path[:line] · one-sentence evidence.
+- Separate theoretical problems from exploitable/expensive ones.
+- If you haven\'t opened the code, say so — don\'t guess.
+- The deliverable is a review report a maintainer can act on in a week.`
+};
+
+// =============================================================================
+// RED TEAM MODE - Adversarial review of a system, plan, or launch
+// =============================================================================
+
+export const RED_TEAM_MODE: SessionMode = {
+  id: 'red-team',
+  name: 'Red Team',
+  nameHe: 'צוות אדום',
+  description: 'Adversarial review — attack scenarios, threat modeling, mitigations',
+  icon: '🩸',
+
+  goalReminder: {
+    frequency: 8,
+    template: `🎯 **RED-TEAM TARGET**: {goal}
+
+We model a specific, named adversary — not "hackers generally".
+
+Deliverables:
+1. Threat model — who attacks, why, with what capability
+2. Attack chains — concrete paths from initial access to objective
+3. Mitigations — ranked by cost/impact
+4. Verdict — what we ship as-is, what we fix first
+
+Defender must score each attack against real detection and response capacity.`
+  },
+
+  phases: [
+    {
+      id: 'recon',
+      name: 'Target Recon',
+      order: 1,
+      maxMessages: 10,
+      autoTransition: true,
+      transitionCriteria: 'Attack surface mapped',
+      agentFocus: 'Describe the system, its trust boundaries, and the crown jewels.'
+    },
+    {
+      id: 'threat-model',
+      name: 'Threat Model',
+      order: 2,
+      maxMessages: 12,
+      autoTransition: true,
+      transitionCriteria: 'Adversary picked',
+      agentFocus: 'Name the specific adversary (nation-state / criminal / insider / opportunist) and their objective.'
+    },
+    {
+      id: 'attack-chains',
+      name: 'Attack Chains',
+      order: 3,
+      maxMessages: 18,
+      autoTransition: true,
+      transitionCriteria: 'Chains drafted',
+      agentFocus: 'Red team drafts 2–3 end-to-end kill chains. Defender scores detectability and cost.'
+    },
+    {
+      id: 'mitigations',
+      name: 'Mitigations & Verdict',
+      order: 4,
+      maxMessages: 12,
+      autoTransition: false,
+      transitionCriteria: 'Plan drafted',
+      agentFocus: 'Rank mitigations by cost × risk reduction. Deliver a short go/no-go with top 3 fixes.'
+    }
+  ],
+
+  research: {
+    maxRequests: 8,
+    maxPerTopic: 2,
+    requiredBeforeSynthesis: 1
+  },
+
+  loopDetection: {
+    enabled: true,
+    maxSimilarMessages: 3,
+    maxRoundsWithoutProgress: 3,
+    intervention: `⚠️ Stop listing theoretical attacks. Move to ranked chains.
+
+Each red-teamer: 1 concrete chain — Access → Pivot → Objective — with adversary named.
+Defender: score it on detection (0–5) and containment cost.`
+  },
+
+  successCriteria: {
+    minConsensusPoints: 2,
+    requiredOutputs: ['threat_model', 'attack_chains', 'top_mitigations', 'verdict'],
+    maxMessages: 60
+  },
+
+  agentInstructions: `You are red-teaming, not brainstorming.
+
+RULES:
+- Name the adversary. "A hacker" is not an adversary; "a motivated opportunist with phished credentials" is.
+- Every attack is scored: probability × impact × detectability.
+- Mitigations ranked by cost × risk reduction, not by elegance.
+- Blue team must hold red team honest: if it can\'t be detected or contained, it\'s real.
+- The deliverable is a prioritized mitigation plan with a clear verdict.`
+};
+
+// =============================================================================
 // CUSTOM MODE - User-defined
 // =============================================================================
 
@@ -870,6 +1167,9 @@ export const SESSION_MODES: Record<string, SessionMode> = {
   'site-survey': SITE_SURVEY_MODE,
   'business-plan': BUSINESS_PLAN_MODE,
   'gtm-strategy': GTM_STRATEGY_MODE,
+  'vc-pitch': VC_PITCH_MODE,
+  'tech-review': TECH_REVIEW_MODE,
+  'red-team': RED_TEAM_MODE,
   'custom': CUSTOM_MODE,
 };
 

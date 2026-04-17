@@ -29,6 +29,7 @@ import { createSessionsCommand } from './commands/sessions';
 import { createWatchCommand } from './commands/watch';
 import { createCompletionsCommand } from './commands/completions';
 import { createConfigCommand } from './commands/config';
+import { createSkillsCommand } from './commands/skills';
 import { createLoginCommand } from './commands/login';
 import { createCommunityCommand } from './commands/community';
 import { createFileAuthBridge } from './adapters/auth-bridge';
@@ -346,6 +347,18 @@ program
       ? new CLIAgentRunner()
       : new ClaudeCodeCLIRunner();
 
+    // Build the provider registry. Anthropic is always available because
+    // it wraps whichever runner we just instantiated (SDK or Claude Code).
+    // Gemini activates only when GEMINI_API_KEY / GOOGLE_API_KEY is set.
+    const { ProviderRegistry, AnthropicProvider, GeminiProvider, OpenAIProvider } =
+      await import('../src/lib/providers');
+    const providers = new ProviderRegistry();
+    providers.register(new AnthropicProvider(agentRunner, true), { asDefault: true });
+    const gemini = new GeminiProvider();
+    if (gemini.isAvailable()) providers.register(gemini);
+    const openai = new OpenAIProvider();
+    if (openai.isAvailable()) providers.register(openai);
+
     // Load brief if specified
     let briefContent = '';
     let projectName = options.project;
@@ -474,6 +487,33 @@ program
     });
     await persistence.initSession(session);
 
+    // Resolve per-agent skills. Runs the optional `skills.sh` hook, then
+    // picks up skills/<agentId>.md, skills/<mode>.md, and skills/shared.md.
+    // The returned map is self-descriptive — each entry already includes
+    // shared + mode layers, so the orchestrator just forwards it.
+    const { loadSkills, discoverSkills } = await import('../src/lib/skills');
+    const resolvedSkills = await loadSkills({
+      cwd,
+      modeId: options.mode || 'copywrite',
+      enabledAgents: validAgents,
+      sessionWorkdir: persistence.getSessionDir(),
+      goal,
+    });
+    for (const [agentId, used] of resolvedSkills.sources) {
+      if (used.length > 0) {
+        console.log(`${GREEN}  ✔ Skills for ${agentId}: ${used.join(', ')}${RESET}`);
+      }
+    }
+
+    // Build the full catalog the TUI skill picker browses. Runs in
+    // parallel with orchestrator init because it only touches disk.
+    const skillCatalog = await discoverSkills({ cwd });
+    if (skillCatalog.entries.length > 0) {
+      console.log(
+        `${DIM}  · skill catalog: ${skillCatalog.entries.length} discovered — press 'k' in the agent panel to browse${RESET}`
+      );
+    }
+
     // Create orchestrator with CLI adapters.
     // When --no-human is set, no one can advance phases manually, so the
     // orchestrator must drive the phase state machine itself.
@@ -485,6 +525,10 @@ program
         agentRunner,
         fileSystem: fsAdapter,
         autoRunPhaseMachine: !options.human,
+        providers,
+        sessionWorkdir: persistence.getSessionDir(),
+        perAgentSkills: resolvedSkills.perAgent,
+        skillCatalog,
       }
     );
 
@@ -493,6 +537,30 @@ program
       if (event.type === 'agent_message') {
         persistence.updateSession(orchestrator.getSession());
       }
+    });
+
+    // Persist per-agent runtime configs to a sidecar file so rerunning
+    // this session picks up the operator's model assignments. Debounced
+    // behind a microtask because the control panel can emit a burst of
+    // changes when cycling through models.
+    let configFlushPending = false;
+    orchestrator.on(async (event) => {
+      if (event.type !== 'agent_config_change') return;
+      if (configFlushPending) return;
+      configFlushPending = true;
+      queueMicrotask(async () => {
+        configFlushPending = false;
+        try {
+          const snapshot = Object.fromEntries(orchestrator.getAllAgentConfigs());
+          await fsAdapter.writeFile(
+            path.join(persistence.getSessionDir(), 'agent-configs.json'),
+            JSON.stringify(snapshot, null, 2)
+          );
+        } catch (err) {
+          // Non-fatal — TUI keeps running, just log to session.log
+          console.error('[agent-configs] persist failed:', err);
+        }
+      });
     });
 
     // Check for DID identity — create one if missing.
@@ -616,6 +684,9 @@ program.addCommand(createCompletionsCommand());
 // Add config command
 program.addCommand(createConfigCommand());
 
+// Browse and apply per-agent skills from the CLI (mirrors the TUI picker).
+program.addCommand(createSkillsCommand());
+
 // Decentralized identity + community (Phases 1-4)
 program.addCommand(createLoginCommand());
 program.addCommand(createCommunityCommand());
@@ -638,7 +709,8 @@ program.action(async () => {
     '',
     '  Available modes:',
     '    copywrite · idea-validation · ideation · will-it-work',
-    '    site-survey · business-plan · gtm-strategy · custom',
+    '    site-survey · business-plan · gtm-strategy',
+    '    vc-pitch · tech-review · red-team · custom',
     '',
     '  Example:',
     '    forge start -m will-it-work -g "Ship Q2 migration?"',
