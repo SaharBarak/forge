@@ -1889,11 +1889,11 @@ footer {
       <span class="tag">// deliberation engine</span>
     </a>
     <div class="links">
+      <a href="#casestudy">Case Study</a>
+      <a href="#demos">Modes</a>
       <a href="#problem">Pain</a>
       <a href="#how">Method</a>
-      <a href="#modes">Modes</a>
       <a href="#control">Control</a>
-      <a href="#demos">Exhibit</a>
       <a href="#faq">FAQ</a>
       <a href="https://github.com/SaharBarak/forge" class="ghstar">★ GitHub</a>
     </div>
@@ -1958,6 +1958,224 @@ footer {
 
 
 <!-- ══════════════════════════════════════════════════════════════
+     CASE STUDY — one product through the Forge lifecycle.
+     Subject: CivicVote, a fictional-but-plausible decentralized
+     voting platform for local municipalities. Each beat surfaces the
+     Forge mode that did the actual work, so a new visitor can see
+     WHEN to reach for Forge, WHY deliberation beats single-chat
+     re-prompting, and WHAT concrete artifact comes out.
+     ══════════════════════════════════════════════════════════════ -->
+<style>
+.casestudy { padding: 72px 0 80px; position: relative; }
+.casestudy-head { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; margin-bottom: 10px; }
+.casestudy-tag {
+  font-family: "Silkscreen", monospace; font-size: 0.72rem; letter-spacing: 0.18em;
+  color: var(--k-neon-cyan); text-transform: uppercase;
+  padding: 6px 10px; border: 1px solid var(--k-neon-cyan); border-radius: 2px;
+}
+.casestudy-note {
+  font-family: "JetBrains Mono", monospace; font-size: 0.78rem;
+  color: var(--k-text-dim); max-width: 60ch;
+}
+.casestudy-head h2 { margin: 6px 0 12px; }
+.casestudy-lede {
+  font-family: "JetBrains Mono", monospace; font-size: 1rem; line-height: 1.65;
+  color: var(--k-text); max-width: 72ch; margin-bottom: 32px;
+}
+.casestudy-lede em { color: var(--k-neon-pink); font-style: normal; }
+.casestudy-lede strong { color: var(--k-amber); }
+.beats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+@media (max-width: 900px) { .beats { grid-template-columns: 1fr; } }
+.beat {
+  background: var(--k-brick);
+  border: 1px solid var(--k-brick-2);
+  border-left: 3px solid var(--beat-acc, var(--k-neon-cyan));
+  padding: 22px 22px 20px;
+  position: relative;
+}
+.beat-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  margin-bottom: 10px;
+}
+.beat-step {
+  font-family: "Silkscreen", monospace; font-size: 0.72rem; letter-spacing: 0.14em;
+  color: var(--k-text-dim);
+}
+.beat-mode {
+  font-family: "JetBrains Mono", monospace; font-size: 0.78rem;
+  color: var(--beat-acc, var(--k-neon-cyan));
+  background: rgba(0, 229, 255, 0.06); padding: 3px 8px; border-radius: 2px;
+}
+.beat h4 {
+  font-family: "Press Start 2P", monospace; font-size: 0.82rem; line-height: 1.6;
+  color: var(--k-text); margin: 0 0 8px; letter-spacing: 0.02em;
+}
+.beat .question {
+  font-family: "JetBrains Mono", monospace; font-style: italic; font-size: 0.9rem;
+  color: var(--k-text-dim); margin: 0 0 10px;
+}
+.beat .artifact {
+  font-family: "JetBrains Mono", monospace; font-size: 0.88rem; line-height: 1.55;
+  color: var(--k-text);
+}
+.beat .artifact strong { color: var(--beat-acc, var(--k-neon-cyan)); font-weight: 700; }
+.casestudy-close {
+  margin-top: 30px; padding: 16px 20px;
+  background: rgba(255, 61, 196, 0.06);
+  border-left: 3px solid var(--k-neon-pink);
+  font-family: "JetBrains Mono", monospace; font-size: 0.9rem; line-height: 1.6;
+  color: var(--k-text); max-width: 72ch;
+}
+.casestudy-close em { color: var(--k-neon-pink); font-style: normal; }
+</style>
+<section id="casestudy" class="scene casestudy" data-scene="alley">
+  <div class="scene-bg scene-bg--far" aria-hidden="true"></div>
+  <div class="scene-bg scene-bg--mid" aria-hidden="true"></div>
+  <div class="grid">
+    <div class="col-full">
+      <div class="casestudy-head">
+        <span class="casestudy-tag">§ 02 · case study</span>
+        <span class="casestudy-note">
+          fictional subject · real Forge workflows · CivicVote is not a shipped product — it's the example
+        </span>
+      </div>
+
+      <h2 class="display h2-neon">
+        One product. <em>Every decision.</em><br>One engine.
+      </h2>
+
+      <p class="casestudy-lede">
+        Meet <strong>CivicVote</strong> — a decentralized voting platform for local municipalities,
+        built so residents can actually decide on zoning, budgets, and referendums without the
+        narrative getting hijacked by national feeds. Four founders, nine months of runway. Here's
+        the same team's product lifecycle run through Forge — <em>when</em> they reached for it,
+        <em>why</em> deliberation beat one-model re-prompting, and <em>what</em> concrete artifact
+        landed on disk each time.
+      </p>
+
+      <div class="beats">
+
+        <div class="beat" style="--beat-acc: #b4ff3d;">
+          <div class="beat-head">
+            <span class="beat-step">01 · opportunity</span>
+            <span class="beat-mode">forge -m ideation</span>
+          </div>
+          <h4>Is local civic-tech a real pain or solutionism?</h4>
+          <p class="question">"Every municipality on earth runs votes on WhatsApp groups. Is that a product or a shrug?"</p>
+          <p class="artifact">Scout agent reads r/civictech, municipality mailing lists, and local-news comment sections.
+          Pragmatist forces a ranked shortlist. Output: <strong>5 concrete opportunities</strong> with evidence —
+          top pick: hyperlocal budget votes, undersupplied at the 20-200k population band.</p>
+        </div>
+
+        <div class="beat" style="--beat-acc: #b4ff3d;">
+          <div class="beat-head">
+            <span class="beat-step">02 · validation</span>
+            <span class="beat-mode">forge -m idea-validation</span>
+          </div>
+          <h4>Will any municipality actually buy this?</h4>
+          <p class="question">"Does the pain exist at a price someone will pay to fix?"</p>
+          <p class="artifact">Skeptic demands procurement data, Advocate speaks for the resident who never attends meetings,
+          Contrarian tries to kill the idea. Output: <strong>GO verdict</strong> with a 3-line reasoning —
+          plus a pivot shortlist if pilot #1 misses turnout.</p>
+        </div>
+
+        <div class="beat" style="--beat-acc: #ffbf00;">
+          <div class="beat-head">
+            <span class="beat-step">03 · feasibility</span>
+            <span class="beat-mode">forge -m will-it-work</span>
+          </div>
+          <h4>Can we get 30% turnout in a 50k-person pilot?</h4>
+          <p class="question">"Cryptographic voting protocols are elegant. They also have 2% turnout in every academic pilot."</p>
+          <p class="artifact">Evidence phase pulls comparable local-gov turnout studies. Structured debate forces a verdict.
+          Output: <strong>MAYBE-IF</strong> — conditions named, specifically: SMS fallback path, proposal cosigner quorum of 5,
+          first-vote onboarding assist.</p>
+        </div>
+
+        <div class="beat" style="--beat-acc: #ffbf00;">
+          <div class="beat-head">
+            <span class="beat-step">04 · threat model</span>
+            <span class="beat-mode">forge -m red-team</span>
+          </div>
+          <h4>Who attacks a decentralized municipal vote?</h4>
+          <p class="question">"Nation-state? Local incumbent? A coercive spouse? Name them before modeling them."</p>
+          <p class="artifact">Attack Planner drafts 3 kill chains (credential phish, coercion at home, insider ballot-box swap).
+          Defender scores detectability. Output: <strong>ranked mitigation plan</strong> — kiosk mode, deniable re-vote,
+          public tally feed, audit log with DIDs only.</p>
+        </div>
+
+        <div class="beat" style="--beat-acc: #00e5ff;">
+          <div class="beat-head">
+            <span class="beat-step">05 · build review</span>
+            <span class="beat-mode">forge -m tech-review</span>
+          </div>
+          <h4>Is the protocol implementation actually correct?</h4>
+          <p class="question">"Cryptography is the part where silent bugs decide elections."</p>
+          <p class="artifact">Architect maps module boundaries, Security Reviewer traces every untrusted input, Perf profiles
+          the tally path, Test engineer grades coverage. Output: <strong>findings report</strong> with file paths and severity —
+          including a <code>nonce re-use in vote/sign.ts:147</code> called out by severity HIGH.</p>
+        </div>
+
+        <div class="beat" style="--beat-acc: #4ade80;">
+          <div class="beat-head">
+            <span class="beat-step">06 · business plan</span>
+            <span class="beat-mode">forge -m business-plan</span>
+          </div>
+          <h4>Who pays — municipalities, states, or philanthropy?</h4>
+          <p class="question">"SaaS-per-resident is a non-starter in a 60k city. What's the actual unit economics?"</p>
+          <p class="artifact">5-phase plan: problem, market sizing, business model, GTM, exec summary. Output: <strong>fundable plan</strong>
+          with three pricing scenarios — per-referendum, annual infrastructure fee, philanthropic underwrite — each with
+          defended unit economics.</p>
+        </div>
+
+        <div class="beat" style="--beat-acc: #4ade80;">
+          <div class="beat-head">
+            <span class="beat-step">07 · go to market</span>
+            <span class="beat-mode">forge -m gtm-strategy</span>
+          </div>
+          <h4>Which pilot city goes first?</h4>
+          <p class="question">"Beer Sheva (IL, 200k), Ramla (IL, 80k), or Setúbal (PT, 120k)?"</p>
+          <p class="artifact">Audience defined (municipal CTO + mayor's chief-of-staff), positioning statement,
+          channel plan, week-by-week timeline. Output: <strong>Pilot #1: Setúbal</strong> — local digital-government
+          mandate, English-friendly, willing to pay for public-first tech.</p>
+        </div>
+
+        <div class="beat" style="--beat-acc: #e879f9;">
+          <div class="beat-head">
+            <span class="beat-step">08 · raise</span>
+            <span class="beat-mode">forge -m vc-pitch</span>
+          </div>
+          <h4>Can the story survive a real partner meeting?</h4>
+          <p class="question">"Pressure-test the pitch before the actual room burns it."</p>
+          <p class="artifact">GP pattern-matches the thesis, Associate grills unit economics, LP proxy tests fund fit,
+          Founder defends the vision. Output: <strong>investment memo</strong> ready for IC — verdict FOLLOW, with named
+          next-diligence items ("retention curve from Setúbal month-3 review").</p>
+        </div>
+
+        <div class="beat" style="--beat-acc: #fb923c;">
+          <div class="beat-head">
+            <span class="beat-step">09 · launch copy</span>
+            <span class="beat-mode">forge -m site-survey &rarr; copywrite</span>
+          </div>
+          <h4>Does the landing page speak municipal, or speak SaaS?</h4>
+          <p class="question">"Procurement officers don't click 'Book a demo'. They read the RFP template."</p>
+          <p class="artifact">Site Survey audits the current page; Copywrite drafts section-by-section in procurement
+          dialect. Output: <strong>before/after rewrites</strong> for hero, compliance block, pilot case, and the
+          RFP-shaped CTA — no more "revolutionize governance", yes more "FIPS-compliant tallying and audit exports".</p>
+        </div>
+
+      </div>
+
+      <p class="casestudy-close">
+        That's nine real decisions, nine concrete artifacts, one product's first year.
+        Each of those modes ships as a workflow you can call today — <em>they're listed below
+        with live recordings.</em> CivicVote was the example. <strong>Your product is the point.</strong>
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
      DEMOS — mode gallery (primary section right after hero)
      Eight recorded forge sessions, one per deliberation mode.
      Default tab = copywrite (the primary "after hero" demo).
@@ -1972,7 +2190,7 @@ footer {
       <!-- LEFT column: section header + tabs + meta -->
       <div class="mode-side">
         <div class="section-head" style="margin-bottom: 8px;">
-          <span class="section-num">§ 02</span>
+          <span class="section-num">§ 03</span>
           <span class="kicker">see forge run</span>
         </div>
         <h2 class="display h2-neon" style="margin-bottom: 14px;">
@@ -2170,7 +2388,7 @@ footer {
 
     <div class="col-1-7">
       <div class="section-head">
-        <span class="section-num">§ 03</span>
+        <span class="section-num">§ 04</span>
         <span class="kicker">the actual pain</span>
       </div>
       <h2 class="display h2-neon">
@@ -2224,7 +2442,7 @@ footer {
 
     <div class="col-1-6">
       <div class="section-head">
-        <span class="section-num">§ 04</span>
+        <span class="section-num">§ 05</span>
         <span class="kicker">the method</span>
       </div>
       <h2 class="display h2-neon" style="margin-bottom: 18px;">
@@ -2292,7 +2510,7 @@ footer {
 
     <div class="col-1-7">
       <div class="section-head">
-        <span class="section-num">§ 05</span>
+        <span class="section-num">§ 06</span>
         <span class="kicker">eleven modes shipped</span>
       </div>
       <h2 class="display h2-neon">
@@ -2418,7 +2636,7 @@ footer {
 
     <div class="col-1-7">
       <div class="section-head">
-        <span class="section-num">§ 06</span>
+        <span class="section-num">§ 07</span>
         <span class="kicker">live operator control</span>
       </div>
       <h2 class="display h2-neon">
@@ -2482,7 +2700,7 @@ footer {
 
     <div class="col-full">
       <div class="section-head">
-        <span class="section-num">§ 07</span>
+        <span class="section-num">§ 08</span>
         <span class="kicker">what's inside</span>
       </div>
       <h2 class="display h2-neon" style="margin-bottom: 32px;">
@@ -2550,7 +2768,7 @@ footer {
 
     <div class="col-1-7">
       <div class="section-head">
-        <span class="section-num">§ 08</span>
+        <span class="section-num">§ 09</span>
         <span class="kicker">who runs forge</span>
       </div>
       <h2 class="display h2-neon">
@@ -2638,7 +2856,7 @@ footer {
 
     <div class="col-1-6">
       <div class="section-head">
-        <span class="section-num">§ 09</span>
+        <span class="section-num">§ 10</span>
         <span class="kicker">frequently asked</span>
       </div>
       <h2 class="display h2-neon">
