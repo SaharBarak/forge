@@ -2008,6 +2008,18 @@ footer {
             <span class="mode-tab-name">Site Survey</span>
             <span class="mode-tab-id">forge -m site-survey</span>
           </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="vc-pitch">
+            <span class="mode-tab-name">VC Pitch</span>
+            <span class="mode-tab-id">forge -m vc-pitch</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="tech-review">
+            <span class="mode-tab-name">Tech Review</span>
+            <span class="mode-tab-id">forge -m tech-review</span>
+          </button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="red-team">
+            <span class="mode-tab-name">Red Team</span>
+            <span class="mode-tab-id">forge -m red-team</span>
+          </button>
           <button class="mode-tab" role="tab" aria-selected="false" data-mode="custom">
             <span class="mode-tab-name">Custom</span>
             <span class="mode-tab-id">forge -m custom</span>
@@ -2079,6 +2091,24 @@ footer {
       tag: '▶ recorded · forge start -m site-survey',
       description: 'Analyze an existing landing page, diagnose what\'s dead, research what converts, then produce before/after rewrites for every section. Audit + fix, one run.',
       phases: 'analyze → diagnose → research → rewrite'
+    },
+    'vc-pitch': {
+      title: 'VC Pitch — partner meeting → investment memo.',
+      tag: '▶ recorded · forge start -m vc-pitch',
+      description: 'A simulated partner meeting: GP pattern-matches the thesis, Associate grills the unit economics, LP proxy tests fund fit, Founder defends the vision. Ends in a one-page memo with a PASS / FOLLOW / INVEST verdict.',
+      phases: 'pitch-digest → market-probe → unit-economics → partner-debate → memo'
+    },
+    'tech-review': {
+      title: 'Tech Review — specialist panel audits a repo.',
+      tag: '▶ recorded · forge start -m tech-review',
+      description: 'Architect reads the module boundaries, Perf engineer hunts the hot paths, Security reviewer traces untrusted input, Test engineer asks what regression would actually ship. Output is a findings report with paths and severity.',
+      phases: 'recon → architecture-read → hotspot-dive → report'
+    },
+    'red-team': {
+      title: 'Red Team — adversarial review with ranked mitigations.',
+      tag: '▶ recorded · forge start -m red-team',
+      description: 'Name a specific adversary, draft concrete kill chains, have the Defender score each attack against real detection capacity. Output is a prioritized mitigation plan, not a risk matrix nobody reads.',
+      phases: 'recon → threat-model → attack-chains → mitigations'
     },
     'custom': {
       title: 'Custom — your phases, your outputs.',
