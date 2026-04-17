@@ -929,3 +929,153 @@ describe('EDAOrchestrator error handling', () => {
     orchestrator.stop();
   });
 });
+
+// =============================================================================
+// Phase 2 additions — per-agent runtime config, provider registry, skills
+// =============================================================================
+
+describe('EDAOrchestrator — per-agent runtime config', () => {
+  let session: Session;
+  let mockAgentRunner: IAgentRunner;
+  let mockFileSystem: IFileSystem;
+
+  beforeEach(() => {
+    session = createMockSession();
+    mockAgentRunner = createMockAgentRunner();
+    mockFileSystem = createMockFileSystem();
+  });
+
+  it('seeds a default config per enabled agent when a provider registry is supplied', async () => {
+    // Build a minimal registry so the orchestrator has a default to seed from.
+    const { ProviderRegistry, AnthropicProvider } = await import('../providers');
+    const providers = new ProviderRegistry();
+    providers.register(new AnthropicProvider(mockAgentRunner, true), { asDefault: true });
+
+    const orchestrator = new EDAOrchestrator(session, undefined, undefined, {
+      agentRunner: mockAgentRunner,
+      fileSystem: mockFileSystem,
+      providers,
+    });
+
+    for (const id of session.config.enabledAgents) {
+      const cfg = orchestrator.getAgentConfig(id);
+      expect(cfg.providerId).toBe('anthropic');
+      expect(cfg.modelId).toBe('claude-sonnet-4-20250514');
+    }
+  });
+
+  it('updateAgentConfig mutates state and emits agent_config_change', async () => {
+    const { ProviderRegistry, AnthropicProvider } = await import('../providers');
+    const providers = new ProviderRegistry();
+    providers.register(new AnthropicProvider(mockAgentRunner, true), { asDefault: true });
+
+    const orchestrator = new EDAOrchestrator(session, undefined, undefined, {
+      agentRunner: mockAgentRunner,
+      fileSystem: mockFileSystem,
+      providers,
+    });
+
+    const events: EDAEvent[] = [];
+    orchestrator.on((e) => events.push(e));
+
+    orchestrator.updateAgentConfig('skeptic', { modelId: 'claude-opus-4-7' });
+
+    const cfg = orchestrator.getAgentConfig('skeptic');
+    expect(cfg.modelId).toBe('claude-opus-4-7');
+    expect(events.some((e) => e.type === 'agent_config_change')).toBe(true);
+  });
+
+  it('setAgentSkillIds emits agent_skills_change', async () => {
+    const orchestrator = new EDAOrchestrator(session, undefined, undefined, {
+      agentRunner: mockAgentRunner,
+      fileSystem: mockFileSystem,
+    });
+
+    const events: EDAEvent[] = [];
+    orchestrator.on((e) => events.push(e));
+
+    orchestrator.setAgentSkillIds('skeptic', ['architecture', 'owasp']);
+    const skills = orchestrator.getAgentSkillIds('skeptic');
+    expect(skills).toEqual(['architecture', 'owasp']);
+    expect(events.some((e) => e.type === 'agent_skills_change')).toBe(true);
+  });
+
+  it('toggleAgentSkill adds then removes a skill id', () => {
+    const orchestrator = new EDAOrchestrator(session, undefined, undefined, {
+      agentRunner: mockAgentRunner,
+      fileSystem: mockFileSystem,
+    });
+
+    orchestrator.toggleAgentSkill('skeptic', 'owasp');
+    expect(orchestrator.getAgentSkillIds('skeptic')).toContain('owasp');
+
+    orchestrator.toggleAgentSkill('skeptic', 'owasp');
+    expect(orchestrator.getAgentSkillIds('skeptic')).not.toContain('owasp');
+  });
+
+  it('forceSpeak returns null for an unknown agent id without throwing', async () => {
+    const orchestrator = new EDAOrchestrator(session, undefined, undefined, {
+      agentRunner: mockAgentRunner,
+      fileSystem: mockFileSystem,
+    });
+    await orchestrator.start();
+
+    const result = await orchestrator.forceSpeak('not-a-real-agent', 'test');
+    expect(result).toBeNull();
+
+    orchestrator.stop();
+  });
+
+  it('resolveAgentSkills prefers override over the init bundle when overrides exist', async () => {
+    const { ProviderRegistry, AnthropicProvider } = await import('../providers');
+    const { discoverSkills } = await import('../skills');
+
+    // Scratch a tmp cwd containing one skill, then build a catalog from it.
+    const os = await import('os');
+    const fs = await import('fs/promises');
+    const p = await import('path');
+    const cwd = await fs.mkdtemp(p.join(os.tmpdir(), 'forge-orch-skill-'));
+    try {
+      await fs.mkdir(p.join(cwd, 'skills'), { recursive: true });
+      await fs.writeFile(p.join(cwd, 'skills', 'arch.md'), '# Arch\narch body');
+      const catalog = await discoverSkills({ cwd });
+
+      const providers = new ProviderRegistry();
+      providers.register(new AnthropicProvider(mockAgentRunner, true), { asDefault: true });
+
+      const perAgent = new Map<string, string>([
+        ['skeptic', 'INIT BUNDLE'],
+      ]);
+
+      const orchestrator = new EDAOrchestrator(session, undefined, undefined, {
+        agentRunner: mockAgentRunner,
+        fileSystem: mockFileSystem,
+        providers,
+        skillCatalog: catalog,
+        perAgentSkills: perAgent,
+      });
+
+      // Without overrides, resolver returns the init bundle.
+      expect(orchestrator.resolveAgentSkills('skeptic')).toBe('INIT BUNDLE');
+
+      // With overrides, resolver composes from the catalog content.
+      orchestrator.setAgentSkillIds('skeptic', ['arch']);
+      expect(orchestrator.resolveAgentSkills('skeptic')).toContain('arch body');
+      expect(orchestrator.resolveAgentSkills('skeptic')).not.toContain('INIT BUNDLE');
+    } finally {
+      await fs.rm(cwd, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+
+  it('injectSystemSuffix stores the suffix on the agent config', () => {
+    const orchestrator = new EDAOrchestrator(session, undefined, undefined, {
+      agentRunner: mockAgentRunner,
+      fileSystem: mockFileSystem,
+    });
+
+    orchestrator.injectSystemSuffix('skeptic', 'Challenge the optimistic take.');
+    expect(orchestrator.getAgentConfig('skeptic').systemSuffix).toBe(
+      'Challenge the optimistic take.'
+    );
+  });
+});
