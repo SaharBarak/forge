@@ -1,8 +1,13 @@
-# Forge — Agent Control panel walkthrough
-# Demonstrates: open panel ('a'), cycle model (←→), cycle provider ('p'),
-# pause/resume (space), force-speak ('s'), close (esc).
+# Forge · Agent Control panel walkthrough
+# Boots a session through the interactive menu (wizard), then demos
+# the `a` panel: open · select agent · cycle model (←→) · pause (space)
+# · force-speak (s) · open Skill Picker (k) · close (esc).
 #
-# Requires ANTHROPIC + (optional) GEMINI / OPENAI keys to show provider cycling.
+# Pre-seeds ~/.config/forge/config.json with default mode = will-it-work
+# so the wizard's mode-select lands on that option and Enter is enough.
+# The will-it-work deliberation is the cheapest to run to reach the
+# TUI's "council rendered" state.
+
 Output docs/demo/agent-control-raw.gif
 
 Set Theme "Catppuccin Mocha"
@@ -12,51 +17,84 @@ Set Height 820
 Set Padding 24
 Set FontFamily "JetBrainsMono Nerd Font Mono"
 Set TypingSpeed 25ms
-Set PlaybackSpeed 1.0
 
 Hide
 Type "cd /Users/saharbarak/workspace/forge"
 Enter
+# Redirect XDG_CONFIG_HOME to a scratch dir so the wizard lands on
+# clean defaults (will-it-work) regardless of the user's real config.
+Type "export XDG_CONFIG_HOME=/tmp/forge-demo-xdg"
+Enter
+Type "rm -rf /tmp/forge-demo-xdg"
+Enter
 Type "clear"
 Enter
-Sleep 200ms
 
-# Type the command while Hidden; Show only after the session has
-# booted and reached Discovery so the recording jumps straight to
-# agent control material instead of watching a command being typed.
-Type "forge start -m will-it-work -p AgentControlDemo -g "
-Type@25ms `"Will adding a dark-mode toggle ship in Q2?"`
-Type " -a skeptic,pragmatist,analyst --no-human -l english"
+Type "forge"
+Enter
+# Banner + menu render
+Sleep 3500ms
+
+# Main menu — default = "New deliberation"
+Enter
+Sleep 1400ms
+
+# Mode select — default will-it-work per config
+Enter
+Sleep 1100ms
+
+# Project name
+Type "DarkModeQ2"
 Sleep 400ms
 Enter
+Sleep 900ms
 
-# Let the session boot (TUI render) + reach Discovery (council visible).
+# Goal
+Type "Will dark mode ship this quarter or slip?"
+Sleep 400ms
+Enter
+Sleep 900ms
+
+# Agents (pre-selected default council) — accept
+Enter
+Sleep 900ms
+
+# Language english — accept
+Enter
+Sleep 900ms
+
+# Human participation — default no, accept
+Enter
+Sleep 1200ms
+
+# Summary + confirm
+Enter
+
+# Let the deliberation reach Discovery (council panel visible with agents)
 Sleep 22s
 Show
 
-# Open Agent Control panel
+# ─── Agent Control walkthrough ───────────────────────────────────────
 Type "a"
 Sleep 2s
 
-# Cycle the selected agent's model forward twice
+# Cycle model forward twice on the first agent
 Right
 Sleep 1200ms
 Right
 Sleep 1200ms
 
-# Switch provider (Anthropic → Gemini / OpenAI if available)
+# Switch provider (if Gemini/OpenAI/Ollama configured, loops through)
 Type "p"
 Sleep 1500ms
 
-# Move down to the next agent
+# Move to next agent, pause them
 Down
 Sleep 900ms
-
-# Pause this agent
 Space
 Sleep 1500ms
 
-# Move down and force-speak
+# Move to the next agent, force-speak
 Down
 Sleep 900ms
 Type "s"
@@ -64,4 +102,4 @@ Sleep 3s
 
 # Close the panel, return to the deliberation
 Escape
-Sleep 30s
+Sleep 25s

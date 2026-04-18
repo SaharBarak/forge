@@ -1,11 +1,12 @@
-# Forge — Skill Picker walkthrough
-# Demonstrates: open Agent Control ('a'), open Skill Picker ('k'),
-# navigate skills (↑↓), toggle apply (space), preview pane updates,
-# close (esc) back to the control panel.
+# Forge · Skill Picker walkthrough
+# Boots a tech-review session through the menu wizard, then demos
+# the `a` → `k` flow: Agent Control panel → Skill Picker overlay →
+# navigate skills (↑↓) → toggle (space) → close (esc).
 #
-# Requires a project-level skills/ directory with at least 2-3 .md
-# files so the picker has something to browse. The bootstrap command
-# plants a fresh set for the recording.
+# Pre-seeds a tmp workdir with skills/ so the picker has something
+# to browse. Default mode in config = tech-review so the wizard
+# mode-select lands on that option.
+
 Output docs/demo/skill-picker-raw.gif
 
 Set Theme "Catppuccin Mocha"
@@ -15,67 +16,110 @@ Set Height 820
 Set Padding 24
 Set FontFamily "JetBrainsMono Nerd Font Mono"
 Set TypingSpeed 25ms
-Set PlaybackSpeed 1.0
 
 Hide
-Type "cd /Users/saharbarak/workspace/forge"
-Enter
-Type "clear"
-Enter
-
-# Ensure we have demo skills to browse. These are temporary —
-# the cleanup step at the end removes them.
+# Scratch tmp cwd with skills so the picker has rows to render
 Type "mkdir -p /tmp/forge-skill-demo/skills && cd /tmp/forge-skill-demo"
 Enter
-Type "printf '# Architecture Patterns\\n\\nGuidance on module boundaries and seams.\\n' > skills/architecture.md"
+Type "printf '# Architecture Patterns\n\nModule boundaries and seams.\n' > skills/architecture.md"
 Enter
-Type "printf '# OWASP Top 10\\n\\nReview checklist for injection, auth, crypto, access control.\\n' > skills/owasp.md"
+Type "printf '# OWASP Top 10\n\nInjection, auth, crypto, access control.\n' > skills/owasp.md"
 Enter
-Type "printf '# Performance Tuning\\n\\nN+1, caching, async, profiler-first mindset.\\n' > skills/performance.md"
+Type "printf '# Performance Tuning\n\nN+1, caching, async.\n' > skills/performance.md"
+Enter
+
+# Clean XDG dir so wizard lands on default mode (will-it-work) and we
+# can reach tech-review with a known number of Down presses.
+Type "export XDG_CONFIG_HOME=/tmp/forge-demo-xdg"
+Enter
+Type "rm -rf /tmp/forge-demo-xdg"
 Enter
 Type "clear"
 Enter
-Sleep 200ms
 
-# Boot the session while Hidden so the recording starts when the TUI
-# is live, not while `forge start ...` is being typed.
-Type "forge start -m tech-review -p SkillPickerDemo -g "
-Type@25ms `"Audit the checkout service."`
-Type " -a architect,security-reviewer --no-human -l english"
+Type "forge"
+Enter
+Sleep 3500ms
+
+# Main menu — default "New deliberation"
+Enter
+Sleep 1400ms
+
+# Mode select — cursor lands on will-it-work (default fallback). The
+# mode order is copywrite, idea-validation, ideation, will-it-work,
+# site-survey, business-plan, gtm-strategy, vc-pitch, tech-review, …
+# so Down × 5 from will-it-work reaches tech-review.
+Down
+Sleep 300ms
+Down
+Sleep 300ms
+Down
+Sleep 300ms
+Down
+Sleep 300ms
+Down
+Sleep 500ms
+Enter
+Sleep 1100ms
+
+# Project
+Type "CheckoutAudit"
 Sleep 400ms
 Enter
+Sleep 900ms
 
-# Wait for deliberation to begin; THEN reveal.
-Sleep 20s
+# Goal
+Type "Audit the checkout service."
+Sleep 400ms
+Enter
+Sleep 900ms
+
+# Agents — pre-checked tech-review set (architect, perf, security, test)
+Enter
+Sleep 900ms
+
+# Language — english default
+Enter
+Sleep 900ms
+
+# Human participation — default no
+Enter
+Sleep 1200ms
+
+# Summary + confirm
+Enter
+
+# Wait for deliberation to render
+Sleep 22s
 Show
 
-# Open Agent Control, then Skill Picker on the selected agent
+# Agent Control → Skill Picker
 Type "a"
 Sleep 1500ms
 Type "k"
 Sleep 2s
 
-# Navigate the catalog, toggle two skills, watch preview update
+# Browse + toggle two skills, watch preview update
 Down
 Sleep 1200ms
 Down
 Sleep 1200ms
 Space
-Sleep 1800ms
+Sleep 1600ms
 Up
-Sleep 1200ms
+Sleep 1000ms
 Space
-Sleep 1800ms
+Sleep 1600ms
 
-# Close Skill Picker → back to Agent Control
+# Close picker → back to Agent Control
 Escape
 Sleep 1500ms
 
-# Close Agent Control → back to the deliberation
+# Close panel → back to deliberation
 Escape
-Sleep 20s
+Sleep 18s
 
-# Cleanup (hidden — runs after the renderer exits).
+# Cleanup hidden
 Hide
 Type "rm -rf /tmp/forge-skill-demo"
 Enter

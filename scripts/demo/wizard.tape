@@ -1,10 +1,9 @@
-# Forge — wizard demo
-# Records the FORGE banner → HomeScreen → "Start new" wizard prompts.
-# Exits before persona generation begins → zero token cost.
+# Forge · wizard demo (no LLM cost)
+# Shows the interactive menu → New deliberation → wizard walk-through
+# (mode → project → goal → agents → language → human → confirm).
+# Exits with Ctrl+C before the deliberation actually starts, so cost is $0.
 #
-# Run:
-#   PATH=/tmp/forge-bin:$PATH vhs scripts/demo/wizard.tape
-# Output: docs/demo/wizard.gif
+# Run: vhs scripts/demo/wizard.tape  → docs/demo/wizard.gif
 
 Output docs/demo/wizard.gif
 
@@ -14,7 +13,7 @@ Set Width 1200
 Set Height 720
 Set Padding 28
 Set FontFamily "JetBrainsMono Nerd Font Mono"
-Set TypingSpeed 35ms
+Set TypingSpeed 30ms
 
 Hide
 Type "cd /Users/saharbarak/workspace/forge"
@@ -22,21 +21,47 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
+Type "forge"
+Enter
+Sleep 4s
 Show
 
-Type "npm run cli -- start --project Forge"
-Sleep 400ms
+# ─── Main menu: default = "New deliberation" ─────────────────────────
 Enter
+Sleep 2s
 
-# Wait for the start-flow prompts to appear
-Sleep 8s
+# ─── Mode select: default is whatever config.defaults.mode is
+#     (or 'will-it-work' on first run). Accept.
+Enter
+Sleep 1800ms
 
-# Type a goal
-Type "Decide whether to migrate from Postgres to Cockroach"
+# ─── Project name ────────────────────────────────────────────────────
+Type "Checkout v2 launch"
+Sleep 500ms
+Enter
+Sleep 1500ms
+
+# ─── Goal (mode-specific placeholder shown in the prompt) ────────────
+Type "Should we switch payment vendor AND rebuild DB in the same quarter?"
 Sleep 600ms
 Enter
-Sleep 3s
+Sleep 1500ms
 
-# Quit before personas generate (Ctrl+C avoids any LLM call)
+# ─── Agents multiselect — pre-checked with mode's recommended set.
+#     Just accept.
+Enter
+Sleep 1500ms
+
+# ─── Language: default = english. Accept. ────────────────────────────
+Enter
+Sleep 1200ms
+
+# ─── Human participation: default = false (autonomous). Accept. ──────
+Enter
+Sleep 1200ms
+
+# ─── Summary note renders, then "Start the deliberation?" confirm.
+#     Hit Ctrl+C here to avoid actually running the LLM.
+Sleep 2500ms
 Ctrl+C
 Sleep 1s
