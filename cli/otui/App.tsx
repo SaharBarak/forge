@@ -93,9 +93,16 @@ const STATE_ICON: Record<string, string> = {
  * prose instead of `**bold**`, backticks, numbered-header artifacts.
  * Keeps semantic text; drops delimiters + emojis the terminal can't
  * render cleanly. Leaves ` · ` separators alone.
+ *
+ * Key rule: every delimiter-pair strip replaces with ` $1 ` (space-
+ * padded) so patterns like `*word*nextword` don't collapse to
+ * `wordnextword`. The final `\s+ → ' '` pass folds the duplicates.
  */
 function cleanMessageBody(raw: string): string {
   return raw
+    // ANSI colour codes first — if any slipped through from a tool
+    // that shelled out to colour-capable output
+    .replace(/\x1b\[[0-9;]*m/g, '')
     // Kill type tags like [ARGUMENT], [SYNTHESIS]
     .replace(/^\[[A-Z_ ]+\]\s*/, '')
     // HTML entities
@@ -105,21 +112,26 @@ function cleanMessageBody(raw: string): string {
     // Headers: drop leading # marks but keep a space so the title
     // word doesn't crash into the body ("## HERO" → "HERO ")
     .replace(/(^|\n)\s{0,3}#{1,6}\s*/g, '$1')
-    // Bold / italic: drop the asterisks / underscores but keep the text
-    .replace(/\*\*([\s\S]+?)\*\*/g, '$1')
-    .replace(/__([\s\S]+?)__/g, '$1')
-    .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '$1')
-    .replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '$1')
-    // Inline code fences and blocks
-    .replace(/```[a-z]*\n?/gi, '')
-    .replace(/`([^`\n]+?)`/g, '$1')
+    // Bold / italic: replace delimiters with space-padded text so
+    // adjacent words can't collide — e.g. `**Skeptic's**right**G-E**`
+    // must NOT collapse to `Skeptic'srightG-E`.
+    .replace(/\*\*([\s\S]+?)\*\*/g, ' $1 ')
+    .replace(/__([\s\S]+?)__/g, ' $1 ')
+    .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, ' $1 ')
+    .replace(/(?<!_)_([^_\n]+?)_(?!_)/g, ' $1 ')
+    // Inline code fences and blocks — same space-pad treatment for
+    // backtick inline code
+    .replace(/```[a-z]*\n?/gi, ' ')
+    .replace(/`([^`\n]+?)`/g, ' $1 ')
     // Bullet/list markers at line start
     .replace(/(^|\n)[-*]\s+/g, '$1')
     // Strip the noisy TUI emojis agents inherit from system-prompt examples
     .replace(/[🎙️📢📍🎯✍️🔎🧭🔍💡⚠️📋📊🔥⚒]/gu, '')
-    // Collapse all runs of whitespace (including newlines eaten by the
-    // strips above) into a single space, THEN re-introduce breaks at
-    // sentence boundaries so the display has some rhythm.
+    // Non-standard whitespace that the \s class sometimes misses on
+    // older JS engines: NBSP, zero-width-space, zero-width-joiner.
+    .replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, ' ')
+    // Final collapse — multiple spaces introduced by the above strips
+    // get folded back into single spaces.
     .replace(/\s+/g, ' ')
     .trim();
 }

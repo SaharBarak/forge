@@ -1981,7 +1981,7 @@ import React3, { useState as useState3, useEffect as useEffect3, useRef, useMemo
 import { useKeyboard as useKeyboard3 } from "@opentui/react";
 import { Fragment, jsx as jsx3, jsxs as jsxs3 } from "@opentui/react/jsx-runtime";
 function cleanMessageBody(raw) {
-  return raw.replace(/^\[[A-Z_ ]+\]\s*/, "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/(^|\n)\s{0,3}#{1,6}\s*/g, "$1").replace(/\*\*([\s\S]+?)\*\*/g, "$1").replace(/__([\s\S]+?)__/g, "$1").replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, "$1").replace(/(?<!_)_([^_\n]+?)_(?!_)/g, "$1").replace(/```[a-z]*\n?/gi, "").replace(/`([^`\n]+?)`/g, "$1").replace(/(^|\n)[-*]\s+/g, "$1").replace(/[🎙️📢📍🎯✍️🔎🧭🔍💡⚠️📋📊🔥⚒]/gu, "").replace(/\s+/g, " ").trim();
+  return raw.replace(/\x1b\[[0-9;]*m/g, "").replace(/^\[[A-Z_ ]+\]\s*/, "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/(^|\n)\s{0,3}#{1,6}\s*/g, "$1").replace(/\*\*([\s\S]+?)\*\*/g, " $1 ").replace(/__([\s\S]+?)__/g, " $1 ").replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, " $1 ").replace(/(?<!_)_([^_\n]+?)_(?!_)/g, " $1 ").replace(/```[a-z]*\n?/gi, " ").replace(/`([^`\n]+?)`/g, " $1 ").replace(/(^|\n)[-*]\s+/g, "$1").replace(/[🎙️📢📍🎯✍️🔎🧭🔍💡⚠️📋📊🔥⚒]/gu, "").replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, " ").replace(/\s+/g, " ").trim();
 }
 function HeaderBar({
   projectName,
