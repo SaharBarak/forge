@@ -395,7 +395,9 @@ kbd {
    Variance 8: fractional grid 1fr 3fr, not 1fr 1fr 1fr.
    ══════════════════════════════════════════════════════════════════════ */
 .section {
-  padding: 110px 0;
+  /* Generous vertical breathing room — the page reads as a dossier,
+     not a feature dump. Previous 110px felt cramped between sections. */
+  padding: 160px 0;
   position: relative;
 }
 .section-grid {
@@ -1186,32 +1188,16 @@ kbd {
 
     <div class="section-body">
       <p class="case-intro rise">
-        Meet <strong>CivicVote</strong> — a fictional decentralized voting platform for local
-        municipalities, built so residents can actually decide zoning, budgets, and referendums
-        without the narrative being hijacked by national feeds. Four founders, nine months of runway.
-        Below is the same team's first year — <em>when</em> they reached for Forge, <em>why</em>
-        deliberation beat one-model re-prompting, and <em>what</em> concrete artifact landed on disk
-        each time.
+        <strong>CivicVote</strong> is a fictional product — decentralized voting for local
+        municipalities. Below are four real decisions that team ran through Forge instead of
+        chatting with one model for three hours each. For every one: the question, the mode,
+        the artifact that landed on disk.
       </p>
 
       <div class="beats">
 
         <article class="beat rise">
-          <div class="beat-num"><b>01</b>Opportunity</div>
-          <div class="beat-body">
-            <header class="beat-heading">
-              <h3>Is local civic-tech a real pain or solutionism?</h3>
-              <span class="beat-mode">forge -m ideation</span>
-            </header>
-            <div class="beat-copy">
-              <p class="beat-q">"Every municipality on earth runs votes on WhatsApp groups. Is that a product or a shrug?"</p>
-              <p class="beat-out">Scout agent reads r/civictech, municipality mailing lists, and local-news comment sections. Pragmatist forces a ranked shortlist. Output: <strong>5 concrete opportunities</strong> with evidence — top pick: hyperlocal budget votes, undersupplied at the 20-200k population band.</p>
-            </div>
-          </div>
-        </article>
-
-        <article class="beat rise">
-          <div class="beat-num"><b>02</b>Validation</div>
+          <div class="beat-num"><b>01</b>Validate</div>
           <div class="beat-body">
             <header class="beat-heading">
               <h3>Will any municipality actually buy this?</h3>
@@ -1219,41 +1205,27 @@ kbd {
             </header>
             <div class="beat-copy">
               <p class="beat-q">"Does the pain exist at a price someone will pay to fix?"</p>
-              <p class="beat-out">Skeptic demands procurement data, Advocate speaks for the resident who never attends meetings, Contrarian tries to kill the idea. Output: <strong>GO verdict</strong> with a three-line reasoning — plus a pivot shortlist if pilot #1 misses turnout.</p>
+              <p class="beat-out"><strong>GO</strong> with three-line reasoning, plus a pivot shortlist if pilot #1 misses turnout. Skeptic forced the procurement-data question; Contrarian tried and failed to kill the idea.</p>
             </div>
           </div>
         </article>
 
         <article class="beat rise">
-          <div class="beat-num"><b>03</b>Feasibility</div>
-          <div class="beat-body">
-            <header class="beat-heading">
-              <h3>Can we get 30% turnout in a 50k-person pilot?</h3>
-              <span class="beat-mode">forge -m will-it-work</span>
-            </header>
-            <div class="beat-copy">
-              <p class="beat-q">"Cryptographic voting protocols are elegant. They also have 2% turnout in every academic pilot."</p>
-              <p class="beat-out">Evidence phase pulls comparable local-gov turnout studies. Structured debate forces a verdict. Output: <strong>MAYBE-IF</strong> — conditions named specifically: SMS fallback path, proposal cosigner quorum of five, first-vote onboarding assist.</p>
-            </div>
-          </div>
-        </article>
-
-        <article class="beat rise">
-          <div class="beat-num"><b>04</b>Threat model</div>
+          <div class="beat-num"><b>02</b>Red-team</div>
           <div class="beat-body">
             <header class="beat-heading">
               <h3>Who attacks a decentralized municipal vote?</h3>
               <span class="beat-mode">forge -m red-team</span>
             </header>
             <div class="beat-copy">
-              <p class="beat-q">"Nation-state? Local incumbent? A coercive spouse? Name them before modeling them."</p>
-              <p class="beat-out">Attack Planner drafts three kill chains (credential phish, coercion at home, insider ballot-box swap). Defender scores detectability. Output: <strong>ranked mitigation plan</strong> — kiosk mode, deniable re-vote, public tally feed, audit log with DIDs only.</p>
+              <p class="beat-q">"Nation-state? Incumbent? A coercive spouse? Name them before modeling them."</p>
+              <p class="beat-out">Three kill chains drafted, scored against real detection capacity. <strong>Ranked mitigation plan</strong> lands: kiosk mode, deniable re-vote, public tally feed, audit log with DIDs only.</p>
             </div>
           </div>
         </article>
 
         <article class="beat rise">
-          <div class="beat-num"><b>05</b>Build review</div>
+          <div class="beat-num"><b>03</b>Audit</div>
           <div class="beat-body">
             <header class="beat-heading">
               <h3>Is the protocol implementation actually correct?</h3>
@@ -1261,41 +1233,13 @@ kbd {
             </header>
             <div class="beat-copy">
               <p class="beat-q">"Cryptography is the part where silent bugs decide elections."</p>
-              <p class="beat-out">Architect maps module boundaries, Security Reviewer traces every untrusted input, Perf profiles the tally path, Test engineer grades coverage. Output: <strong>findings report</strong> with file paths and severity — including a <code>nonce re-use in vote/sign.ts:147</code> called out at severity HIGH.</p>
+              <p class="beat-out"><strong>Findings report</strong> with file paths + severity — including a <code>nonce re-use in vote/sign.ts:147</code> flagged HIGH. Architect, Security, Perf, and Tests all at the table.</p>
             </div>
           </div>
         </article>
 
         <article class="beat rise">
-          <div class="beat-num"><b>06</b>Business plan</div>
-          <div class="beat-body">
-            <header class="beat-heading">
-              <h3>Who pays — municipalities, states, or philanthropy?</h3>
-              <span class="beat-mode">forge -m business-plan</span>
-            </header>
-            <div class="beat-copy">
-              <p class="beat-q">"SaaS-per-resident is a non-starter in a 60k city. What's the actual unit economics?"</p>
-              <p class="beat-out">Five-phase plan: problem, market sizing, business model, GTM, exec summary. Output: <strong>fundable plan</strong> with three pricing scenarios — per-referendum, annual infrastructure fee, philanthropic underwrite — each with defended unit economics.</p>
-            </div>
-          </div>
-        </article>
-
-        <article class="beat rise">
-          <div class="beat-num"><b>07</b>Go to market</div>
-          <div class="beat-body">
-            <header class="beat-heading">
-              <h3>Which pilot city goes first?</h3>
-              <span class="beat-mode">forge -m gtm-strategy</span>
-            </header>
-            <div class="beat-copy">
-              <p class="beat-q">"Beer Sheva (IL, 200k), Ramla (IL, 80k), or Setúbal (PT, 120k)?"</p>
-              <p class="beat-out">Audience defined (municipal CTO + mayor's chief-of-staff), positioning statement, channel plan, week-by-week timeline. Output: <strong>Pilot #1: Setúbal</strong> — local digital-government mandate, English-friendly, willing to pay for public-first tech.</p>
-            </div>
-          </div>
-        </article>
-
-        <article class="beat rise">
-          <div class="beat-num"><b>08</b>Raise</div>
+          <div class="beat-num"><b>04</b>Raise</div>
           <div class="beat-body">
             <header class="beat-heading">
               <h3>Can the story survive a real partner meeting?</h3>
@@ -1303,21 +1247,7 @@ kbd {
             </header>
             <div class="beat-copy">
               <p class="beat-q">"Pressure-test the pitch before the actual room burns it."</p>
-              <p class="beat-out">GP pattern-matches the thesis, Associate grills unit economics, LP proxy tests fund fit, Founder defends the vision. Output: <strong>investment memo</strong> ready for IC — verdict FOLLOW, with named next-diligence items ("retention curve from Setúbal month-3 review").</p>
-            </div>
-          </div>
-        </article>
-
-        <article class="beat rise">
-          <div class="beat-num"><b>09</b>Launch copy</div>
-          <div class="beat-body">
-            <header class="beat-heading">
-              <h3>Does the landing page speak municipal, or speak SaaS?</h3>
-              <span class="beat-mode">forge -m site-survey &rarr; copywrite</span>
-            </header>
-            <div class="beat-copy">
-              <p class="beat-q">"Procurement officers don't click 'Book a demo'. They read the RFP template."</p>
-              <p class="beat-out">Site Survey audits the current page; Copywrite drafts section-by-section in procurement dialect. Output: <strong>before/after rewrites</strong> for hero, compliance block, pilot case, and the RFP-shaped CTA — no more "revolutionize governance", yes more "FIPS-compliant tallying and audit exports".</p>
+              <p class="beat-out"><strong>Investment memo</strong> ready for IC — verdict FOLLOW, with named next-diligence items. GP, Associate, LP proxy, and Founder all played out before the real meeting.</p>
             </div>
           </div>
         </article>
@@ -1325,9 +1255,7 @@ kbd {
       </div>
 
       <p class="case-close rise">
-        Nine real decisions, nine concrete artifacts, one product's first year. Each of those modes
-        ships as a workflow you can call today — <em>listed below with live recordings.</em>
-        CivicVote was the example. <strong>Your product is the point.</strong>
+        Same team. Different question. Same engine. <strong>CivicVote was the example. Your product is the point.</strong>
       </p>
     </div>
   </div>

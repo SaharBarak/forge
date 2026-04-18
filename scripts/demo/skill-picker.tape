@@ -38,8 +38,9 @@ Enter
 Sleep 200ms
 Show
 
-# Boot tech-review session — the personas we want to equip with skills.
-Type "/Users/saharbarak/workspace/forge/node_modules/.bin/bun /Users/saharbarak/workspace/forge/cli/index.ts start -m tech-review -p SkillPickerDemo -g "
+# Boot tech-review session from the tmp workdir (so skills/ is
+# discovered relative to cwd). `forge` is on PATH via `bun link`.
+Type "forge start -m tech-review -p SkillPickerDemo -g "
 Type@25ms `"Audit the checkout service."`
 Type " -a architect,security-reviewer --no-human -l english"
 Sleep 400ms
