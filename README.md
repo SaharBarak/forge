@@ -13,7 +13,7 @@
 
 **You don't need a smarter AI. You need five that disagree.**
 
-Three hours re-prompting one model gets you a longer draft, not a decision. Forge runs five reasoning archetypes through a deterministic phase machine — `discovery → research → synthesis → drafting → verdict` — until they actually converge on something you can ship.
+Three hours re-prompting one model gets you a longer draft, not a decision. Forge runs five reasoning archetypes through a deterministic phase machine · `discovery → research → synthesis → drafting → verdict` · until they actually converge on something you can ship.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-a78bfa.svg?style=flat-square)](#license)
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-3178c6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -37,13 +37,13 @@ Three hours re-prompting one model gets you a longer draft, not a decision. Forg
 
 ---
 
-Forge ships eleven deliberation modes — copywriting, idea validation, feasibility, ideation, business planning, go-to-market, site surveys, VC pitch meetings, technical repo review, red-team adversarial review, plus fully custom. Every agent can run on a different model — **Claude, Gemini, and OpenAI** are all live — and you can swap models or load project-specific skills live from the TUI without restarting the session. CLI-first, open source, no API key lock-in.
+Forge ships eleven deliberation modes · copywriting, idea validation, feasibility, ideation, business planning, go-to-market, site surveys, VC pitch meetings, technical repo review, red-team adversarial review, plus fully custom. Every agent can run on a different model · **Claude, Gemini, and OpenAI** are all live · and you can swap models or load project-specific skills live from the TUI without restarting the session. CLI-first, open source, no API key lock-in.
 
 ---
 
 ## What it does
 
-You pick a **mode** and give Forge a goal. It runs a deterministic phase state machine — Discovery → Research → Synthesis → Drafting → Finalization — with five reasoning archetypes debating, researching, and producing a structured deliverable. Phase transitions are automatic, loop detection is built in, and sessions always terminate cleanly with the artifact you asked for.
+You pick a **mode** and give Forge a goal. It runs a deterministic phase state machine · Discovery → Research → Synthesis → Drafting → Finalization · with five reasoning archetypes debating, researching, and producing a structured deliverable. Phase transitions are automatic, loop detection is built in, and sessions always terminate cleanly with the artifact you asked for.
 
 ```bash
 $ forge start --mode will-it-work \
@@ -59,13 +59,13 @@ $ forge start --mode will-it-work \
   [RESEARCH: context-finder] What does src/lib/db/ look like today?
 
 🧭 PHASE 3/4: SYNTHESIS → ✍️ PHASE 4/4: DRAFTING
-🎉 DRAFTING COMPLETE — 3/3 sections
+🎉 DRAFTING COMPLETE · 3/3 sections
   ✓ VERDICT, ✓ CONFIDENCE LEVEL, ✓ KEY FACTORS
 ```
 
 ## The eleven modes
 
-Each mode ships with its own phase sequence, per-phase focus, message limits, success criteria, and loop detection — all defined in [`src/lib/modes/index.ts`](src/lib/modes/index.ts).
+Each mode ships with its own phase sequence, per-phase focus, message limits, success criteria, and loop detection · all defined in [`src/lib/modes/index.ts`](src/lib/modes/index.ts).
 
 | Mode | ID | Phases | Use when |
 |---|---|---|---|
@@ -121,24 +121,24 @@ Forge is a CLI-first Ink TUI with a deterministic phase executor at its core.
 ```
 
 **Key modules:**
-- [`src/lib/eda/EDAOrchestrator.ts`](src/lib/eda/EDAOrchestrator.ts) — phase state machine, agent coordination, session lifecycle
-- [`src/lib/eda/AgentListener.ts`](src/lib/eda/AgentListener.ts) — per-agent message handling, `speakNow()` for turn-taking
-- [`src/lib/eda/MessageBus.ts`](src/lib/eda/MessageBus.ts) — typed pub/sub (`message:new`, `phase:change`, `session:end`, …)
-- [`src/lib/eda/GoalParser.ts`](src/lib/eda/GoalParser.ts) — extracts required sections from the goal string
-- [`src/lib/eda/FloorManager.ts`](src/lib/eda/FloorManager.ts) — floor-request serialization with cooldown
-- [`src/lib/eda/ConversationMemory.ts`](src/lib/eda/ConversationMemory.ts) — bounded summaries + per-agent state
-- [`src/lib/modes/ModeController.ts`](src/lib/modes/ModeController.ts) — mode progression, loop detection, output validation
-- [`src/lib/research/ProjectIntrospector.ts`](src/lib/research/ProjectIntrospector.ts) — walks a project dir and answers questions grounded in real source code
-- [`cli/adapters/ClaudeCodeCLIRunner.ts`](cli/adapters/ClaudeCodeCLIRunner.ts) — shells out to `claude` via `@anthropic-ai/claude-agent-sdk`
-- [`src/lib/providers/`](src/lib/providers/) — `IProvider` registry with Anthropic + Gemini (see [PROVIDERS](specs/architecture/PROVIDERS.md))
-- [`src/lib/skills/SkillsLoader.ts`](src/lib/skills/SkillsLoader.ts) — per-agent skill resolution + catalog discovery
-- [`src/lib/eda/WorkdirManager.ts`](src/lib/eda/WorkdirManager.ts) — per-session disk layout + consensus capture
-- [`cli/otui/AgentControlPanel.tsx`](cli/otui/AgentControlPanel.tsx) — live agent control TUI overlay
-- [`cli/otui/SkillPicker.tsx`](cli/otui/SkillPicker.tsx) — live skill toggle overlay
+- [`src/lib/eda/EDAOrchestrator.ts`](src/lib/eda/EDAOrchestrator.ts) · phase state machine, agent coordination, session lifecycle
+- [`src/lib/eda/AgentListener.ts`](src/lib/eda/AgentListener.ts) · per-agent message handling, `speakNow()` for turn-taking
+- [`src/lib/eda/MessageBus.ts`](src/lib/eda/MessageBus.ts) · typed pub/sub (`message:new`, `phase:change`, `session:end`, …)
+- [`src/lib/eda/GoalParser.ts`](src/lib/eda/GoalParser.ts) · extracts required sections from the goal string
+- [`src/lib/eda/FloorManager.ts`](src/lib/eda/FloorManager.ts) · floor-request serialization with cooldown
+- [`src/lib/eda/ConversationMemory.ts`](src/lib/eda/ConversationMemory.ts) · bounded summaries + per-agent state
+- [`src/lib/modes/ModeController.ts`](src/lib/modes/ModeController.ts) · mode progression, loop detection, output validation
+- [`src/lib/research/ProjectIntrospector.ts`](src/lib/research/ProjectIntrospector.ts) · walks a project dir and answers questions grounded in real source code
+- [`cli/adapters/ClaudeCodeCLIRunner.ts`](cli/adapters/ClaudeCodeCLIRunner.ts) · shells out to `claude` via `@anthropic-ai/claude-agent-sdk`
+- [`src/lib/providers/`](src/lib/providers/) · `IProvider` registry with Anthropic + Gemini (see [PROVIDERS](specs/architecture/PROVIDERS.md))
+- [`src/lib/skills/SkillsLoader.ts`](src/lib/skills/SkillsLoader.ts) · per-agent skill resolution + catalog discovery
+- [`src/lib/eda/WorkdirManager.ts`](src/lib/eda/WorkdirManager.ts) · per-session disk layout + consensus capture
+- [`cli/otui/AgentControlPanel.tsx`](cli/otui/AgentControlPanel.tsx) · live agent control TUI overlay
+- [`cli/otui/SkillPicker.tsx`](cli/otui/SkillPicker.tsx) · live skill toggle overlay
 
 ## Agent archetypes
 
-Five **generic, culture-neutral** reasoning archetypes ship in the default registry. No names, no personalities — just stances:
+Five **generic, culture-neutral** reasoning archetypes ship in the default registry. No names, no personalities · just stances:
 
 | ID | Role | What they bring |
 |---|---|---|
@@ -158,16 +158,16 @@ Live operator surface over the deliberation. Press **`a`** in the running TUI to
 |---|---|
 | `↑↓ / jk` | Select agent |
 | `←→ / hl` | Cycle model within current provider |
-| `p` | Cycle provider (Anthropic ↔ Gemini — providers without credentials are skipped) |
+| `p` | Cycle provider (Anthropic ↔ Gemini · providers without credentials are skipped) |
 | `space` | Pause/resume this agent |
-| `s` | Force-speak — this agent takes the floor next |
+| `s` | Force-speak · this agent takes the floor next |
 | `k` | Open the Skill Picker (see [Skills System](#skills-system)) |
 | `esc / a` | Close back to the deliberation view |
 
 Provider support today:
-- **Anthropic** — Sonnet 4 / Opus 4.7 / Opus 4.6 / Haiku 4.5. Always available (routes through the existing Claude Code auth).
-- **Gemini** — 2.5 Flash / 2.5 Pro / 2.0 Flash. Activates when `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set.
-- **OpenAI** — GPT-4o / GPT-4o mini / o1 mini / GPT-4 Turbo. Activates when `OPENAI_API_KEY` is set.
+- **Anthropic** · Sonnet 4 / Opus 4.7 / Opus 4.6 / Haiku 4.5. Always available (routes through the existing Claude Code auth).
+- **Gemini** · 2.5 Flash / 2.5 Pro / 2.0 Flash. Activates when `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set.
+- **OpenAI** · GPT-4o / GPT-4o mini / o1 mini / GPT-4 Turbo. Activates when `OPENAI_API_KEY` is set.
 
 Config mutations emit `agent_config_change`; listeners resolve the agent's live config on every query, so changes apply to the very next response. Full contract in [`specs/features/AGENT_CONTROL.md`](specs/features/AGENT_CONTROL.md) and [`specs/architecture/PROVIDERS.md`](specs/architecture/PROVIDERS.md).
 
@@ -178,11 +178,11 @@ Per-agent skill bundles resolved from multiple sources, with a shell hook for pr
 ### Resolution order
 At session init, for each enabled agent:
 
-1. Optional **`<cwd>/skills.sh`** — if executable, runs first with `FORGE_MODE` / `FORGE_AGENTS` / `FORGE_GOAL` / `FORGE_WORKDIR` env vars. The hook may populate `skills/` with fresh content (e.g. `curl` from a private wiki).
-2. **`<cwd>/skills/<agentId>.md`** — per-agent skills.
-3. **`<cwd>/skills/<modeId>.md`** — mode-level shared skills.
-4. **`<cwd>/skills/shared.md`** — project-wide shared skills.
-5. **`~/.claude/skills/forge/<agentId>.md`** — user-level fallback.
+1. Optional **`<cwd>/skills.sh`** · if executable, runs first with `FORGE_MODE` / `FORGE_AGENTS` / `FORGE_GOAL` / `FORGE_WORKDIR` env vars. The hook may populate `skills/` with fresh content (e.g. `curl` from a private wiki).
+2. **`<cwd>/skills/<agentId>.md`** · per-agent skills.
+3. **`<cwd>/skills/<modeId>.md`** · mode-level shared skills.
+4. **`<cwd>/skills/shared.md`** · project-wide shared skills.
+5. **`~/.claude/skills/forge/<agentId>.md`** · user-level fallback.
 
 The resolved bundle for each agent is persisted to `<session>/skills/<agentId>.md` so the session is self-describing.
 
@@ -241,7 +241,7 @@ output/sessions/MySession-2026-04-17T12-34-56/
     <agentId>.md            resolved skill bundle applied at session start
 ```
 
-Agents tag synthesized or agreed-on content with `[CONSENSUS]` or `[SYNTHESIS]`; the orchestrator auto-captures each one to `consensus/` — that directory ends up containing just the agreed-upon material, separate from the full debate transcript.
+Agents tag synthesized or agreed-on content with `[CONSENSUS]` or `[SYNTHESIS]`; the orchestrator auto-captures each one to `consensus/` · that directory ends up containing just the agreed-upon material, separate from the full debate transcript.
 
 ## Project introspection
 
@@ -264,14 +264,14 @@ git clone https://github.com/SaharBarak/forge.git
 cd forge
 npm install
 
-# Authenticate Claude Code (one-time — Forge uses your existing claude CLI auth)
+# Authenticate Claude Code (one-time · Forge uses your existing claude CLI auth)
 claude login
 
 # Run the interactive CLI
 npm run cli
 ```
 
-No `ANTHROPIC_API_KEY` needed — Forge shells out to the authenticated `claude` binary via `@anthropic-ai/claude-agent-sdk`.
+No `ANTHROPIC_API_KEY` needed · Forge shells out to the authenticated `claude` binary via `@anthropic-ai/claude-agent-sdk`.
 
 ## Build & test
 
@@ -298,8 +298,8 @@ npx tsx scripts/forge-landing-copy.ts
 ```
 
 Output lands in `output/forge-landing-copy/runs/<timestamp>/`:
-- `landing-copy.md` — the consolidated draft
-- `transcript.md` — the full deliberation transcript including context-finder citations
+- `landing-copy.md` · the consolidated draft
+- `transcript.md` · the full deliberation transcript including context-finder citations
 
 ## Development
 
@@ -336,18 +336,18 @@ npm run build
 **Not in scope:**
 - Hosted SaaS (Forge runs locally, period)
 - Hard-coded personas or locale-specific defaults
-- Forcing `ANTHROPIC_API_KEY` — Anthropic provider shells through the `claude` CLI, other providers read their own env vars
+- Forcing `ANTHROPIC_API_KEY` · Anthropic provider shells through the `claude` CLI, other providers read their own env vars
 - Persisting skill-picker overrides across sessions (overrides live in-memory + the session's `agent-configs.json`)
 
 ### FAQ
 
-**Can I run different models for different agents?** Yes — Agent Control (`a`) lets you assign any combination, e.g. Skeptic on Claude Opus, Pragmatist on Gemini 2.5 Flash, all live.
+**Can I run different models for different agents?** Yes · Agent Control (`a`) lets you assign any combination, e.g. Skeptic on Claude Opus, Pragmatist on Gemini 2.5 Flash, all live.
 
-**Can I bring my own skills?** Yes — drop markdown files in `skills/`, or ship a `skills.sh` that populates them at session start, or put user-level skills in `~/.claude/skills/forge/`. The picker (`k`) browses all sources.
+**Can I bring my own skills?** Yes · drop markdown files in `skills/`, or ship a `skills.sh` that populates them at session start, or put user-level skills in `~/.claude/skills/forge/`. The picker (`k`) browses all sources.
 
 **What does this cost to run?** Inference cost is whatever your model provider charges. Forge adds no fee. Anthropic goes through your existing `claude` auth (included with Claude Pro / Max if you have it). Gemini needs `GEMINI_API_KEY`; pricing lives in the TUI cost meter at order-of-magnitude accuracy.
 
-**Does it work offline?** The deliberation engine is local but the models are remote. A self-hosted Ollama provider would plug in as another `IProvider` — scoped for later phases.
+**Does it work offline?** The deliberation engine is local but the models are remote. A self-hosted Ollama provider would plug in as another `IProvider` · scoped for later phases.
 
 ## License
 
