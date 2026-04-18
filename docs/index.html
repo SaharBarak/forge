@@ -259,7 +259,9 @@ kbd {
   gap: 56px 64px;
   align-items: end;
 }
-.hero-lead { max-width: 24ch; }
+/* The lead column fills the full 2fr width — the headline wraps into
+   natural reading lines, not one-word towers. */
+.hero-lead { width: 100%; }
 .hero-index {
   font-family: var(--mono);
   font-size: 11px;
@@ -272,11 +274,14 @@ kbd {
 }
 .hero-index span:nth-child(1) { color: var(--accent); }
 .hero-h1 {
-  font-size: clamp(44px, 7.2vw, 104px);
+  /* Cap size so the sentence lands in ~2 lines on desktop instead of
+     towering. 76px at 1fr-wide column fits ~15–16 chars per line. */
+  font-size: clamp(40px, 5.4vw, 76px);
   font-weight: 800;
-  line-height: 0.96;
-  letter-spacing: -0.032em;
+  line-height: 1.02;
+  letter-spacing: -0.024em;
   text-wrap: balance;
+  max-width: 18ch;
 }
 .hero-h1 .soft { color: var(--fg-2); font-weight: 500; }
 .hero-h1 .mark { color: var(--accent); }
