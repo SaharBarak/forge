@@ -17,11 +17,13 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
-Show
 
 Type "forge start -m idea-validation -p SentryDeck -g "
 Type@25ms `"Build an AI-native incident response co-pilot that replaces PagerDuty?"`
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 180s
+
+Sleep 6s
+Show
+Sleep 174s

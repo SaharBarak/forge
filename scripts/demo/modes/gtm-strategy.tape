@@ -17,11 +17,13 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
-Show
 
 Type "forge start -m gtm-strategy -p AgentCI -g "
 Type@25ms `"Launch strategy for an AI-powered CI tool aimed at platform engineering teams"`
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 180s
+
+Sleep 6s
+Show
+Sleep 174s

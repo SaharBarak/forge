@@ -17,11 +17,13 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
-Show
 
 Type "forge start -m will-it-work -p PostgresToCockroach -g "
 Type@25ms `"Migrate a 10M-user Postgres system to CockroachDB in 90 days?"`
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 180s
+
+Sleep 6s
+Show
+Sleep 174s

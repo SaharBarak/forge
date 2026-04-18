@@ -17,11 +17,13 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
-Show
 
 Type "forge start -m ideation -p DevToolsOpportunities -g "
 Type@25ms `"Find ranked developer tooling opportunities in the observability space"`
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 180s
+
+Sleep 6s
+Show
+Sleep 174s

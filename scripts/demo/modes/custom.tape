@@ -17,11 +17,13 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
-Show
 
 Type "forge start -m custom -p OpenQuestion -g "
 Type@25ms `"Why do developer tools struggle to retain enterprise customers past year two?"`
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 180s
+
+Sleep 6s
+Show
+Sleep 174s

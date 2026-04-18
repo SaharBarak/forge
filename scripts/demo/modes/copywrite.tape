@@ -17,12 +17,14 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
-Show
 
 Type "forge start -m copywrite -p StarshipDB -g "
 Type@25ms `"Write the hero + problem + features for StarshipDB — a distributed vector database CLI"`
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
-# Capture the deliberation
-Sleep 180s
+
+# Wait for TUI boot, THEN reveal + capture the deliberation
+Sleep 6s
+Show
+Sleep 174s
