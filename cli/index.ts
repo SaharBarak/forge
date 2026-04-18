@@ -30,6 +30,8 @@ import { createWatchCommand } from './commands/watch';
 import { createCompletionsCommand } from './commands/completions';
 import { createConfigCommand } from './commands/config';
 import { createSkillsCommand } from './commands/skills';
+import { createInitCommand } from './commands/init';
+import { loadConfig, resolveProviderKey } from '../src/lib/config/ForgeConfig';
 import { createLoginCommand } from './commands/login';
 import { createCommunityCommand } from './commands/community';
 import { createFileAuthBridge } from './adapters/auth-bridge';
@@ -350,14 +352,33 @@ program
     // Build the provider registry. Anthropic is always available because
     // it wraps whichever runner we just instantiated (SDK or Claude Code).
     // Gemini activates only when GEMINI_API_KEY / GOOGLE_API_KEY is set.
-    const { ProviderRegistry, AnthropicProvider, GeminiProvider, OpenAIProvider } =
+    const { ProviderRegistry, AnthropicProvider, GeminiProvider, OpenAIProvider, OllamaProvider } =
       await import('../src/lib/providers');
+
+    // Read persistent settings from ~/.config/forge/config.json; env
+    // vars still override so CI / ad-hoc shells Just Work.
+    const forgeSettings = await loadConfig();
+
     const providers = new ProviderRegistry();
     providers.register(new AnthropicProvider(agentRunner, true), { asDefault: true });
-    const gemini = new GeminiProvider();
+
+    const geminiKey = resolveProviderKey(forgeSettings, 'gemini', 'GEMINI_API_KEY')
+      ?? resolveProviderKey(forgeSettings, 'gemini', 'GOOGLE_API_KEY');
+    const gemini = new GeminiProvider(geminiKey);
     if (gemini.isAvailable()) providers.register(gemini);
-    const openai = new OpenAIProvider();
+
+    const openaiKey = resolveProviderKey(forgeSettings, 'openai', 'OPENAI_API_KEY');
+    const openai = new OpenAIProvider(openaiKey);
     if (openai.isAvailable()) providers.register(openai);
+
+    // Ollama auto-detects — probe the daemon once. If up, the local
+    // models (Gemma / Llama / Qwen / Mistral / DeepSeek / ...) become
+    // selectable from the Agent Control panel.
+    const ollamaCfg = forgeSettings.providers.ollama;
+    if (ollamaCfg?.enabled !== false) {
+      const ollama = new OllamaProvider({ baseUrl: ollamaCfg?.baseUrl });
+      if (await ollama.probe()) providers.register(ollama);
+    }
 
     // Load brief if specified
     let briefContent = '';
@@ -686,6 +707,9 @@ program.addCommand(createConfigCommand());
 
 // Browse and apply per-agent skills from the CLI (mirrors the TUI picker).
 program.addCommand(createSkillsCommand());
+
+// Interactive first-run setup — writes to ~/.config/forge/config.json.
+program.addCommand(createInitCommand());
 
 // Decentralized identity + community (Phases 1-4)
 program.addCommand(createLoginCommand());

@@ -1485,9 +1485,10 @@ kbd {
         <div class="install-copy">
           <h3>Sixty seconds to a <em>verdict.</em></h3>
           <p>
-            Anthropic inherits your local <strong>Claude Code</strong> session — zero config. Set
-            <code>GEMINI_API_KEY</code> or <code>OPENAI_API_KEY</code> to activate those providers.
-            Requires <strong>Bun</strong>.
+            Clone, link, run <code>forge init</code>. The wizard picks up your <strong>Claude Code</strong>
+            session, offers to paste <code>GEMINI_API_KEY</code> or <code>OPENAI_API_KEY</code>, and
+            auto-detects a local <strong>Ollama</strong> daemon if you're running Gemma / Llama / Qwen /
+            Mistral locally. Env vars still override on every call.
           </p>
         </div>
 
@@ -1498,15 +1499,10 @@ kbd {
           </div>
 <pre><span class="c"># clone the engine</span>
 git clone https://github.com/SaharBarak/forge.git
-<span class="k">cd</span> forge
+<span class="k">cd</span> forge &amp;&amp; bun install &amp;&amp; bun link
 
-<span class="c"># bun installs deps + links the binary</span>
-bun install
-bun link
-
-<span class="c"># optional — wire in Gemini alongside Claude</span>
-<span class="k">export</span> <span class="p">GEMINI_API_KEY</span>=...
-<span class="k">export</span> <span class="p">OPENAI_API_KEY</span>=...
+<span class="c"># interactive setup — picks providers, pastes keys, probes Ollama</span>
+forge init
 
 <span class="c"># first deliberation</span>
 forge start -m will-it-work -g <span class="p">"Migrate to Cockroach?"</span></pre>

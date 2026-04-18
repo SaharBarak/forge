@@ -648,17 +648,17 @@ import * as path12 from "path";
 import * as os2 from "os";
 import * as fs9 from "fs/promises";
 import { spawnSync } from "child_process";
-async function readIfExists(p) {
+async function readIfExists(p2) {
   try {
-    const content = await fs9.readFile(p, "utf-8");
+    const content = await fs9.readFile(p2, "utf-8");
     return content.trim() ? content : null;
   } catch {
     return null;
   }
 }
-async function isExecutable(p) {
+async function isExecutable(p2) {
   try {
-    const stat3 = await fs9.stat(p);
+    const stat3 = await fs9.stat(p2);
     return stat3.isFile() && (stat3.mode & 73) !== 0;
   } catch {
     return false;
@@ -842,6 +842,132 @@ var init_skills = __esm({
   }
 });
 
+// src/lib/providers/OllamaProvider.ts
+var DEFAULT_BASE_URL, CURATED_MODELS, OllamaProvider;
+var init_OllamaProvider = __esm({
+  "src/lib/providers/OllamaProvider.ts"() {
+    "use strict";
+    DEFAULT_BASE_URL = "http://localhost:11434";
+    CURATED_MODELS = [
+      { id: "gemma3:27b", label: "Gemma 3 27B", tier: "slow", hint: "Google open model \u2014 strong reasoning" },
+      { id: "gemma3:4b", label: "Gemma 3 4B", tier: "fast", hint: "small, fast, multilingual" },
+      { id: "llama3.3:70b", label: "Llama 3.3 70B", tier: "slow", hint: "Meta flagship open model" },
+      { id: "qwen2.5:32b", label: "Qwen 2.5 32B", tier: "balanced", hint: "Alibaba \u2014 strong code + reasoning" },
+      { id: "mistral:latest", label: "Mistral", tier: "balanced", hint: "general-purpose" }
+    ];
+    OllamaProvider = class {
+      id = "ollama";
+      name = "Ollama (local)";
+      baseUrl;
+      available;
+      installedModels = null;
+      constructor(opts = {}) {
+        this.baseUrl = opts.baseUrl ?? process.env.OLLAMA_BASE_URL ?? DEFAULT_BASE_URL;
+        this.available = opts.assumeAvailable ?? false;
+      }
+      isAvailable() {
+        return this.available;
+      }
+      /**
+       * Async liveness probe. The CLI calls this once at startup to flip
+       * `available` and cache the real model list. Sync `isAvailable()`
+       * reads the cached flag.
+       */
+      async probe() {
+        try {
+          const res = await fetch(`${this.baseUrl}/api/tags`, { signal: AbortSignal.timeout(1500) });
+          if (!res.ok) {
+            this.available = false;
+            return false;
+          }
+          const body = await res.json();
+          if (Array.isArray(body.models) && body.models.length > 0) {
+            this.installedModels = body.models.map((m) => ({
+              id: m.name,
+              label: m.name,
+              tier: "balanced",
+              hint: m.size ? `${(m.size / 1e9).toFixed(1)} GB` : void 0
+            }));
+          }
+          this.available = true;
+          return true;
+        } catch {
+          this.available = false;
+          return false;
+        }
+      }
+      listModels() {
+        return this.installedModels ?? CURATED_MODELS;
+      }
+      defaultModelId() {
+        const list = this.listModels();
+        return list[0]?.id ?? "gemma3:4b";
+      }
+      async query(params) {
+        const model = params.model || this.defaultModelId();
+        const messages = [
+          ...params.systemPrompt ? [{ role: "system", content: params.systemPrompt }] : [],
+          { role: "user", content: params.prompt }
+        ];
+        try {
+          const res = await fetch(`${this.baseUrl}/api/chat`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ model, messages, stream: false })
+          });
+          if (!res.ok) {
+            return { success: false, error: `Ollama ${res.status}: ${await res.text().catch(() => "")}` };
+          }
+          const body = await res.json();
+          return {
+            success: true,
+            content: body.message?.content ?? "",
+            usage: {
+              inputTokens: body.prompt_eval_count ?? 0,
+              outputTokens: body.eval_count ?? 0,
+              // Local inference has no $ cost — keep the TUI meter honest.
+              costUsd: 0
+            }
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "Ollama request failed"
+          };
+        }
+      }
+      async evaluate(params) {
+        const result = await this.query({
+          prompt: params.evalPrompt,
+          systemPrompt: "You are evaluating whether to speak in a discussion. Respond only with JSON.",
+          model: this.defaultModelId()
+        });
+        if (!result.success || !result.content) {
+          return {
+            success: false,
+            urgency: "pass",
+            reason: result.error || "No response",
+            responseType: ""
+          };
+        }
+        const jsonMatch = result.content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) return { success: true, urgency: "pass", reason: "Listening", responseType: "" };
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return {
+            success: true,
+            urgency: parsed.urgency ?? "pass",
+            reason: parsed.reason ?? "",
+            responseType: parsed.responseType ?? ""
+          };
+        } catch {
+          return { success: true, urgency: "pass", reason: "Parse error", responseType: "" };
+        }
+      }
+    };
+  }
+});
+
 // electron/p2p/node.js
 var node_exports = {};
 __export(node_exports, {
@@ -854,13 +980,13 @@ __export(node_exports, {
   startNode: () => startNode,
   stopNode: () => stopNode
 });
-import path15 from "path";
-import fs12 from "fs/promises";
+import path16 from "path";
+import fs13 from "fs/promises";
 async function startNode({ dataDir: dataDir2 }) {
-  storePath = path15.join(dataDir2, "store.jsonl");
-  await fs12.mkdir(dataDir2, { recursive: true });
+  storePath = path16.join(dataDir2, "store.jsonl");
+  await fs13.mkdir(dataDir2, { recursive: true });
   try {
-    const content = await fs12.readFile(storePath, "utf-8");
+    const content = await fs13.readFile(storePath, "utf-8");
     for (const line of content.split("\n")) {
       if (!line.trim()) continue;
       try {
@@ -893,7 +1019,7 @@ async function putDoc(doc) {
   requireStarted();
   if (!doc || !doc._id) throw new Error("putDoc requires _id");
   docs.set(doc._id, doc);
-  await fs12.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
+  await fs13.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
   for (const cb of updateListeners) {
     try {
       cb({ hash: doc._id, id: doc._id, op: "PUT" });
@@ -916,7 +1042,7 @@ async function allDocs() {
 async function deleteDoc(id) {
   requireStarted();
   docs.delete(id);
-  await fs12.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
+  await fs13.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
   return id;
 }
 async function getStatus() {
@@ -967,11 +1093,11 @@ var init_embeddings = __esm({
       if (pipelineInstance) return pipelineInstance;
       if (pipelinePromise) return pipelinePromise;
       loading = true;
-      pipelinePromise = loadPipeline().then((p) => {
-        pipelineInstance = p;
+      pipelinePromise = loadPipeline().then((p2) => {
+        pipelineInstance = p2;
         loading = false;
         console.log("[embeddings] model loaded:", MODEL_ID);
-        return p;
+        return p2;
       }).catch((err2) => {
         loading = false;
         pipelinePromise = null;
@@ -996,8 +1122,8 @@ var init_embeddings = __esm({
 });
 
 // electron/connections/vector-index.js
-import path16 from "path";
-import fs13 from "fs/promises";
+import path17 from "path";
+import fs14 from "fs/promises";
 var Index, MetricKind, index, idMap, dataDir, indexPath, mapPath, dimensions, dirty, loadUsearch, loadIdMap, saveIdMap, load, requireOpen, addVector, hasId, removeVector, searchSimilar, size, save, close;
 var init_vector_index = __esm({
   "electron/connections/vector-index.js"() {
@@ -1020,27 +1146,27 @@ var init_vector_index = __esm({
     };
     loadIdMap = async () => {
       try {
-        const raw = await fs13.readFile(mapPath, "utf-8");
+        const raw = await fs14.readFile(mapPath, "utf-8");
         idMap = JSON.parse(raw);
       } catch {
         idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
       }
     };
     saveIdMap = async () => {
-      await fs13.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
+      await fs14.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
     };
     load = async ({ dir, dims = 384 }) => {
       if (index) return;
       await loadUsearch();
       dataDir = dir;
       dimensions = dims;
-      indexPath = path16.join(dir, "index.usearch");
-      mapPath = path16.join(dir, "id-map.json");
-      await fs13.mkdir(dir, { recursive: true });
+      indexPath = path17.join(dir, "index.usearch");
+      mapPath = path17.join(dir, "id-map.json");
+      await fs14.mkdir(dir, { recursive: true });
       await loadIdMap();
       index = new Index(dimensions, MetricKind.Cos);
       try {
-        await fs13.access(indexPath);
+        await fs14.access(indexPath);
         index.load(indexPath);
         console.log(`[vector-index] loaded ${index.size()} vectors from ${indexPath}`);
       } catch {
@@ -1124,7 +1250,7 @@ __export(service_exports, {
   status: () => status,
   stopService: () => stopService
 });
-import path17 from "path";
+import path18 from "path";
 var serviceDataDir, startService, stopService, indexContribution, deindexContribution, findSimilarByText, status;
 var init_service = __esm({
   "electron/connections/service.js"() {
@@ -1133,7 +1259,7 @@ var init_service = __esm({
     init_vector_index();
     serviceDataDir = null;
     startService = async ({ dataDir: dataDir2 }) => {
-      serviceDataDir = path17.join(dataDir2, "connections");
+      serviceDataDir = path18.join(dataDir2, "connections");
       await load({ dir: serviceDataDir, dims: EMBEDDING_DIMENSIONS });
       ensureReady().catch(
         (err2) => console.error("[connections] model warmup failed:", err2)
@@ -1196,13 +1322,13 @@ var init_registry = __esm({
         }
       }
       get(id) {
-        const p = this.providers.get(id);
-        if (!p) {
+        const p2 = this.providers.get(id);
+        if (!p2) {
           throw new Error(
             `Unknown provider '${id}'. Available: ${Array.from(this.providers.keys()).join(", ") || "none"}`
           );
         }
-        return p;
+        return p2;
       }
       tryGet(id) {
         return this.providers.get(id);
@@ -1211,7 +1337,7 @@ var init_registry = __esm({
         return Array.from(this.providers.values());
       }
       listAvailable() {
-        return this.list().filter((p) => p.isAvailable());
+        return this.list().filter((p2) => p2.isAvailable());
       }
       getDefault() {
         if (!this.defaultId) {
@@ -1559,6 +1685,7 @@ var providers_exports = {};
 __export(providers_exports, {
   AnthropicProvider: () => AnthropicProvider,
   GeminiProvider: () => GeminiProvider,
+  OllamaProvider: () => OllamaProvider,
   OpenAIProvider: () => OpenAIProvider,
   ProviderRegistry: () => ProviderRegistry
 });
@@ -1569,6 +1696,7 @@ var init_providers = __esm({
     init_AnthropicProvider();
     init_GeminiProvider();
     init_OpenAIProvider();
+    init_OllamaProvider();
   }
 });
 
@@ -1577,15 +1705,15 @@ var console_capture_exports = {};
 __export(console_capture_exports, {
   captureConsoleToFile: () => captureConsoleToFile
 });
-import * as fs14 from "fs";
-import * as path19 from "path";
+import * as fs15 from "fs";
+import * as path20 from "path";
 function captureConsoleToFile(logDir) {
   try {
-    fs14.mkdirSync(logDir, { recursive: true });
+    fs15.mkdirSync(logDir, { recursive: true });
   } catch {
   }
-  const logPath = path19.join(logDir, "session.log");
-  const stream = fs14.createWriteStream(logPath, { flags: "a" });
+  const logPath = path20.join(logDir, "session.log");
+  const stream = fs15.createWriteStream(logPath, { flags: "a" });
   const originals = {};
   const writeLine = (level, args) => {
     try {
@@ -1857,7 +1985,7 @@ function AgentControlPanel({
       const next = cycle(
         availableProviders,
         availableProviders[0],
-        (p) => p.id === selected.config.providerId
+        (p2) => p2.id === selected.config.providerId
       );
       orchestrator.updateAgentConfig(selected.id, {
         providerId: next.id,
@@ -1993,7 +2121,7 @@ function HeaderBar({
   currentPhaseId,
   elapsedSeconds
 }) {
-  const currentIdx = Math.max(0, phases.findIndex((p) => p.id === currentPhaseId));
+  const currentIdx = Math.max(0, phases.findIndex((p2) => p2.id === currentPhaseId));
   return /* @__PURE__ */ jsxs3(
     "box",
     {
@@ -2306,13 +2434,13 @@ function OpenTuiApp({
   }, [orchestrator]);
   const mode = orchestrator.getModeController().getMode();
   const modePhases = useMemo3(
-    () => mode.phases.map((p) => ({ id: p.id, name: p.name || p.id })),
+    () => mode.phases.map((p2) => ({ id: p2.id, name: p2.name || p2.id })),
     [mode]
   );
   const currentModePhase = modeProgress.currentPhase;
   const currentPhaseIdx = Math.max(
     0,
-    modePhases.findIndex((p) => p.id === currentModePhase)
+    modePhases.findIndex((p2) => p2.id === currentModePhase)
   );
   const currentPhaseConfig = mode.phases[currentPhaseIdx];
   const phaseMaxMessages = currentPhaseConfig?.maxMessages ?? 0;
@@ -2448,11 +2576,11 @@ var init_App = __esm({
 });
 
 // cli/index.ts
-import { Command as Command11 } from "commander";
+import { Command as Command12 } from "commander";
 import React4 from "react";
 import { v4 as uuid2 } from "uuid";
-import * as path20 from "path";
-import * as fs15 from "fs/promises";
+import * as path21 from "path";
+import * as fs16 from "fs/promises";
 
 // cli/adapters/CLIAgentRunner.ts
 import Anthropic from "@anthropic-ai/sdk";
@@ -2793,8 +2921,8 @@ var SessionPersistence = class {
   autoSaveTimer = null;
   lastSavedMessageCount = 0;
   session = null;
-  constructor(fs16, config = {}) {
-    this.fs = fs16;
+  constructor(fs17, config = {}) {
+    this.fs = fs17;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
   /**
@@ -3145,8 +3273,8 @@ var ConversationMemory = class _ConversationMemory {
       this.decisions = this.decisions.slice(toRemove);
     }
     if (this.proposals.length > this.config.maxProposals * threshold) {
-      const active = this.proposals.filter((p) => p.status === "active");
-      const resolved = this.proposals.filter((p) => p.status !== "active");
+      const active = this.proposals.filter((p2) => p2.status === "active");
+      const resolved = this.proposals.filter((p2) => p2.status !== "active");
       const targetTotal = this.config.maxProposals;
       if (active.length >= targetTotal) {
         this.proposals = active.slice(-targetTotal);
@@ -3272,7 +3400,7 @@ var ConversationMemory = class _ConversationMemory {
     const state = this.agentStates.get(agentId);
     state.messageCount++;
     const content = message.content;
-    const isProposal = message.type === "proposal" || PROPOSAL_PATTERNS.some((p) => p.test(content));
+    const isProposal = message.type === "proposal" || PROPOSAL_PATTERNS.some((p2) => p2.test(content));
     if (isProposal) {
       this.proposals.push({
         id: generateMemoryId(),
@@ -3288,7 +3416,7 @@ var ConversationMemory = class _ConversationMemory {
       });
       state.keyPoints.push(this.extractFirstSentence(content));
     }
-    const isDecision = DECISION_PATTERNS.some((p) => p.test(content));
+    const isDecision = DECISION_PATTERNS.some((p2) => p2.test(content));
     if (isDecision) {
       this.decisions.push({
         id: generateMemoryId(),
@@ -3415,8 +3543,8 @@ ${keyPoints.join("\n")}`,
     }
     if (this.proposals.length > 0) {
       parts.push("\n## Active Proposals");
-      this.proposals.slice(-5).forEach((p) => {
-        parts.push(`- [${p.agentId}] ${p.content}`);
+      this.proposals.slice(-5).forEach((p2) => {
+        parts.push(`- [${p2.agentId}] ${p2.content}`);
       });
     }
     if (forAgentId && this.agentStates.has(forAgentId)) {
@@ -3425,7 +3553,7 @@ ${keyPoints.join("\n")}`,
 ## Your Previous Contributions (${forAgentId})`);
       if (state.keyPoints.length > 0) {
         parts.push("Key points you made:");
-        state.keyPoints.slice(-3).forEach((p) => parts.push(`- ${p}`));
+        state.keyPoints.slice(-3).forEach((p2) => parts.push(`- ${p2}`));
       }
       if (state.agreements.length > 0) {
         parts.push("You agreed with:");
@@ -3540,7 +3668,7 @@ ${keyPoints.join("\n")}`,
    * @returns true if proposal was found and updated, false otherwise
    */
   updateProposalStatus(proposalId, status2) {
-    const proposal = this.proposals.find((p) => p.id === proposalId);
+    const proposal = this.proposals.find((p2) => p2.id === proposalId);
     if (proposal) {
       proposal.status = status2;
       return true;
@@ -3554,7 +3682,7 @@ ${keyPoints.join("\n")}`,
    * @returns true if proposal was found and reaction added, false otherwise
    */
   addProposalReaction(proposalId, reaction) {
-    const proposal = this.proposals.find((p) => p.id === proposalId);
+    const proposal = this.proposals.find((p2) => p2.id === proposalId);
     if (proposal) {
       if (!proposal.reactions) {
         proposal.reactions = [];
@@ -3575,14 +3703,14 @@ ${keyPoints.join("\n")}`,
    * @returns The proposal if found, undefined otherwise
    */
   getProposal(proposalId) {
-    return this.proposals.find((p) => p.id === proposalId);
+    return this.proposals.find((p2) => p2.id === proposalId);
   }
   /**
    * Get all active proposals
    * @returns Array of proposals with status 'active'
    */
   getActiveProposals() {
-    return this.proposals.filter((p) => p.status === "active");
+    return this.proposals.filter((p2) => p2.status === "active");
   }
   /**
    * Get the most recent proposal for reaction tracking
@@ -4062,7 +4190,7 @@ function generateAgentSystemPrompt(agent, config, context, skills) {
 - **Speaking Style**: ${agent.speakingStyle}
 
 ## Your Personality Traits
-${agent.personality.map((p) => `- ${p}`).join("\n")}
+${agent.personality.map((p2) => `- ${p2}`).join("\n")}
 
 ## Your Known Biases (be aware of these)
 ${agent.biases.map((b) => `- ${b}`).join("\n")}
@@ -6146,13 +6274,13 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
    * Per MODE_SYSTEM.md: Enforces requiredBeforeSynthesis and phase exit criteria
    */
   checkPhaseTransition() {
-    const currentPhaseConfig = this.mode.phases.find((p) => p.id === this.progress.currentPhase);
+    const currentPhaseConfig = this.mode.phases.find((p2) => p2.id === this.progress.currentPhase);
     if (!currentPhaseConfig) return null;
     if (!currentPhaseConfig.autoTransition) return null;
     const maxMessagesReached = this.progress.messagesInPhase >= currentPhaseConfig.maxMessages;
     const exitCriteriaMet = this.checkExitCriteria(currentPhaseConfig.exitCriteria);
     if (maxMessagesReached || exitCriteriaMet.met) {
-      const nextPhase = this.mode.phases.find((p) => p.order === currentPhaseConfig.order + 1);
+      const nextPhase = this.mode.phases.find((p2) => p2.order === currentPhaseConfig.order + 1);
       if (nextPhase) {
         if (this.isSynthesisPhase(nextPhase.id)) {
           const researchCheck = this.checkRequiredResearch();
@@ -6267,7 +6395,7 @@ Previous phase complete. Carry forward what we learned, but shift focus.`
     const maxMessages = this.mode.successCriteria.maxMessages;
     const atLimit = this.progress.totalMessages >= maxMessages;
     const neverSynthesized = !this.mode.phases.some(
-      (p) => p.id === "synthesis" && this.progress.currentPhase === "synthesis"
+      (p2) => p2.id === "synthesis" && this.progress.currentPhase === "synthesis"
     );
     return atLimit && neverSynthesized;
   }
@@ -6354,7 +6482,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
    * Manually transition to a phase
    */
   transitionToPhase(phaseId) {
-    const phase = this.mode.phases.find((p) => p.id === phaseId);
+    const phase = this.mode.phases.find((p2) => p2.id === phaseId);
     if (phase) {
       this.progress.currentPhase = phaseId;
       this.progress.messagesInPhase = 0;
@@ -6366,7 +6494,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
    * Get current phase config
    */
   getCurrentPhase() {
-    return this.mode.phases.find((p) => p.id === this.progress.currentPhase);
+    return this.mode.phases.find((p2) => p2.id === this.progress.currentPhase);
   }
   /**
    * Get mode-specific agent instructions
@@ -6721,8 +6849,8 @@ var WorkdirManager = class {
   consensusDir;
   skillsDir;
   initialized = false;
-  constructor(fs16, opts) {
-    this.fs = fs16;
+  constructor(fs17, opts) {
+    this.fs = fs17;
     this.sessionDir = opts.sessionDir;
     this.consensusDir = path5.join(opts.sessionDir, "consensus");
     this.skillsDir = path5.join(opts.sessionDir, "skills");
@@ -6754,8 +6882,8 @@ var WorkdirManager = class {
     await this.init();
     for (const [agentId, content] of perAgent) {
       if (!content.trim()) continue;
-      const p = path5.join(this.skillsDir, `${agentId}.md`);
-      await this.fs.writeFile(p, content);
+      const p2 = path5.join(this.skillsDir, `${agentId}.md`);
+      await this.fs.writeFile(p2, content);
     }
   }
   getAgentPaths(agentId) {
@@ -6789,7 +6917,7 @@ var WorkdirManager = class {
     const ts = new Date(message.timestamp).toISOString().replace(/[:.]/g, "-");
     const safePhase = opts.phaseId.replace(/[^a-z0-9_-]+/gi, "_");
     const filename = `${safePhase}-${ts}-${message.agentId}.md`;
-    const p = path5.join(this.consensusDir, filename);
+    const p2 = path5.join(this.consensusDir, filename);
     const body = [
       `# ${opts.phaseId} \xB7 consensus \xB7 ${message.agentId}`,
       "",
@@ -6802,8 +6930,8 @@ var WorkdirManager = class {
       message.content,
       ""
     ].filter((l) => l !== null).join("\n");
-    await this.fs.writeFile(p, body);
-    return p;
+    await this.fs.writeFile(p2, body);
+    return p2;
   }
 };
 
@@ -7409,7 +7537,7 @@ Discussion continues without research results.`
     const fileList = result.filesRead.length > 0 ? `
 
 **\u{1F4C1} Files read (${result.filesRead.length}):**
-${result.filesRead.slice(0, 12).map((p) => `- \`${p}\``).join("\n")}${result.filesRead.length > 12 ? `
+${result.filesRead.slice(0, 12).map((p2) => `- \`${p2}\``).join("\n")}${result.filesRead.length > 12 ? `
 - \u2026and ${result.filesRead.length - 12} more` : ""}` : "";
     return [
       `**\u{1F50D} Local project introspection**`,
@@ -8468,9 +8596,9 @@ Generate exactly ${options.count} personas.`;
         personas2 = parsed.personas;
         expertise = parsed.expertise || "";
       }
-      for (const p of personas2) {
-        if (!p.id || !p.name || !p.role) {
-          console.error("Invalid persona structure:", p);
+      for (const p2 of personas2) {
+        if (!p2.id || !p2.name || !p2.role) {
+          console.error("Invalid persona structure:", p2);
           process.exit(1);
         }
       }
@@ -8485,11 +8613,11 @@ Generate exactly ${options.count} personas.`;
       }
       console.log(`\u2705 Generated ${personas2.length} personas:
 `);
-      for (const p of personas2) {
-        console.log(`  \u2022 ${p.name} (${p.nameHe}) - ${p.role}`);
-        console.log(`    ${p.background.slice(0, 80)}...`);
-        if (p.expertise) {
-          console.log(`    Expertise: ${p.expertise.slice(0, 3).join(", ")}`);
+      for (const p2 of personas2) {
+        console.log(`  \u2022 ${p2.name} (${p2.nameHe}) - ${p2.role}`);
+        console.log(`    ${p2.background.slice(0, 80)}...`);
+        if (p2.expertise) {
+          console.log(`    Expertise: ${p2.expertise.slice(0, 3).join(", ")}`);
         }
         console.log("");
       }
@@ -8518,8 +8646,8 @@ Use with: forge start --personas ${options.name}`);
         const content = await fs3.readFile(path6.join(personasDir, file), "utf-8");
         const personas2 = JSON.parse(content);
         console.log(`  \u2022 ${name} (${personas2.length} personas)`);
-        for (const p of personas2) {
-          console.log(`    - ${p.name}: ${p.role}`);
+        for (const p2 of personas2) {
+          console.log(`    - ${p2.name}: ${p2.role}`);
         }
         console.log("");
       }
@@ -8538,27 +8666,27 @@ Use with: forge start --personas ${options.name}`);
 \u{1F4CB} Persona Set: ${name}
 `);
       console.log("\u2500".repeat(60));
-      for (const p of personas2) {
+      for (const p2 of personas2) {
         console.log(`
-### ${p.name} (${p.nameHe}) - ${p.role}`);
-        console.log(`Age: ${p.age} | Color: ${p.color}`);
+### ${p2.name} (${p2.nameHe}) - ${p2.role}`);
+        console.log(`Age: ${p2.age} | Color: ${p2.color}`);
         console.log(`
 Background:
-${p.background}`);
+${p2.background}`);
         console.log(`
 Personality:`);
-        p.personality.forEach((t) => console.log(`  \u2022 ${t}`));
+        p2.personality.forEach((t) => console.log(`  \u2022 ${t}`));
         console.log(`
 Biases:`);
-        p.biases.forEach((b) => console.log(`  \u2022 ${b}`));
+        p2.biases.forEach((b) => console.log(`  \u2022 ${b}`));
         console.log(`
 Strengths:`);
-        p.strengths.forEach((s) => console.log(`  \u2022 ${s}`));
+        p2.strengths.forEach((s) => console.log(`  \u2022 ${s}`));
         console.log(`
 Weaknesses:`);
-        p.weaknesses.forEach((w) => console.log(`  \u2022 ${w}`));
+        p2.weaknesses.forEach((w) => console.log(`  \u2022 ${w}`));
         console.log(`
-Speaking Style: ${p.speakingStyle}`);
+Speaking Style: ${p2.speakingStyle}`);
         console.log("\n" + "\u2500".repeat(60));
       }
     } catch {
@@ -8808,9 +8936,9 @@ function generateSummary(metadata, messages, format) {
   if (summary.keyMoments.topProposals.length > 0) {
     lines.push("## Recent Proposals");
     lines.push("");
-    for (const p of summary.keyMoments.topProposals) {
-      lines.push(`### From ${p.from}`);
-      lines.push(p.preview + "...");
+    for (const p2 of summary.keyMoments.topProposals) {
+      lines.push(`### From ${p2.from}`);
+      lines.push(p2.preview + "...");
       lines.push("");
     }
   }
@@ -8956,8 +9084,8 @@ async function runBatch(pattern, options) {
     console.log("");
   }
   if (options.dryRun) {
-    const dryRunResults = briefPaths.map((p) => ({
-      brief: path8.relative(cwd, p),
+    const dryRunResults = briefPaths.map((p2) => ({
+      brief: path8.relative(cwd, p2),
       wouldProcess: true
     }));
     if (options.json) {
@@ -8972,7 +9100,7 @@ async function runBatch(pattern, options) {
   let toProcess = briefPaths;
   if (options.resume) {
     const processed = await getProcessedBriefs(outputDir);
-    toProcess = briefPaths.filter((p) => !processed.has(path8.basename(p, ".md")));
+    toProcess = briefPaths.filter((p2) => !processed.has(path8.basename(p2, ".md")));
     if (!options.json && toProcess.length < briefPaths.length) {
       console.log(`Skipping ${briefPaths.length - toProcess.length} already processed briefs.`);
     }
@@ -9973,8 +10101,8 @@ function createConfigCommand() {
     await editConfig(options);
   });
   config.command("path").description("Show config file path").option("-g, --global", "Show global config path").action((options) => {
-    const configPath = options.global ? getGlobalConfigPath() : getLocalConfigPath();
-    console.log(configPath);
+    const configPath2 = options.global ? getGlobalConfigPath() : getLocalConfigPath();
+    console.log(configPath2);
   });
   config.command("init").description("Create a config file with defaults").option("-g, --global", "Create global config").option("--force", "Overwrite existing config").action(async (options) => {
     await initConfig(options);
@@ -9988,16 +10116,16 @@ function getGlobalConfigPath() {
 function getLocalConfigPath() {
   return path11.join(process.cwd(), CONFIG_FILENAME);
 }
-async function loadConfig(configPath) {
+async function loadConfig(configPath2) {
   try {
-    const content = await fs8.readFile(configPath, "utf-8");
+    const content = await fs8.readFile(configPath2, "utf-8");
     return JSON.parse(content);
   } catch {
     return {};
   }
 }
-async function saveConfig(configPath, config) {
-  await fs8.writeFile(configPath, JSON.stringify(config, null, 2) + "\n");
+async function saveConfig(configPath2, config) {
+  await fs8.writeFile(configPath2, JSON.stringify(config, null, 2) + "\n");
 }
 async function getMergedConfig() {
   const globalPath = getGlobalConfigPath();
@@ -10104,8 +10232,8 @@ async function setConfig(key, value, options) {
     console.error(`Valid keys: ${CONFIG_KEYS.join(", ")}`);
     process.exit(1);
   }
-  const configPath = options.global ? getGlobalConfigPath() : getLocalConfigPath();
-  const config = await loadConfig(configPath);
+  const configPath2 = options.global ? getGlobalConfigPath() : getLocalConfigPath();
+  const config = await loadConfig(configPath2);
   let parsedValue = value;
   if (key === "defaultAgents") {
     parsedValue = value.split(",").map((s) => s.trim());
@@ -10115,7 +10243,7 @@ async function setConfig(key, value, options) {
     parsedValue = parseFloat(value);
   }
   config[key] = parsedValue;
-  await saveConfig(configPath, config);
+  await saveConfig(configPath2, config);
   console.log(chalk4.green(`Set ${key} = ${JSON.stringify(parsedValue)}`));
 }
 async function unsetConfig(key, options) {
@@ -10123,27 +10251,27 @@ async function unsetConfig(key, options) {
     console.error(chalk4.red(`Unknown config key: ${key}`));
     process.exit(1);
   }
-  const configPath = options.global ? getGlobalConfigPath() : getLocalConfigPath();
-  const config = await loadConfig(configPath);
+  const configPath2 = options.global ? getGlobalConfigPath() : getLocalConfigPath();
+  const config = await loadConfig(configPath2);
   if (config[key] === void 0) {
     console.log(chalk4.dim(`${key} is not set`));
     return;
   }
   delete config[key];
-  await saveConfig(configPath, config);
+  await saveConfig(configPath2, config);
   console.log(chalk4.green(`Removed ${key}`));
 }
 async function editConfig(options) {
-  const configPath = options.global ? getGlobalConfigPath() : getLocalConfigPath();
+  const configPath2 = options.global ? getGlobalConfigPath() : getLocalConfigPath();
   try {
-    await fs8.access(configPath);
+    await fs8.access(configPath2);
   } catch {
-    await saveConfig(configPath, {});
+    await saveConfig(configPath2, {});
   }
   const editor = process.env.EDITOR || process.env.VISUAL || "vi";
   const { spawn } = await import("child_process");
-  console.log(`Opening ${configPath} with ${editor}...`);
-  const child = spawn(editor, [configPath], {
+  console.log(`Opening ${configPath2} with ${editor}...`);
+  const child = spawn(editor, [configPath2], {
     stdio: "inherit"
   });
   child.on("exit", (code) => {
@@ -10153,11 +10281,11 @@ async function editConfig(options) {
   });
 }
 async function initConfig(options) {
-  const configPath = options.global ? getGlobalConfigPath() : getLocalConfigPath();
+  const configPath2 = options.global ? getGlobalConfigPath() : getLocalConfigPath();
   try {
-    await fs8.access(configPath);
+    await fs8.access(configPath2);
     if (!options.force) {
-      console.error(chalk4.yellow(`Config already exists: ${configPath}`));
+      console.error(chalk4.yellow(`Config already exists: ${configPath2}`));
       console.error("Use --force to overwrite.");
       return;
     }
@@ -10171,8 +10299,8 @@ async function initConfig(options) {
     consensusThreshold: 0.6,
     theme: "auto"
   };
-  await saveConfig(configPath, defaultConfig);
-  console.log(chalk4.green(`Created config: ${configPath}`));
+  await saveConfig(configPath2, defaultConfig);
+  console.log(chalk4.green(`Created config: ${configPath2}`));
 }
 
 // cli/commands/skills.ts
@@ -10415,23 +10543,23 @@ async function applyCmd(agentId, skillId, opts) {
     console.error(`${DIM}Pass --session <name> or run a session first.${RESET2}`);
     process.exit(1);
   }
-  const configPath = path13.join(sessionDir, "agent-configs.json");
+  const configPath2 = path13.join(sessionDir, "agent-configs.json");
   let configs = {};
   try {
-    const raw = await fs10.readFile(configPath, "utf-8");
+    const raw = await fs10.readFile(configPath2, "utf-8");
     configs = JSON.parse(raw);
   } catch {
   }
   const current = configs[agentId];
   if (!current) {
-    console.error(`${RED}Agent '${agentId}' not found in ${configPath}.${RESET2}`);
+    console.error(`${RED}Agent '${agentId}' not found in ${configPath2}.${RESET2}`);
     console.error(`${DIM}Available agents: ${Object.keys(configs).join(", ") || "(none)"}${RESET2}`);
     process.exit(1);
   }
   const existing = Array.isArray(current.skillIds) ? current.skillIds : [];
   const next = opts.replace ? [skillId] : existing.includes(skillId) ? existing : [...existing, skillId];
   configs[agentId] = { ...current, skillIds: next };
-  await fs10.writeFile(configPath, JSON.stringify(configs, null, 2));
+  await fs10.writeFile(configPath2, JSON.stringify(configs, null, 2));
   console.log(
     `${GREEN}\u2714${RESET2} Applied ${BOLD}${entry.label}${RESET2} to ${BOLD}${agentId}${RESET2}`
   );
@@ -10466,8 +10594,200 @@ function createSkillsCommand() {
   return skills;
 }
 
-// cli/commands/login.ts
+// cli/commands/init.ts
 import { Command as Command9 } from "commander";
+import * as p from "@clack/prompts";
+import chalk5 from "chalk";
+
+// src/lib/config/ForgeConfig.ts
+import * as path14 from "path";
+import * as os3 from "os";
+import * as fs11 from "fs/promises";
+var EMPTY = { providers: {} };
+function configDir() {
+  const xdg = process.env.XDG_CONFIG_HOME;
+  return path14.join(xdg ?? path14.join(os3.homedir(), ".config"), "forge");
+}
+function configPath() {
+  return path14.join(configDir(), "config.json");
+}
+async function loadConfig2() {
+  try {
+    const raw = await fs11.readFile(configPath(), "utf-8");
+    const parsed = JSON.parse(raw);
+    if (!parsed.providers || typeof parsed.providers !== "object") {
+      parsed.providers = {};
+    }
+    return parsed;
+  } catch {
+    return { ...EMPTY };
+  }
+}
+async function saveConfig2(settings) {
+  await fs11.mkdir(configDir(), { recursive: true });
+  await fs11.writeFile(configPath(), JSON.stringify(settings, null, 2) + "\n", "utf-8");
+}
+function resolveProviderKey(settings, provider, envName) {
+  const envKey = envName ? process.env[envName] : void 0;
+  if (envKey) return envKey;
+  const cfg = settings.providers[provider];
+  if (!cfg || cfg.enabled === false) return void 0;
+  return cfg.apiKey;
+}
+
+// cli/commands/init.ts
+init_OllamaProvider();
+async function probeOllama() {
+  const provider = new OllamaProvider();
+  const up = await provider.probe();
+  if (!up) return { up: false, models: [] };
+  return {
+    up: true,
+    models: provider.listModels().map((m) => m.id)
+  };
+}
+async function runInit(opts) {
+  p.intro(chalk5.bold("\u2692  forge init"));
+  const existing = await loadConfig2();
+  const hasExisting = Object.keys(existing.providers ?? {}).length > 0;
+  if (hasExisting && !opts.force) {
+    const keep = await p.confirm({
+      message: `Existing config at ${configPath()}. Edit it?`,
+      initialValue: true
+    });
+    if (p.isCancel(keep) || !keep) {
+      p.cancel("No changes.");
+      return;
+    }
+  }
+  const next = {
+    ...existing,
+    providers: { ...existing.providers }
+  };
+  const anthropic = await p.confirm({
+    message: "Enable Anthropic (Claude)? Uses your local `claude` CLI auth \u2014 no key needed.",
+    initialValue: next.providers.anthropic?.enabled ?? true
+  });
+  if (p.isCancel(anthropic)) return abortAndReturn();
+  next.providers.anthropic = {
+    enabled: !!anthropic,
+    defaultModel: next.providers.anthropic?.defaultModel ?? "claude-sonnet-4-20250514"
+  };
+  const gemini = await p.confirm({
+    message: "Enable Gemini (Google)?",
+    initialValue: next.providers.gemini?.enabled ?? false
+  });
+  if (p.isCancel(gemini)) return abortAndReturn();
+  if (gemini) {
+    const key = await p.password({
+      message: "Paste GEMINI_API_KEY (enter to skip \u2014 env var still works):",
+      mask: "\u2022"
+    });
+    if (p.isCancel(key)) return abortAndReturn();
+    next.providers.gemini = {
+      enabled: true,
+      apiKey: key ? String(key).trim() : next.providers.gemini?.apiKey,
+      defaultModel: next.providers.gemini?.defaultModel ?? "gemini-2.5-flash"
+    };
+  } else {
+    next.providers.gemini = { enabled: false };
+  }
+  const openai = await p.confirm({
+    message: "Enable OpenAI (GPT)?",
+    initialValue: next.providers.openai?.enabled ?? false
+  });
+  if (p.isCancel(openai)) return abortAndReturn();
+  if (openai) {
+    const key = await p.password({
+      message: "Paste OPENAI_API_KEY (enter to skip \u2014 env var still works):",
+      mask: "\u2022"
+    });
+    if (p.isCancel(key)) return abortAndReturn();
+    next.providers.openai = {
+      enabled: true,
+      apiKey: key ? String(key).trim() : next.providers.openai?.apiKey,
+      defaultModel: next.providers.openai?.defaultModel ?? "gpt-4o"
+    };
+  } else {
+    next.providers.openai = { enabled: false };
+  }
+  const spin = p.spinner();
+  spin.start("Probing Ollama at http://localhost:11434");
+  const ollama = await probeOllama();
+  spin.stop(
+    ollama.up ? `Ollama daemon up \xB7 ${ollama.models.length} model${ollama.models.length === 1 ? "" : "s"} installed` : "No Ollama daemon (install from ollama.com if you want local models like Gemma)"
+  );
+  if (ollama.up) {
+    const pick = await p.confirm({
+      message: "Enable Ollama for local models (Gemma, Llama, Qwen, Mistral, DeepSeek)?",
+      initialValue: next.providers.ollama?.enabled ?? true
+    });
+    if (p.isCancel(pick)) return abortAndReturn();
+    let defaultModel = next.providers.ollama?.defaultModel;
+    if (pick && ollama.models.length > 0 && !defaultModel) {
+      const m = await p.select({
+        message: "Default local model to seed new agents with:",
+        options: ollama.models.map((id) => ({ value: id, label: id })),
+        initialValue: ollama.models[0]
+      });
+      if (p.isCancel(m)) return abortAndReturn();
+      defaultModel = String(m);
+    }
+    next.providers.ollama = {
+      enabled: !!pick,
+      baseUrl: next.providers.ollama?.baseUrl ?? "http://localhost:11434",
+      defaultModel
+    };
+  } else {
+    next.providers.ollama = { enabled: false };
+  }
+  const mode = await p.select({
+    message: "Default mode when `forge start` is called without -m:",
+    options: [
+      { value: "will-it-work", label: "will-it-work \u2014 force a YES/NO/MAYBE-IF verdict" },
+      { value: "idea-validation", label: "idea-validation \u2014 GO/NO-GO/PIVOT" },
+      { value: "tech-review", label: "tech-review \u2014 specialist repo audit" },
+      { value: "red-team", label: "red-team \u2014 adversarial review" },
+      { value: "vc-pitch", label: "vc-pitch \u2014 simulated partner meeting" },
+      { value: "copywrite", label: "copywrite \u2014 section-by-section drafting" },
+      { value: "custom", label: "custom \u2014 your phases" }
+    ],
+    initialValue: next.defaults?.mode ?? "will-it-work"
+  });
+  if (p.isCancel(mode)) return abortAndReturn();
+  next.defaults = { ...next.defaults, mode: String(mode) };
+  await saveConfig2(next);
+  const enabled = Object.entries(next.providers).filter(([, cfg]) => cfg?.enabled).map(([id]) => id);
+  p.note(
+    [
+      `Config saved \u2192 ${configPath()}`,
+      "",
+      `Providers enabled: ${enabled.length > 0 ? enabled.join(", ") : "(none)"}`,
+      `Default mode:      ${next.defaults.mode}`,
+      "",
+      chalk5.dim("Re-run `forge init` any time to edit."),
+      chalk5.dim("Env vars (GEMINI_API_KEY, OPENAI_API_KEY) always override the saved config.")
+    ].join("\n"),
+    "Done"
+  );
+  p.outro(chalk5.green("Ready. Try `forge start -m " + next.defaults.mode + "` to run your first deliberation."));
+}
+function abortAndReturn() {
+  p.cancel("Cancelled \u2014 nothing saved.");
+}
+function createInitCommand() {
+  return new Command9("init").description("Interactive setup: enable providers, paste API keys, pick defaults").option("-f, --force", 'Skip the "edit existing?" prompt and rewrite directly').action(async (opts) => {
+    try {
+      await runInit(opts);
+    } catch (err2) {
+      console.error(chalk5.red("forge init failed:"), err2 instanceof Error ? err2.message : err2);
+      process.exit(1);
+    }
+  });
+}
+
+// cli/commands/login.ts
+import { Command as Command10 } from "commander";
 import * as readline from "readline";
 
 // src/lib/core/result.ts
@@ -10942,19 +11262,19 @@ var createSessionRepository = (bridgeResolver = getElectronBridge) => {
 var sessionRepo = createSessionRepository();
 
 // cli/adapters/auth-bridge.ts
-import * as fs11 from "fs/promises";
-import * as path14 from "path";
-import * as os3 from "os";
-var FORGE_DIR = path14.join(os3.homedir(), ".forge");
-var AUTH_FILE = path14.join(FORGE_DIR, "auth.json");
+import * as fs12 from "fs/promises";
+import * as path15 from "path";
+import * as os4 from "os";
+var FORGE_DIR = path15.join(os4.homedir(), ".forge");
+var AUTH_FILE = path15.join(FORGE_DIR, "auth.json");
 var ensureDir = async () => {
-  await fs11.mkdir(FORGE_DIR, { recursive: true });
+  await fs12.mkdir(FORGE_DIR, { recursive: true });
 };
 var createFileAuthBridge = () => ({
   save: async (payload) => {
     try {
       await ensureDir();
-      await fs11.writeFile(AUTH_FILE, JSON.stringify(payload, null, 2), {
+      await fs12.writeFile(AUTH_FILE, JSON.stringify(payload, null, 2), {
         encoding: "utf-8",
         mode: 384
       });
@@ -10966,7 +11286,7 @@ var createFileAuthBridge = () => ({
   },
   load: async () => {
     try {
-      const data = await fs11.readFile(AUTH_FILE, "utf-8");
+      const data = await fs12.readFile(AUTH_FILE, "utf-8");
       return JSON.parse(data);
     } catch {
       return null;
@@ -10974,7 +11294,7 @@ var createFileAuthBridge = () => ({
   },
   clear: async () => {
     try {
-      await fs11.unlink(AUTH_FILE);
+      await fs12.unlink(AUTH_FILE);
       return true;
     } catch {
       return true;
@@ -11017,7 +11337,7 @@ var printIdentity = (state) => {
   console.log("");
 };
 var createLoginCommand = () => {
-  const cmd = new Command9("login").description("Create or restore your decentralized DID identity").option("--new", "Force create a new identity (replaces existing)").action(async (opts) => {
+  const cmd = new Command10("login").description("Create or restore your decentralized DID identity").option("--new", "Force create a new identity (replaces existing)").action(async (opts) => {
     if (!opts.new) {
       const restoreResult = await repo.restoreSession();
       const restored = restoreResult.match(
@@ -11048,9 +11368,9 @@ var createLoginCommand = () => {
     if (wantAttestation && wantAttestation !== "skip" && wantAttestation !== "n") {
       const platforms = ["mastodon", "github", "bluesky"];
       let platform = null;
-      for (const p of platforms) {
-        if (wantAttestation.toLowerCase().includes(p)) {
-          platform = p;
+      for (const p2 of platforms) {
+        if (wantAttestation.toLowerCase().includes(p2)) {
+          platform = p2;
           break;
         }
       }
@@ -11081,7 +11401,7 @@ var createLoginCommand = () => {
     }
   });
   cmd.addCommand(
-    new Command9("status").description("Show current identity status").action(async () => {
+    new Command10("status").description("Show current identity status").action(async () => {
       const result = await repo.restoreSession();
       result.match(
         (s) => {
@@ -11098,7 +11418,7 @@ var createLoginCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command9("logout").description("Remove stored identity").action(async () => {
+    new Command10("logout").description("Remove stored identity").action(async () => {
       await repo.logout();
       console.log(style(forgeTheme.status.success, "  \u2714 Identity cleared"));
     })
@@ -11107,7 +11427,7 @@ var createLoginCommand = () => {
 };
 
 // cli/commands/community.ts
-import { Command as Command10 } from "commander";
+import { Command as Command11 } from "commander";
 import * as readline2 from "readline";
 
 // src/lib/p2p/errors.ts
@@ -11192,7 +11512,7 @@ var fetchAll = () => ResultAsync.fromPromise(
 });
 
 // cli/adapters/services.ts
-import * as path18 from "path";
+import * as path19 from "path";
 
 // src/lib/connections/errors.ts
 var bridgeUnavailable3 = makeError("BridgeUnavailable");
@@ -11223,7 +11543,7 @@ var started = false;
 async function ensureServices() {
   if (started) return;
   started = true;
-  const p2pDataDir = path18.join(forgeDataDir, "p2p");
+  const p2pDataDir = path19.join(forgeDataDir, "p2p");
   try {
     const { peerId } = await startP2P(p2pDataDir);
     console.log(`\x1B[2m[p2p] peer: ${peerId.slice(0, 12)}\u2026\x1B[0m`);
@@ -11264,13 +11584,13 @@ var repo2 = createSessionRepository(
 );
 var isContribution = (payload) => {
   if (!payload || typeof payload !== "object") return false;
-  const p = payload;
-  return typeof p.kind === "string" && typeof p.v === "number" && typeof p.title === "string" && ["persona", "insight", "template", "prompt"].includes(p.kind) && typeof p.content === "object";
+  const p2 = payload;
+  return typeof p2.kind === "string" && typeof p2.v === "number" && typeof p2.title === "string" && ["persona", "insight", "template", "prompt"].includes(p2.kind) && typeof p2.content === "object";
 };
 var isReaction = (payload) => {
   if (!payload || typeof payload !== "object") return false;
-  const p = payload;
-  return p.kind === "reaction" && typeof p.targetId === "string";
+  const p2 = payload;
+  return p2.kind === "reaction" && typeof p2.targetId === "string";
 };
 var shortenDid = (did) => did.length > 24 ? `${did.slice(0, 12)}\u2026${did.slice(-8)}` : did;
 var ask2 = (question) => {
@@ -11283,9 +11603,9 @@ var ask2 = (question) => {
   });
 };
 var createCommunityCommand = () => {
-  const cmd = new Command10("community").description("Browse and publish community contributions (P2P)");
+  const cmd = new Command11("community").description("Browse and publish community contributions (P2P)");
   cmd.addCommand(
-    new Command10("list").description("List contributions from connected peers").option("-k, --kind <kind>", "Filter by kind (persona|insight|template|prompt)").action(async (opts) => {
+    new Command11("list").description("List contributions from connected peers").option("-k, --kind <kind>", "Filter by kind (persona|insight|template|prompt)").action(async (opts) => {
       await ensureServices();
       const result = await fetchAll();
       result.match(
@@ -11328,7 +11648,7 @@ var createCommunityCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command10("publish").description("Publish a new contribution").requiredOption("-k, --kind <kind>", "Contribution kind (persona|insight|template|prompt)").requiredOption("-t, --title <title>", "Title").requiredOption("-d, --description <desc>", "One-line description").option("-b, --body <body>", "Body content (or will prompt)").option("--tags <tags>", "Comma-separated tags").action(async (opts) => {
+    new Command11("publish").description("Publish a new contribution").requiredOption("-k, --kind <kind>", "Contribution kind (persona|insight|template|prompt)").requiredOption("-t, --title <title>", "Title").requiredOption("-d, --description <desc>", "One-line description").option("-b, --body <body>", "Body content (or will prompt)").option("--tags <tags>", "Comma-separated tags").action(async (opts) => {
       await ensureServices();
       const session = await repo2.restoreSession();
       const authState = session.match((s) => s, () => null);
@@ -11388,7 +11708,7 @@ var createCommunityCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command10("vote").description("Upvote or downvote a contribution").argument("<id>", "Contribution ID (or prefix)").option("--down", "Downvote instead of upvote").action(async (idOrPrefix, opts) => {
+    new Command11("vote").description("Upvote or downvote a contribution").argument("<id>", "Contribution ID (or prefix)").option("--down", "Downvote instead of upvote").action(async (idOrPrefix, opts) => {
       await ensureServices();
       const session = await repo2.restoreSession();
       const authState = session.match((s) => s, () => null);
@@ -11439,19 +11759,27 @@ var YELLOW2 = forgeTheme.status.warning;
 var CYAN2 = forgeTheme.status.info;
 var RED2 = forgeTheme.status.error;
 var MAGENTA = forgeTheme.text.emphasis;
-var program = new Command11();
+var program = new Command12();
 program.name("forge").description("Multi-agent deliberation engine - reach consensus through structured debate").version("1.0.0");
 program.command("start").description("Start a new debate session").option("-b, --brief <name>", "Brief name to load (from briefs/ directory)").option("-p, --project <name>", "Project name", "New Project").option("-g, --goal <goal>", "Project goal").option("-a, --agents <ids>", "Comma-separated agent IDs (from default or custom personas)").option("-m, --mode <mode>", "Deliberation mode: copywrite, idea-validation, ideation, will-it-work, site-survey, business-plan, gtm-strategy, custom", "copywrite").option("--personas <name>", "Use custom persona set (from personas/ directory)").option("-l, --language <lang>", "Language: hebrew, english, mixed", "hebrew").option("--human", "Enable human participation", true).option("--no-human", "Disable human participation").option("-o, --output <dir>", "Output directory for sessions", "output/sessions").action(async (options) => {
   const cwd = process.cwd();
   const fsAdapter = new FileSystemAdapter(cwd);
   const agentRunner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner() : new ClaudeCodeCLIRunner();
-  const { ProviderRegistry: ProviderRegistry2, AnthropicProvider: AnthropicProvider2, GeminiProvider: GeminiProvider2, OpenAIProvider: OpenAIProvider2 } = await Promise.resolve().then(() => (init_providers(), providers_exports));
+  const { ProviderRegistry: ProviderRegistry2, AnthropicProvider: AnthropicProvider2, GeminiProvider: GeminiProvider2, OpenAIProvider: OpenAIProvider2, OllamaProvider: OllamaProvider2 } = await Promise.resolve().then(() => (init_providers(), providers_exports));
+  const forgeSettings = await loadConfig2();
   const providers = new ProviderRegistry2();
   providers.register(new AnthropicProvider2(agentRunner, true), { asDefault: true });
-  const gemini = new GeminiProvider2();
+  const geminiKey = resolveProviderKey(forgeSettings, "gemini", "GEMINI_API_KEY") ?? resolveProviderKey(forgeSettings, "gemini", "GOOGLE_API_KEY");
+  const gemini = new GeminiProvider2(geminiKey);
   if (gemini.isAvailable()) providers.register(gemini);
-  const openai = new OpenAIProvider2();
+  const openaiKey = resolveProviderKey(forgeSettings, "openai", "OPENAI_API_KEY");
+  const openai = new OpenAIProvider2(openaiKey);
   if (openai.isAvailable()) providers.register(openai);
+  const ollamaCfg = forgeSettings.providers.ollama;
+  if (ollamaCfg?.enabled !== false) {
+    const ollama = new OllamaProvider2({ baseUrl: ollamaCfg?.baseUrl });
+    if (await ollama.probe()) providers.register(ollama);
+  }
   let briefContent = "";
   let projectName = options.project;
   let goal = options.goal || "";
@@ -11478,9 +11806,9 @@ program.command("start").description("Start a new debate session").option("-b, -
   let domainSkills;
   let personaSetName = options.personas || null;
   if (personaSetName && availablePersonas === AGENT_PERSONAS) {
-    const personasPath = path20.join(cwd, "personas", `${personaSetName}.json`);
+    const personasPath = path21.join(cwd, "personas", `${personaSetName}.json`);
     try {
-      const content = await fs15.readFile(personasPath, "utf-8");
+      const content = await fs16.readFile(personasPath, "utf-8");
       availablePersonas = JSON.parse(content);
     } catch {
       console.error(`Persona set "${personaSetName}" not found in personas/ directory`);
@@ -11488,9 +11816,9 @@ program.command("start").description("Start a new debate session").option("-b, -
     }
   }
   if (personaSetName) {
-    const skillsPath = path20.join(cwd, "personas", `${personaSetName}.skills.md`);
+    const skillsPath = path21.join(cwd, "personas", `${personaSetName}.skills.md`);
     try {
-      domainSkills = await fs15.readFile(skillsPath, "utf-8");
+      domainSkills = await fs16.readFile(skillsPath, "utf-8");
       console.log(`\u{1F4DA} Loaded domain expertise: ${personaSetName}.skills.md`);
     } catch {
     }
@@ -11523,7 +11851,7 @@ program.command("start").description("Start a new debate session").option("-b, -
     maxRounds: 10,
     consensusThreshold: 0.6,
     methodology: getDefaultMethodology(),
-    contextDir: path20.join(cwd, "context"),
+    contextDir: path21.join(cwd, "context"),
     outputDir: options.output,
     language: options.language,
     mode: options.mode
@@ -11593,7 +11921,7 @@ program.command("start").description("Start a new debate session").option("-b, -
       try {
         const snapshot = Object.fromEntries(orchestrator.getAllAgentConfigs());
         await fsAdapter.writeFile(
-          path20.join(persistence.getSessionDir(), "agent-configs.json"),
+          path21.join(persistence.getSessionDir(), "agent-configs.json"),
           JSON.stringify(snapshot, null, 2)
         );
       } catch (err2) {
@@ -11682,6 +12010,7 @@ program.addCommand(createWatchCommand());
 program.addCommand(createCompletionsCommand());
 program.addCommand(createConfigCommand());
 program.addCommand(createSkillsCommand());
+program.addCommand(createInitCommand());
 program.addCommand(createLoginCommand());
 program.addCommand(createCommunityCommand());
 program.action(async () => {
