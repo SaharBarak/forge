@@ -9,6 +9,379 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
+// src/agents/personas-specialist.ts
+var VC_PERSONAS, TECH_REVIEW_PERSONAS, RED_TEAM_PERSONAS, SPECIALIST_PERSONAS;
+var init_personas_specialist = __esm({
+  "src/agents/personas-specialist.ts"() {
+    "use strict";
+    VC_PERSONAS = [
+      {
+        id: "vc-partner",
+        name: "General Partner",
+        nameHe: "\u05E9\u05D5\u05EA\u05E3 \u05DB\u05DC\u05DC\u05D9",
+        role: "Senior VC Partner",
+        age: 0,
+        background: `Fifteen years writing Series A/B checks. Pattern-matches against past winners
+    and losers. Asks "why now", "why this team", "what's the unfair advantage". Decides whether
+    the firm takes the next meeting. Speaks for the partnership.`,
+        personality: [
+          "Pattern-matches ruthlessly against prior investments",
+          "Trusts founder quality over slide quality",
+          "Cares about market size and timing above all",
+          "Will walk out if the thesis is muddled",
+          "Values conviction, penalizes hedging"
+        ],
+        biases: [
+          "Favors patterns that worked before",
+          "May dismiss outliers that break the template",
+          "Gravitates toward categories already in the portfolio"
+        ],
+        strengths: [
+          "Sees market structure quickly",
+          "Separates narrative from evidence",
+          "Surfaces the one question that decides the deal"
+        ],
+        weaknesses: [
+          "Can be dismissive without full diligence",
+          "May over-weight the team relative to the product"
+        ],
+        speakingStyle: 'Direct, thesis-driven. Asks "why now?", "why you?", "what breaks this?".',
+        color: "magenta"
+      },
+      {
+        id: "vc-associate",
+        name: "Associate",
+        nameHe: "\u05D0\u05E1\u05D5\u05E1\u05D9\u05D0\u05D8",
+        role: "VC Associate / Diligence Lead",
+        age: 0,
+        background: `Runs the numbers before the partner meeting. Builds the comp set, stress-tests
+    the model, reads every public filing. Has to earn the partner's trust with hard data, so
+    they ask sharp, specific questions that the founder may not have prepped for.`,
+        personality: [
+          "Evidence-first, spreadsheet-minded",
+          "Prefers bottom-up TAM over top-down",
+          "Grills unit economics and retention curves",
+          "Cross-checks founder claims against public data",
+          "Nervous to contradict the partner but will if wrong"
+        ],
+        biases: [
+          "Can miss the forest for the model tabs",
+          "Over-trusts benchmark medians"
+        ],
+        strengths: [
+          "Catches inflated projections",
+          "Knows the comp set cold",
+          "Asks the specific question the founder dodges"
+        ],
+        weaknesses: [
+          "Under-weights brand/vision relative to numbers",
+          "Hesitant to challenge seniority"
+        ],
+        speakingStyle: 'Precise, numbers-first. "Show me the cohort retention", "what is your magic number?".',
+        color: "cyan"
+      },
+      {
+        id: "lp-skeptic",
+        name: "LP Proxy",
+        nameHe: "\u05E0\u05E6\u05D9\u05D2 \u05DE\u05E9\u05E7\u05D9\u05E2\u05D9\u05DD",
+        role: "Limited Partner Perspective",
+        age: 0,
+        background: `Speaks for the pension funds and endowments whose capital the fund deploys.
+    Cares about fund-level returns, risk concentration, and whether this cheque fits the
+    fund's promised strategy. Will not let partners chase a story that doesn't return the fund.`,
+        personality: [
+          "Thinks in fund-returning outcomes, not company outcomes",
+          "Watches concentration and stage drift",
+          'Skeptical of "strategic" bets with thin paths to liquidity',
+          "Holds the GP accountable to the stated thesis",
+          "Long-horizon patience, short-fuse for drift"
+        ],
+        biases: [
+          "May kill promising early bets that look risky on paper",
+          "Prefers liquid exit paths over strategic optionality"
+        ],
+        strengths: [
+          "Keeps the portfolio coherent",
+          "Forces the partnership to justify cheques against the LPA",
+          "Asks about downside first, upside second"
+        ],
+        weaknesses: [
+          "Can slow decisions with risk-first framing",
+          "Under-weights vision"
+        ],
+        speakingStyle: 'Portfolio-aware, risk-focused. "Does this return the fund?", "is this in thesis?".',
+        color: "yellow"
+      },
+      {
+        id: "founder-voice",
+        name: "Founder",
+        nameHe: "\u05DE\u05D9\u05D9\u05E1\u05D3",
+        role: "Founder / CEO",
+        age: 0,
+        background: `Represents the company being pitched. Defends the vision, explains the
+    wedge, owns the financial plan. Must be able to answer hard questions without
+    collapsing, and distinguish must-haves from nice-to-haves in the terms.`,
+        personality: [
+          "Conviction about the problem",
+          "Able to articulate the wedge in one sentence",
+          "Knows the numbers cold, including the scary ones",
+          "Draws a line between vision and MVP",
+          "Won't take a bad term sheet"
+        ],
+        biases: [
+          "Overestimates own traction",
+          "Underestimates time-to-market"
+        ],
+        strengths: [
+          "Owns the narrative",
+          "Names the #1 risk before the investor does",
+          'Has an honest answer to "why now"'
+        ],
+        weaknesses: [
+          "May over-sell when pressed",
+          "Defensive under challenge"
+        ],
+        speakingStyle: `Conviction-led, specific. "Here's what we've learned from the last 12 customers...".`,
+        color: "red"
+      }
+    ];
+    TECH_REVIEW_PERSONAS = [
+      {
+        id: "architect",
+        name: "Architect",
+        nameHe: "\u05D0\u05E8\u05DB\u05D9\u05D8\u05E7\u05D8",
+        role: "Principal Software Architect",
+        age: 0,
+        background: `Reads a repo by its module boundaries first, code second. Cares about coupling,
+    data flow, and whether the architecture actually matches the README. Will flag premature
+    abstractions and missing ones in the same breath.`,
+        personality: [
+          "Starts with the dependency graph",
+          "Suspicious of frameworks hiding complexity",
+          "Values layering and explicit contracts",
+          "Traces data flow end-to-end before opining",
+          "Prefers fewer, sharper abstractions"
+        ],
+        biases: [
+          "May reject pragmatic coupling that actually works",
+          "Over-values purity"
+        ],
+        strengths: [
+          "Spots accidental coupling early",
+          "Names the design mistake that locked in tech debt",
+          "Asks about evolution paths, not current state"
+        ],
+        weaknesses: [
+          "Can recommend rewrites when refactors suffice",
+          "Slow to praise working-but-ugly code"
+        ],
+        speakingStyle: 'Structural, diagram-oriented. "Where does the seam live?", "what owns this state?".',
+        color: "blue"
+      },
+      {
+        id: "perf-engineer",
+        name: "Perf Engineer",
+        nameHe: "\u05DE\u05D4\u05E0\u05D3\u05E1 \u05D1\u05D9\u05E6\u05D5\u05E2\u05D9\u05DD",
+        role: "Performance & Scale Engineer",
+        age: 0,
+        background: `Reads code with a profiler running in their head. Cares about hot paths,
+    allocation pressure, N+1 queries, cache locality, and whether the system will survive
+    10x traffic. Reads benchmarks the way others read unit tests.`,
+        personality: [
+          `Always asks "per request, what's the p99?"`,
+          "Suspicious of unbounded loops and growing caches",
+          "Knows when async matters and when it doesn't",
+          "Measures before optimizing",
+          "Respects simple code that runs fast"
+        ],
+        biases: [
+          "May over-index on micro-benchmarks",
+          "Dismisses clean code that costs a few ms"
+        ],
+        strengths: [
+          "Identifies scaling cliffs before they hit",
+          "Spots O(N\xB2) hidden behind an iterator",
+          "Finds the cache that should not exist"
+        ],
+        weaknesses: [
+          "Can push premature optimization",
+          "Under-values developer ergonomics"
+        ],
+        speakingStyle: `Measured, numbers-specific. "What's the tail latency?", "show me the flamegraph".`,
+        color: "cyan"
+      },
+      {
+        id: "security-reviewer",
+        name: "Security Reviewer",
+        nameHe: "\u05E1\u05D5\u05E7\u05E8 \u05D0\u05D1\u05D8\u05D7\u05D4",
+        role: "Application Security Engineer",
+        age: 0,
+        background: `Reads every input as untrusted until proven otherwise. Runs through OWASP
+    Top 10 before finishing the README. Reviews auth, crypto, secrets handling, and
+    dependency risk. Distinguishes between theoretical issues and exploitable ones.`,
+        personality: [
+          "Treats every user input as hostile",
+          "Reads the auth flow before the business logic",
+          "Traces secrets from env vars to logs",
+          "Demands threat models, not checklists",
+          "Differentiates severity from probability"
+        ],
+        biases: [
+          "Can flag theoretical issues over real ones",
+          "Undersells developer friction of strict controls"
+        ],
+        strengths: [
+          "Finds injection sinks others miss",
+          "Reads auth flows end-to-end",
+          "Quantifies exploit cost vs. mitigation cost"
+        ],
+        weaknesses: [
+          'Can produce long lists of "mediums" that nobody fixes',
+          "Over-values depth over prioritization"
+        ],
+        speakingStyle: `Forensic, specific. "Where is this untrusted?", "what's the blast radius?".`,
+        color: "red"
+      },
+      {
+        id: "test-engineer",
+        name: "Test Engineer",
+        nameHe: "\u05DE\u05D4\u05E0\u05D3\u05E1 \u05D1\u05D3\u05D9\u05E7\u05D5\u05EA",
+        role: "Quality & Testing Engineer",
+        age: 0,
+        background: `Judges a repo by what it tests, not what it claims. Cares about coverage,
+    brittleness, flakiness, the gap between unit and integration tests, and whether CI
+    actually blocks bad changes. Will call out coverage theatre when they see it.`,
+        personality: [
+          "Values the tests that would catch real regressions",
+          "Suspicious of high coverage with no assertions",
+          "Distinguishes unit, integration, and E2E properly",
+          "Knows which tests are flaky and why",
+          "Prefers small test pyramids over big ones"
+        ],
+        biases: [
+          "Can dismiss clever code without tests",
+          "Over-values golden tests"
+        ],
+        strengths: [
+          "Spots missing integration layers",
+          "Identifies tests that pass but prove nothing",
+          "Knows the CI/CD pipeline end-to-end"
+        ],
+        weaknesses: [
+          "Can slow shipping by demanding full coverage",
+          "Under-values speculative-but-useful code"
+        ],
+        speakingStyle: `Concrete, test-case-driven. "What breaks if this regresses?", "where's the integration test?".`,
+        color: "yellow"
+      }
+    ];
+    RED_TEAM_PERSONAS = [
+      {
+        id: "attack-planner",
+        name: "Attack Planner",
+        nameHe: "\u05DE\u05EA\u05DB\u05E0\u05DF \u05D4\u05EA\u05E7\u05E4\u05D4",
+        role: "Adversary Modeler",
+        age: 0,
+        background: `Thinks in kill chains. Given a target (system, plan, or launch), maps the
+    adversary's path from initial access to objective. Prioritizes realistic attackers
+    over theoretical ones \u2014 nation-state, criminal, insider, opportunist \u2014 and names
+    which one this actually has to survive.`,
+        personality: [
+          "Starts from the attacker's objective, works backward",
+          "Maps privileges, trust boundaries, and pivots",
+          "Prefers concrete attack chains over abstract risk matrices",
+          'Separates "can be attacked" from "will be attacked"',
+          "Names the specific adversary before modeling them"
+        ],
+        biases: [
+          "May over-model sophisticated attackers",
+          "Can underplay accidental failures"
+        ],
+        strengths: [
+          "Finds the easy path past expensive defenses",
+          "Names the realistic threat actor",
+          "Connects isolated weaknesses into a chain"
+        ],
+        weaknesses: [
+          "Can anchor on dramatic scenarios",
+          "Under-values monitoring and detection"
+        ],
+        speakingStyle: 'Adversarial, chain-of-attack. "If I were the attacker, I would...", "what is the cheapest kill chain?".',
+        color: "red"
+      },
+      {
+        id: "social-engineer",
+        name: "Social Engineer",
+        nameHe: "\u05D4\u05E0\u05D3\u05E1\u05D4 \u05D7\u05D1\u05E8\u05EA\u05D9\u05EA",
+        role: "Human-Layer Attacker",
+        age: 0,
+        background: `Attacks the humans and processes, not the code. Phishing, pretexting, insider
+    manipulation, supply-chain approvals, onboarding edge cases. Will read the org chart for
+    vulnerabilities the same way others read codebases.`,
+        personality: [
+          "Reads trust flows and approval chains",
+          "Knows which role has too much power",
+          "Finds the overworked employee who will click",
+          "Targets processes, not firewalls",
+          "Values the phone call over the zero-day"
+        ],
+        biases: [
+          "Can over-weight human error in well-trained orgs",
+          "Under-values technical defenses"
+        ],
+        strengths: [
+          "Spots approval chains that are a single click",
+          "Identifies roles that grant unintended power",
+          "Finds onboarding/offboarding gaps"
+        ],
+        weaknesses: [
+          "May propose attacks that feel paranoid",
+          "Hard to disprove without red-team drills"
+        ],
+        speakingStyle: 'Conversational, process-aware. "Who approves this?", "what happens when the CEO emails at 11pm?".',
+        color: "magenta"
+      },
+      {
+        id: "blue-team-lead",
+        name: "Defender",
+        nameHe: "\u05DE\u05D2\u05DF",
+        role: "Blue-Team Opposition",
+        age: 0,
+        background: `Sits across the table from the red team. Evaluates whether each proposed
+    attack would actually be detected, contained, or recovered from, and at what cost.
+    Holds the red team honest: every attack must be scored against real defensive capacity.`,
+        personality: [
+          "Scores attacks by detection and containment, not just possibility",
+          "Knows what the SOC actually alerts on",
+          "Values defense-in-depth over perimeter controls",
+          "Measures mitigation cost against attack cost",
+          "Respects the attacker but doesn't flinch"
+        ],
+        biases: [
+          "Can over-trust existing tooling",
+          "Prefers incremental hardening over bold redesigns"
+        ],
+        strengths: [
+          'Separates "attackable" from "actually exploitable"',
+          "Knows where detection is blind",
+          "Scores mitigations realistically"
+        ],
+        weaknesses: [
+          "Can defend status quo against needed rewrites",
+          "Under-weights novel attack classes"
+        ],
+        speakingStyle: `Defensive, detection-minded. "Would we see this?", "what's the mean time to detect?".`,
+        color: "blue"
+      }
+    ];
+    SPECIALIST_PERSONAS = [
+      ...VC_PERSONAS,
+      ...TECH_REVIEW_PERSONAS,
+      ...RED_TEAM_PERSONAS
+    ];
+  }
+});
+
 // src/agents/personas.ts
 function registerCustomPersonas(personas) {
   customPersonas = personas;
@@ -30,6 +403,7 @@ var AGENT_PERSONAS, RESEARCHER_AGENTS, customPersonas;
 var init_personas = __esm({
   "src/agents/personas.ts"() {
     "use strict";
+    init_personas_specialist();
     AGENT_PERSONAS = [
       {
         id: "skeptic",
@@ -198,7 +572,10 @@ var init_personas = __esm({
         ],
         speakingStyle: `Provocative, counterfactual. "What if the opposite is true?", "why shouldn't we do X instead?".`,
         color: "cyan"
-      }
+      },
+      // Specialist personas for the VC-pitch, tech-review and red-team modes
+      // live in personas-specialist.ts to keep this file under the 500-line cap.
+      ...SPECIALIST_PERSONAS
     ];
     RESEARCHER_AGENTS = [
       {
@@ -266,6 +643,205 @@ var init_personas = __esm({
   }
 });
 
+// src/lib/skills/SkillsLoader.ts
+import * as path12 from "path";
+import * as os2 from "os";
+import * as fs9 from "fs/promises";
+import { spawnSync } from "child_process";
+async function readIfExists(p) {
+  try {
+    const content = await fs9.readFile(p, "utf-8");
+    return content.trim() ? content : null;
+  } catch {
+    return null;
+  }
+}
+async function isExecutable(p) {
+  try {
+    const stat3 = await fs9.stat(p);
+    return stat3.isFile() && (stat3.mode & 73) !== 0;
+  } catch {
+    return false;
+  }
+}
+async function runHook(src) {
+  const hookPath = path12.join(src.cwd, SKILLS_HOOK);
+  if (!await isExecutable(hookPath)) return { ran: false, exitCode: null };
+  const result = spawnSync(hookPath, [], {
+    cwd: src.cwd,
+    env: {
+      ...process.env,
+      FORGE_MODE: src.modeId,
+      FORGE_AGENTS: src.enabledAgents.join(","),
+      FORGE_WORKDIR: src.sessionWorkdir ?? "",
+      FORGE_GOAL: src.goal ?? ""
+    },
+    encoding: "utf-8",
+    timeout: 15e3
+  });
+  if (result.status !== 0) {
+    console.error(
+      `[SkillsLoader] skills.sh exited ${result.status}: ${result.stderr?.trim() ?? "(no stderr)"}`
+    );
+  }
+  return { ran: true, exitCode: result.status };
+}
+async function loadSkills(src) {
+  await runHook(src);
+  const projectSkillsDir = path12.join(src.cwd, "skills");
+  const userSkillsDir = path12.join(os2.homedir(), ".claude", "skills", "forge");
+  const shared = await readIfExists(path12.join(projectSkillsDir, "shared.md")) ?? "";
+  const modeLayer = await readIfExists(path12.join(projectSkillsDir, `${src.modeId}.md`)) ?? "";
+  const sharedCombined = [shared, modeLayer].filter(Boolean).join("\n\n---\n\n");
+  const perAgent = /* @__PURE__ */ new Map();
+  const sources = /* @__PURE__ */ new Map();
+  for (const agentId of src.enabledAgents) {
+    const used = [];
+    let agentLayer = null;
+    const projectAgentPath = path12.join(projectSkillsDir, `${agentId}.md`);
+    const userAgentPath = path12.join(userSkillsDir, `${agentId}.md`);
+    agentLayer = await readIfExists(projectAgentPath);
+    if (agentLayer) used.push(`skills/${agentId}.md`);
+    if (!agentLayer) {
+      agentLayer = await readIfExists(userAgentPath);
+      if (agentLayer) used.push(`~/.claude/skills/forge/${agentId}.md`);
+    }
+    const pieces = [];
+    if (sharedCombined) {
+      pieces.push(sharedCombined);
+      if (shared) used.push("skills/shared.md");
+      if (modeLayer) used.push(`skills/${src.modeId}.md`);
+    }
+    if (agentLayer) pieces.push(agentLayer);
+    perAgent.set(agentId, pieces.join("\n\n---\n\n"));
+    sources.set(agentId, used);
+  }
+  return { shared: sharedCombined, perAgent, sources };
+}
+function deriveLabelAndSummary(content, fallbackId) {
+  const lines = content.split(/\r?\n/);
+  const h1 = lines.find((l) => /^#\s+/.test(l));
+  const label = h1 ? h1.replace(/^#\s+/, "").trim() : fallbackId;
+  const afterH1 = h1 ? lines.slice(lines.indexOf(h1) + 1) : lines;
+  const summaryLine = afterH1.find(
+    (l) => l.trim() && !l.startsWith("#") && !l.startsWith("---")
+  );
+  return { label, summary: (summaryLine ?? "").trim().slice(0, 160) };
+}
+async function readSkillFile(filePath, id, source) {
+  const content = await readIfExists(filePath);
+  if (!content) return null;
+  const { label, summary } = deriveLabelAndSummary(content, id);
+  return { id, label, summary, path: filePath, source, content };
+}
+async function listDirMd(dir) {
+  try {
+    const entries = await fs9.readdir(dir, { withFileTypes: true });
+    return entries.filter((e) => e.isFile() && e.name.endsWith(".md")).map((e) => e.name);
+  } catch {
+    return [];
+  }
+}
+async function runHookList(cwd) {
+  const hookPath = path12.join(cwd, SKILLS_HOOK);
+  if (!await isExecutable(hookPath)) return [];
+  const result = spawnSync(hookPath, ["list"], {
+    cwd,
+    encoding: "utf-8",
+    timeout: 1e4
+  });
+  if (result.status !== 0 || !result.stdout?.trim()) return [];
+  let parsed;
+  try {
+    parsed = JSON.parse(result.stdout);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const out = [];
+  for (const raw of parsed) {
+    if (!raw || typeof raw !== "object") continue;
+    const obj = raw;
+    const id = typeof obj.id === "string" ? obj.id : null;
+    const skillPath = typeof obj.path === "string" ? obj.path : null;
+    if (!id || !skillPath) continue;
+    const content = await readIfExists(skillPath);
+    if (!content) continue;
+    const derived = deriveLabelAndSummary(content, id);
+    out.push({
+      id: `hook:${id}`,
+      label: typeof obj.label === "string" ? obj.label : derived.label,
+      summary: typeof obj.summary === "string" ? obj.summary : derived.summary,
+      path: skillPath,
+      source: "hook",
+      content,
+      tags: Array.isArray(obj.tags) ? obj.tags : void 0
+    });
+  }
+  return out;
+}
+async function discoverSkills({ cwd }) {
+  const catalog = /* @__PURE__ */ new Map();
+  const addEntry = (entry) => {
+    if (!entry) return;
+    if (catalog.has(entry.id)) return;
+    catalog.set(entry.id, entry);
+  };
+  const projectDir = path12.join(cwd, "skills");
+  for (const name of await listDirMd(projectDir)) {
+    const id = name.replace(/\.md$/, "");
+    addEntry(await readSkillFile(path12.join(projectDir, name), id, "project"));
+  }
+  const userDir = path12.join(os2.homedir(), ".claude", "skills", "forge");
+  for (const name of await listDirMd(userDir)) {
+    const id = `user:${name.replace(/\.md$/, "")}`;
+    addEntry(await readSkillFile(path12.join(userDir, name), id, "user"));
+  }
+  try {
+    const pluginsDir = path12.join(os2.homedir(), ".claude", "plugins");
+    const plugins = await fs9.readdir(pluginsDir, { withFileTypes: true });
+    for (const plugin of plugins) {
+      if (!plugin.isDirectory()) continue;
+      const skillsDir = path12.join(pluginsDir, plugin.name, "skills");
+      for (const name of await listDirMd(skillsDir)) {
+        const id = `plugin:${plugin.name}/${name.replace(/\.md$/, "")}`;
+        addEntry(await readSkillFile(path12.join(skillsDir, name), id, "plugin"));
+      }
+    }
+  } catch {
+  }
+  for (const entry of await runHookList(cwd)) {
+    addEntry(entry);
+  }
+  const entries = Array.from(catalog.values()).sort(
+    (a, b) => a.label.localeCompare(b.label)
+  );
+  return {
+    entries,
+    get: (id) => catalog.get(id)
+  };
+}
+var SKILLS_HOOK;
+var init_SkillsLoader = __esm({
+  "src/lib/skills/SkillsLoader.ts"() {
+    "use strict";
+    SKILLS_HOOK = "skills.sh";
+  }
+});
+
+// src/lib/skills/index.ts
+var skills_exports = {};
+__export(skills_exports, {
+  discoverSkills: () => discoverSkills,
+  loadSkills: () => loadSkills
+});
+var init_skills = __esm({
+  "src/lib/skills/index.ts"() {
+    "use strict";
+    init_SkillsLoader();
+  }
+});
+
 // electron/p2p/node.js
 var node_exports = {};
 __export(node_exports, {
@@ -278,13 +854,13 @@ __export(node_exports, {
   startNode: () => startNode,
   stopNode: () => stopNode
 });
-import path12 from "path";
-import fs10 from "fs/promises";
+import path15 from "path";
+import fs12 from "fs/promises";
 async function startNode({ dataDir: dataDir2 }) {
-  storePath = path12.join(dataDir2, "store.jsonl");
-  await fs10.mkdir(dataDir2, { recursive: true });
+  storePath = path15.join(dataDir2, "store.jsonl");
+  await fs12.mkdir(dataDir2, { recursive: true });
   try {
-    const content = await fs10.readFile(storePath, "utf-8");
+    const content = await fs12.readFile(storePath, "utf-8");
     for (const line of content.split("\n")) {
       if (!line.trim()) continue;
       try {
@@ -317,7 +893,7 @@ async function putDoc(doc) {
   requireStarted();
   if (!doc || !doc._id) throw new Error("putDoc requires _id");
   docs.set(doc._id, doc);
-  await fs10.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
+  await fs12.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
   for (const cb of updateListeners) {
     try {
       cb({ hash: doc._id, id: doc._id, op: "PUT" });
@@ -340,7 +916,7 @@ async function allDocs() {
 async function deleteDoc(id) {
   requireStarted();
   docs.delete(id);
-  await fs10.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
+  await fs12.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
   return id;
 }
 async function getStatus() {
@@ -420,8 +996,8 @@ var init_embeddings = __esm({
 });
 
 // electron/connections/vector-index.js
-import path13 from "path";
-import fs11 from "fs/promises";
+import path16 from "path";
+import fs13 from "fs/promises";
 var Index, MetricKind, index, idMap, dataDir, indexPath, mapPath, dimensions, dirty, loadUsearch, loadIdMap, saveIdMap, load, requireOpen, addVector, hasId, removeVector, searchSimilar, size, save, close;
 var init_vector_index = __esm({
   "electron/connections/vector-index.js"() {
@@ -444,27 +1020,27 @@ var init_vector_index = __esm({
     };
     loadIdMap = async () => {
       try {
-        const raw = await fs11.readFile(mapPath, "utf-8");
+        const raw = await fs13.readFile(mapPath, "utf-8");
         idMap = JSON.parse(raw);
       } catch {
         idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
       }
     };
     saveIdMap = async () => {
-      await fs11.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
+      await fs13.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
     };
     load = async ({ dir, dims = 384 }) => {
       if (index) return;
       await loadUsearch();
       dataDir = dir;
       dimensions = dims;
-      indexPath = path13.join(dir, "index.usearch");
-      mapPath = path13.join(dir, "id-map.json");
-      await fs11.mkdir(dir, { recursive: true });
+      indexPath = path16.join(dir, "index.usearch");
+      mapPath = path16.join(dir, "id-map.json");
+      await fs13.mkdir(dir, { recursive: true });
       await loadIdMap();
       index = new Index(dimensions, MetricKind.Cos);
       try {
-        await fs11.access(indexPath);
+        await fs13.access(indexPath);
         index.load(indexPath);
         console.log(`[vector-index] loaded ${index.size()} vectors from ${indexPath}`);
       } catch {
@@ -548,7 +1124,7 @@ __export(service_exports, {
   status: () => status,
   stopService: () => stopService
 });
-import path14 from "path";
+import path17 from "path";
 var serviceDataDir, startService, stopService, indexContribution, deindexContribution, findSimilarByText, status;
 var init_service = __esm({
   "electron/connections/service.js"() {
@@ -557,7 +1133,7 @@ var init_service = __esm({
     init_vector_index();
     serviceDataDir = null;
     startService = async ({ dataDir: dataDir2 }) => {
-      serviceDataDir = path14.join(dataDir2, "connections");
+      serviceDataDir = path17.join(dataDir2, "connections");
       await load({ dir: serviceDataDir, dims: EMBEDDING_DIMENSIONS });
       ensureReady().catch(
         (err2) => console.error("[connections] model warmup failed:", err2)
@@ -605,20 +1181,411 @@ var init_service = __esm({
   }
 });
 
+// src/lib/providers/registry.ts
+var ProviderRegistry;
+var init_registry = __esm({
+  "src/lib/providers/registry.ts"() {
+    "use strict";
+    ProviderRegistry = class {
+      providers = /* @__PURE__ */ new Map();
+      defaultId = null;
+      register(provider, opts = {}) {
+        this.providers.set(provider.id, provider);
+        if (opts.asDefault || this.defaultId === null) {
+          this.defaultId = provider.id;
+        }
+      }
+      get(id) {
+        const p = this.providers.get(id);
+        if (!p) {
+          throw new Error(
+            `Unknown provider '${id}'. Available: ${Array.from(this.providers.keys()).join(", ") || "none"}`
+          );
+        }
+        return p;
+      }
+      tryGet(id) {
+        return this.providers.get(id);
+      }
+      list() {
+        return Array.from(this.providers.values());
+      }
+      listAvailable() {
+        return this.list().filter((p) => p.isAvailable());
+      }
+      getDefault() {
+        if (!this.defaultId) {
+          throw new Error("ProviderRegistry is empty \u2014 register at least one provider");
+        }
+        return this.get(this.defaultId);
+      }
+      has(id) {
+        return this.providers.has(id);
+      }
+    };
+  }
+});
+
+// src/lib/providers/AnthropicProvider.ts
+var MODELS, AnthropicProvider;
+var init_AnthropicProvider = __esm({
+  "src/lib/providers/AnthropicProvider.ts"() {
+    "use strict";
+    MODELS = [
+      {
+        id: "claude-sonnet-4-20250514",
+        label: "Claude Sonnet 4",
+        tier: "balanced",
+        hint: "default \u2014 balanced speed and reasoning"
+      },
+      {
+        id: "claude-opus-4-7",
+        label: "Claude Opus 4.7",
+        tier: "slow",
+        hint: "deepest reasoning, slower"
+      },
+      {
+        id: "claude-opus-4-6",
+        label: "Claude Opus 4.6",
+        tier: "slow",
+        hint: "prior-gen Opus, used for evaluations"
+      },
+      {
+        id: "claude-haiku-4-5-20251001",
+        label: "Claude Haiku 4.5",
+        tier: "fast",
+        hint: "cheapest and fastest Claude"
+      }
+    ];
+    AnthropicProvider = class {
+      id = "anthropic";
+      name = "Anthropic";
+      runner;
+      available;
+      constructor(runner, available = true) {
+        this.runner = runner;
+        this.available = available;
+      }
+      isAvailable() {
+        return this.available;
+      }
+      listModels() {
+        return MODELS;
+      }
+      defaultModelId() {
+        return "claude-sonnet-4-20250514";
+      }
+      query(params) {
+        return this.runner.query(params);
+      }
+      evaluate(params) {
+        return this.runner.evaluate(params);
+      }
+    };
+  }
+});
+
+// src/lib/providers/GeminiProvider.ts
+import { GoogleGenAI } from "@google/genai";
+var MODELS2, GeminiProvider;
+var init_GeminiProvider = __esm({
+  "src/lib/providers/GeminiProvider.ts"() {
+    "use strict";
+    MODELS2 = [
+      {
+        id: "gemini-2.5-flash",
+        label: "Gemini 2.5 Flash",
+        tier: "fast",
+        hint: "fast + cheap \u2014 good for reactive agents"
+      },
+      {
+        id: "gemini-2.5-pro",
+        label: "Gemini 2.5 Pro",
+        tier: "slow",
+        hint: "deeper reasoning, long context"
+      },
+      {
+        id: "gemini-2.0-flash",
+        label: "Gemini 2.0 Flash",
+        tier: "fast",
+        hint: "stable, widely available"
+      }
+    ];
+    GeminiProvider = class {
+      id = "gemini";
+      name = "Google Gemini";
+      client;
+      apiKey;
+      constructor(apiKey) {
+        this.apiKey = apiKey ?? process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
+        this.client = this.apiKey ? new GoogleGenAI({ apiKey: this.apiKey }) : null;
+      }
+      isAvailable() {
+        return this.client !== null;
+      }
+      listModels() {
+        return MODELS2;
+      }
+      defaultModelId() {
+        return "gemini-2.5-flash";
+      }
+      async query(params) {
+        if (!this.client) {
+          return { success: false, error: "GEMINI_API_KEY not set" };
+        }
+        try {
+          const model = params.model || this.defaultModelId();
+          const response = await this.client.models.generateContent({
+            model,
+            contents: params.prompt,
+            config: params.systemPrompt ? { systemInstruction: params.systemPrompt } : void 0
+          });
+          const content = response.text ?? "";
+          const usage = response.usageMetadata;
+          return {
+            success: true,
+            content,
+            usage: usage ? {
+              inputTokens: usage.promptTokenCount ?? 0,
+              outputTokens: usage.candidatesTokenCount ?? 0,
+              costUsd: this.estimateCost(
+                model,
+                usage.promptTokenCount ?? 0,
+                usage.candidatesTokenCount ?? 0
+              )
+            } : void 0
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "Gemini request failed"
+          };
+        }
+      }
+      async evaluate(params) {
+        const queryResult = await this.query({
+          prompt: params.evalPrompt,
+          systemPrompt: "You are evaluating whether to speak in a discussion. Respond only with JSON.",
+          model: this.defaultModelId()
+        });
+        if (!queryResult.success || !queryResult.content) {
+          return {
+            success: false,
+            urgency: "pass",
+            reason: queryResult.error || "No response",
+            responseType: ""
+          };
+        }
+        const jsonMatch = queryResult.content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          return { success: true, urgency: "pass", reason: "Listening", responseType: "" };
+        }
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return {
+            success: true,
+            urgency: parsed.urgency || "pass",
+            reason: parsed.reason || "",
+            responseType: parsed.responseType || ""
+          };
+        } catch {
+          return { success: true, urgency: "pass", reason: "Parse error", responseType: "" };
+        }
+      }
+      /**
+       * Rough cost estimate per-model (USD). Keeps the CostMeter honest even
+       * though Gemini's pricing changes over time — we only care about order
+       * of magnitude for the TUI.
+       */
+      estimateCost(model, inTokens, outTokens) {
+        const priceTable = {
+          "gemini-2.5-flash": { in: 0.3, out: 2.5 },
+          "gemini-2.5-pro": { in: 1.25, out: 10 },
+          "gemini-2.0-flash": { in: 0.1, out: 0.4 }
+        };
+        const price = priceTable[model] ?? { in: 0.3, out: 2.5 };
+        return inTokens / 1e6 * price.in + outTokens / 1e6 * price.out;
+      }
+    };
+  }
+});
+
+// src/lib/providers/OpenAIProvider.ts
+import OpenAI from "openai";
+var MODELS3, OpenAIProvider;
+var init_OpenAIProvider = __esm({
+  "src/lib/providers/OpenAIProvider.ts"() {
+    "use strict";
+    MODELS3 = [
+      {
+        id: "gpt-4o",
+        label: "GPT-4o",
+        tier: "balanced",
+        hint: "default \u2014 balanced reasoning and speed"
+      },
+      {
+        id: "gpt-4o-mini",
+        label: "GPT-4o mini",
+        tier: "fast",
+        hint: "cheap + fast \u2014 good for reactive agents"
+      },
+      {
+        id: "o1-mini",
+        label: "o1 mini",
+        tier: "balanced",
+        hint: "reasoning-focused, thinks before answering"
+      },
+      {
+        id: "gpt-4-turbo",
+        label: "GPT-4 Turbo",
+        tier: "slow",
+        hint: "prior-gen, widely available"
+      }
+    ];
+    OpenAIProvider = class {
+      id = "openai";
+      name = "OpenAI";
+      client;
+      apiKey;
+      constructor(apiKey) {
+        this.apiKey = apiKey ?? process.env.OPENAI_API_KEY;
+        this.client = this.apiKey ? new OpenAI({ apiKey: this.apiKey }) : null;
+      }
+      isAvailable() {
+        return this.client !== null;
+      }
+      listModels() {
+        return MODELS3;
+      }
+      defaultModelId() {
+        return "gpt-4o";
+      }
+      async query(params) {
+        if (!this.client) {
+          return { success: false, error: "OPENAI_API_KEY not set" };
+        }
+        try {
+          const model = params.model || this.defaultModelId();
+          const isOSeries = model.startsWith("o1") || model.startsWith("o3");
+          const messages = isOSeries ? [
+            {
+              role: "user",
+              content: params.systemPrompt ? `${params.systemPrompt}
+
+---
+
+${params.prompt}` : params.prompt
+            }
+          ] : [
+            ...params.systemPrompt ? [{ role: "system", content: params.systemPrompt }] : [],
+            { role: "user", content: params.prompt }
+          ];
+          const response = await this.client.chat.completions.create({
+            model,
+            messages
+          });
+          const choice = response.choices[0];
+          const content = choice?.message?.content ?? "";
+          const usage = response.usage;
+          return {
+            success: true,
+            content,
+            usage: usage ? {
+              inputTokens: usage.prompt_tokens ?? 0,
+              outputTokens: usage.completion_tokens ?? 0,
+              costUsd: this.estimateCost(
+                model,
+                usage.prompt_tokens ?? 0,
+                usage.completion_tokens ?? 0
+              )
+            } : void 0
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "OpenAI request failed"
+          };
+        }
+      }
+      async evaluate(params) {
+        const queryResult = await this.query({
+          prompt: params.evalPrompt,
+          systemPrompt: "You are evaluating whether to speak in a discussion. Respond only with JSON.",
+          model: this.defaultModelId()
+        });
+        if (!queryResult.success || !queryResult.content) {
+          return {
+            success: false,
+            urgency: "pass",
+            reason: queryResult.error || "No response",
+            responseType: ""
+          };
+        }
+        const jsonMatch = queryResult.content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          return { success: true, urgency: "pass", reason: "Listening", responseType: "" };
+        }
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return {
+            success: true,
+            urgency: parsed.urgency || "pass",
+            reason: parsed.reason || "",
+            responseType: parsed.responseType || ""
+          };
+        } catch {
+          return { success: true, urgency: "pass", reason: "Parse error", responseType: "" };
+        }
+      }
+      /**
+       * Rough cost estimate per-model (USD). Approximate public pricing.
+       */
+      estimateCost(model, inTokens, outTokens) {
+        const priceTable = {
+          "gpt-4o": { in: 2.5, out: 10 },
+          "gpt-4o-mini": { in: 0.15, out: 0.6 },
+          "o1-mini": { in: 3, out: 12 },
+          "gpt-4-turbo": { in: 10, out: 30 }
+        };
+        const price = priceTable[model] ?? { in: 2.5, out: 10 };
+        return inTokens / 1e6 * price.in + outTokens / 1e6 * price.out;
+      }
+    };
+  }
+});
+
+// src/lib/providers/index.ts
+var providers_exports = {};
+__export(providers_exports, {
+  AnthropicProvider: () => AnthropicProvider,
+  GeminiProvider: () => GeminiProvider,
+  OpenAIProvider: () => OpenAIProvider,
+  ProviderRegistry: () => ProviderRegistry
+});
+var init_providers = __esm({
+  "src/lib/providers/index.ts"() {
+    "use strict";
+    init_registry();
+    init_AnthropicProvider();
+    init_GeminiProvider();
+    init_OpenAIProvider();
+  }
+});
+
 // cli/adapters/console-capture.ts
 var console_capture_exports = {};
 __export(console_capture_exports, {
   captureConsoleToFile: () => captureConsoleToFile
 });
-import * as fs12 from "fs";
-import * as path16 from "path";
+import * as fs14 from "fs";
+import * as path19 from "path";
 function captureConsoleToFile(logDir) {
   try {
-    fs12.mkdirSync(logDir, { recursive: true });
+    fs14.mkdirSync(logDir, { recursive: true });
   } catch {
   }
-  const logPath = path16.join(logDir, "session.log");
-  const stream = fs12.createWriteStream(logPath, { flags: "a" });
+  const logPath = path19.join(logDir, "session.log");
+  const stream = fs14.createWriteStream(logPath, { flags: "a" });
   const originals = {};
   const writeLine = (level, args) => {
     try {
@@ -664,13 +1631,360 @@ var init_console_capture = __esm({
   }
 });
 
+// cli/otui/SkillPicker.tsx
+import { useState, useEffect, useMemo } from "react";
+import { useKeyboard } from "@opentui/react";
+import { jsx, jsxs } from "@opentui/react/jsx-runtime";
+function SkillPicker({
+  orchestrator,
+  agentId,
+  onClose
+}) {
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [, forceTick] = useState(0);
+  const catalog = orchestrator.getSkillCatalog();
+  const entries = useMemo(
+    () => catalog?.entries ?? [],
+    [catalog]
+  );
+  useEffect(() => {
+    const off = orchestrator.on((e) => {
+      if (e.type === "agent_skills_change") forceTick((t) => t + 1);
+    });
+    return () => {
+      off();
+    };
+  }, [orchestrator]);
+  const applied = new Set(orchestrator.getAgentSkillIds(agentId));
+  const persona = getAgentById(agentId);
+  useKeyboard((event) => {
+    const key = (event.name ?? "").toLowerCase();
+    if (key === "escape" || key === "k") {
+      onClose();
+      return;
+    }
+    if (entries.length === 0) return;
+    if (key === "up") {
+      setSelectedIdx((i) => (i - 1 + entries.length) % entries.length);
+      return;
+    }
+    if (key === "down" || key === "j") {
+      setSelectedIdx((i) => (i + 1) % entries.length);
+      return;
+    }
+    if (key === "space" || key === "return" || key === "enter") {
+      const skill = entries[selectedIdx];
+      if (skill) orchestrator.toggleAgentSkill(agentId, skill.id);
+    }
+  });
+  const clampedIdx = entries.length > 0 ? Math.min(selectedIdx, entries.length - 1) : 0;
+  const selected = entries[clampedIdx];
+  return /* @__PURE__ */ jsxs(
+    "box",
+    {
+      border: true,
+      borderColor: COLOR_ACCENT,
+      padding: 1,
+      flexDirection: "column",
+      width: "100%",
+      height: "100%",
+      children: [
+        /* @__PURE__ */ jsxs("box", { flexDirection: "row", justifyContent: "space-between", children: [
+          /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
+            /* @__PURE__ */ jsx("text", { fg: COLOR_ACCENT, children: "SKILL PICKER" }),
+            /* @__PURE__ */ jsx("text", { fg: COLOR_DIM, children: " \xB7 agent " }),
+            /* @__PURE__ */ jsx("text", { fg: COLOR_CURRENT, children: persona?.name ?? agentId }),
+            /* @__PURE__ */ jsxs("text", { fg: COLOR_DIM, children: [
+              " \xB7 ",
+              applied.size,
+              "/",
+              entries.length,
+              " applied"
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx("text", { fg: COLOR_DIM, children: "\u2191\u2193 select \xB7 space toggle \xB7 esc back" })
+        ] }),
+        entries.length === 0 ? /* @__PURE__ */ jsxs("box", { marginTop: 2, children: [
+          /* @__PURE__ */ jsx("text", { fg: COLOR_DIM, children: "No skills discovered. Add a file to skills/ or `~/.claude/skills/forge/`," }),
+          /* @__PURE__ */ jsx("text", { fg: COLOR_DIM, children: "or have skills.sh list emit a JSON catalog." })
+        ] }) : null,
+        /* @__PURE__ */ jsxs("box", { marginTop: 1, flexDirection: "row", flexGrow: 1, children: [
+          /* @__PURE__ */ jsx("box", { flexDirection: "column", width: 44, flexShrink: 0, children: entries.map((entry, idx) => {
+            const isSelected = idx === clampedIdx;
+            const isApplied = applied.has(entry.id);
+            const border = isSelected ? COLOR_ACCENT : "#2a2a32";
+            const check = isApplied ? "\u2713" : "\u25CB";
+            const checkColor = isApplied ? COLOR_ON : COLOR_OFF;
+            return /* @__PURE__ */ jsxs(
+              "box",
+              {
+                border: true,
+                borderColor: border,
+                padding: 1,
+                marginTop: idx === 0 ? 0 : 1,
+                flexDirection: "column",
+                children: [
+                  /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
+                    /* @__PURE__ */ jsxs("text", { fg: checkColor, children: [
+                      check,
+                      " "
+                    ] }),
+                    /* @__PURE__ */ jsx("text", { fg: isSelected ? COLOR_TEXT : COLOR_TEXT, children: entry.label.slice(0, 34) })
+                  ] }),
+                  /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
+                    /* @__PURE__ */ jsx("text", { fg: COLOR_DIM, children: SOURCE_LABEL[entry.source] ?? entry.source }),
+                    /* @__PURE__ */ jsx("text", { fg: COLOR_DIM, children: "  \xB7  " }),
+                    /* @__PURE__ */ jsx("text", { fg: COLOR_DIM, children: entry.id.slice(0, 30) })
+                  ] })
+                ]
+              },
+              entry.id
+            );
+          }) }),
+          /* @__PURE__ */ jsx("box", { flexDirection: "column", flexGrow: 1, marginLeft: 1, children: selected ? /* @__PURE__ */ jsxs("box", { border: true, borderColor: "#2a2a32", padding: 1, flexDirection: "column", flexGrow: 1, children: [
+            /* @__PURE__ */ jsx("text", { fg: COLOR_ACCENT, children: selected.label }),
+            /* @__PURE__ */ jsx("text", { fg: COLOR_DIM, children: selected.path }),
+            /* @__PURE__ */ jsx("box", { marginTop: 1, children: /* @__PURE__ */ jsx("text", { fg: COLOR_TEXT, children: selected.summary || "(no summary)" }) }),
+            /* @__PURE__ */ jsxs("box", { marginTop: 1, flexDirection: "column", children: [
+              /* @__PURE__ */ jsx("text", { fg: COLOR_DIM, children: "\u2500\u2500 content preview \u2500\u2500" }),
+              selected.content.slice(0, 600).split("\n").slice(0, 18).map((line, i) => /* @__PURE__ */ jsx("text", { fg: COLOR_TEXT, children: line.length > 60 ? line.slice(0, 60) + "\u2026" : line }, i))
+            ] })
+          ] }) : null })
+        ] })
+      ]
+    }
+  );
+}
+var COLOR_ACCENT, COLOR_DIM, COLOR_TEXT, COLOR_ON, COLOR_OFF, COLOR_CURRENT, SOURCE_LABEL;
+var init_SkillPicker = __esm({
+  "cli/otui/SkillPicker.tsx"() {
+    "use strict";
+    init_personas();
+    COLOR_ACCENT = "#ffbf00";
+    COLOR_DIM = "#6b6b76";
+    COLOR_TEXT = "#f5e6ff";
+    COLOR_ON = "#4ade80";
+    COLOR_OFF = "#6b6b76";
+    COLOR_CURRENT = "#00e5ff";
+    SOURCE_LABEL = {
+      project: "project",
+      user: "user",
+      plugin: "plugin",
+      hook: "skills.sh"
+    };
+  }
+});
+
+// cli/otui/AgentControlPanel.tsx
+import { useState as useState2, useEffect as useEffect2, useMemo as useMemo2 } from "react";
+import { useKeyboard as useKeyboard2 } from "@opentui/react";
+import { jsx as jsx2, jsxs as jsxs2 } from "@opentui/react/jsx-runtime";
+function AgentControlPanel({
+  orchestrator,
+  agentIds,
+  currentSpeaker,
+  agentStates,
+  onClose
+}) {
+  const [selectedIdx, setSelectedIdx] = useState2(0);
+  const [, forceTick] = useState2(0);
+  const [skillPickerFor, setSkillPickerFor] = useState2(null);
+  const providers = orchestrator.getProviders();
+  const availableProviders = useMemo2(
+    () => providers?.listAvailable() ?? [],
+    [providers]
+  );
+  useEffect2(() => {
+    const off = orchestrator.on((e) => {
+      if (e.type === "agent_config_change" || e.type === "floor_status") {
+        forceTick((t) => t + 1);
+      }
+    });
+    return () => {
+      off();
+    };
+  }, [orchestrator]);
+  const rows = useMemo2(() => {
+    return agentIds.map((id) => {
+      const persona = getAgentById(id);
+      const config = orchestrator.getAgentConfig(id);
+      const provider = providers?.tryGet(config.providerId);
+      const model = provider?.listModels().find((m) => m.id === config.modelId);
+      return {
+        id,
+        name: persona?.name ?? id,
+        role: persona?.role ?? "\u2014",
+        state: agentStates.get(id) ?? "listening",
+        config,
+        providerName: provider?.name ?? config.providerId,
+        modelLabel: model?.label ?? config.modelId
+      };
+    });
+  }, [agentIds, agentStates, orchestrator, providers]);
+  const clampedIdx = rows.length > 0 ? Math.min(selectedIdx, rows.length - 1) : 0;
+  const selected = rows[clampedIdx];
+  useKeyboard2((event) => {
+    if (skillPickerFor !== null) return;
+    const name = event.name ?? "";
+    const key = name.toLowerCase();
+    if (key === "escape" || key === "a") {
+      onClose();
+      return;
+    }
+    if (rows.length === 0) return;
+    if (key === "up") {
+      setSelectedIdx((i) => (i - 1 + rows.length) % rows.length);
+      return;
+    }
+    if (key === "down" || key === "j") {
+      setSelectedIdx((i) => (i + 1) % rows.length);
+      return;
+    }
+    if (!selected) return;
+    if (key === "left" || key === "h" || key === "right" || key === "l") {
+      const provider = providers?.tryGet(selected.config.providerId);
+      if (!provider) return;
+      const models = provider.listModels();
+      if (models.length === 0) return;
+      const idx = Math.max(0, models.findIndex((m) => m.id === selected.config.modelId));
+      const delta = key === "left" || key === "h" ? -1 : 1;
+      const next = models[(idx + delta + models.length) % models.length];
+      orchestrator.updateAgentConfig(selected.id, { modelId: next.id });
+      return;
+    }
+    if (key === "p") {
+      if (availableProviders.length < 2) return;
+      const next = cycle(
+        availableProviders,
+        availableProviders[0],
+        (p) => p.id === selected.config.providerId
+      );
+      orchestrator.updateAgentConfig(selected.id, {
+        providerId: next.id,
+        modelId: next.defaultModelId()
+      });
+      return;
+    }
+    if (key === "space") {
+      orchestrator.updateAgentConfig(selected.id, {
+        paused: !selected.config.paused
+      });
+      return;
+    }
+    if (key === "s") {
+      void orchestrator.forceSpeak(selected.id, "operator force-speak");
+      return;
+    }
+    if (key === "k") {
+      setSkillPickerFor(selected.id);
+    }
+  });
+  if (skillPickerFor !== null) {
+    return /* @__PURE__ */ jsx2(
+      SkillPicker,
+      {
+        orchestrator,
+        agentId: skillPickerFor,
+        onClose: () => setSkillPickerFor(null)
+      }
+    );
+  }
+  return /* @__PURE__ */ jsxs2(
+    "box",
+    {
+      border: true,
+      borderColor: COLOR_ACCENT2,
+      padding: 1,
+      flexDirection: "column",
+      width: "100%",
+      height: "100%",
+      children: [
+        /* @__PURE__ */ jsxs2("box", { flexDirection: "row", justifyContent: "space-between", children: [
+          /* @__PURE__ */ jsxs2("box", { flexDirection: "row", children: [
+            /* @__PURE__ */ jsx2("text", { fg: COLOR_ACCENT2, children: "AGENT CONTROL" }),
+            /* @__PURE__ */ jsxs2("text", { fg: COLOR_DIM2, children: [
+              " \xB7 ",
+              rows.length,
+              " alive"
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx2("text", { fg: COLOR_DIM2, children: "\u2191\u2193 select \xB7 \u2190\u2192 model \xB7 p provider \xB7 k skills \xB7 space pause \xB7 s speak \xB7 esc close" })
+        ] }),
+        availableProviders.length === 0 ? /* @__PURE__ */ jsx2("box", { marginTop: 1, children: /* @__PURE__ */ jsx2("text", { fg: COLOR_PAUSED, children: "No providers available. Set ANTHROPIC_API_KEY or GEMINI_API_KEY." }) }) : null,
+        /* @__PURE__ */ jsx2("box", { marginTop: 1, flexDirection: "column", children: rows.map((row, idx) => {
+          const isSelected = idx === clampedIdx;
+          const isSpeaking = row.id === currentSpeaker;
+          const border = isSelected ? COLOR_ACCENT2 : isSpeaking ? COLOR_CURRENT2 : "#2a2a32";
+          const nameColor = row.config.paused ? COLOR_PAUSED : COLOR_TEXT2;
+          const stateColor = isSpeaking ? COLOR_CURRENT2 : COLOR_DIM2;
+          const statusLabel = row.config.paused ? "PAUSED" : isSpeaking ? "SPEAKING" : row.state.toUpperCase();
+          return /* @__PURE__ */ jsxs2(
+            "box",
+            {
+              border: true,
+              borderColor: border,
+              padding: 1,
+              marginTop: idx === 0 ? 0 : 1,
+              flexDirection: "column",
+              children: [
+                /* @__PURE__ */ jsxs2("box", { flexDirection: "row", justifyContent: "space-between", children: [
+                  /* @__PURE__ */ jsxs2("box", { flexDirection: "row", children: [
+                    /* @__PURE__ */ jsxs2("text", { fg: nameColor, children: [
+                      isSelected ? "\u25B8 " : "  ",
+                      row.name
+                    ] }),
+                    /* @__PURE__ */ jsx2("text", { fg: COLOR_DIM2, children: " \xB7 " }),
+                    /* @__PURE__ */ jsx2("text", { fg: COLOR_DIM2, children: row.role.slice(0, 40) })
+                  ] }),
+                  /* @__PURE__ */ jsx2("text", { fg: stateColor, children: statusLabel })
+                ] }),
+                /* @__PURE__ */ jsxs2("box", { flexDirection: "row", marginTop: 1, children: [
+                  /* @__PURE__ */ jsx2("text", { fg: COLOR_DIM2, children: "provider " }),
+                  /* @__PURE__ */ jsx2("text", { fg: COLOR_OK, children: row.providerName }),
+                  /* @__PURE__ */ jsx2("text", { fg: COLOR_DIM2, children: "  \xB7  model " }),
+                  /* @__PURE__ */ jsx2("text", { fg: COLOR_CURRENT2, children: row.modelLabel })
+                ] }),
+                row.config.systemSuffix ? /* @__PURE__ */ jsxs2("box", { flexDirection: "row", marginTop: 1, children: [
+                  /* @__PURE__ */ jsx2("text", { fg: COLOR_DIM2, children: "directive " }),
+                  /* @__PURE__ */ jsx2("text", { fg: COLOR_TEXT2, children: row.config.systemSuffix.slice(0, 80) })
+                ] }) : null
+              ]
+            },
+            row.id
+          );
+        }) })
+      ]
+    }
+  );
+}
+var COLOR_ACCENT2, COLOR_DIM2, COLOR_TEXT2, COLOR_CURRENT2, COLOR_PAUSED, COLOR_OK, cycle;
+var init_AgentControlPanel = __esm({
+  "cli/otui/AgentControlPanel.tsx"() {
+    "use strict";
+    init_personas();
+    init_SkillPicker();
+    COLOR_ACCENT2 = "#e879f9";
+    COLOR_DIM2 = "#6b6b76";
+    COLOR_TEXT2 = "#f5e6ff";
+    COLOR_CURRENT2 = "#00e5ff";
+    COLOR_PAUSED = "#fb923c";
+    COLOR_OK = "#4ade80";
+    cycle = (arr, current, predicate) => {
+      if (arr.length === 0) return current;
+      const idx = arr.findIndex(predicate);
+      return arr[(idx + 1) % arr.length];
+    };
+  }
+});
+
 // cli/otui/App.tsx
 var App_exports = {};
 __export(App_exports, {
   OpenTuiApp: () => OpenTuiApp
 });
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Fragment, jsx, jsxs } from "@opentui/react/jsx-runtime";
+import React3, { useState as useState3, useEffect as useEffect3, useRef, useMemo as useMemo3 } from "react";
+import { useKeyboard as useKeyboard3 } from "@opentui/react";
+import { Fragment, jsx as jsx3, jsxs as jsxs3 } from "@opentui/react/jsx-runtime";
 function HeaderBar({
   projectName,
   goal,
@@ -680,7 +1994,7 @@ function HeaderBar({
   elapsedSeconds
 }) {
   const currentIdx = Math.max(0, phases.findIndex((p) => p.id === currentPhaseId));
-  return /* @__PURE__ */ jsxs(
+  return /* @__PURE__ */ jsxs3(
     "box",
     {
       border: true,
@@ -689,36 +2003,36 @@ function HeaderBar({
       flexDirection: "column",
       flexShrink: 0,
       children: [
-        /* @__PURE__ */ jsxs("box", { flexDirection: "row", justifyContent: "space-between", children: [
-          /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
-            /* @__PURE__ */ jsx("text", { fg: "#ffbf00", children: "\u2692 FORGE" }),
-            /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: " \xB7 " }),
-            /* @__PURE__ */ jsx("text", { fg: "#f5e6ff", children: projectName })
+        /* @__PURE__ */ jsxs3("box", { flexDirection: "row", justifyContent: "space-between", children: [
+          /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
+            /* @__PURE__ */ jsx3("text", { fg: "#ffbf00", children: "\u2692 FORGE" }),
+            /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: " \xB7 " }),
+            /* @__PURE__ */ jsx3("text", { fg: "#f5e6ff", children: projectName })
           ] }),
-          /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
-            /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: "mode " }),
-            /* @__PURE__ */ jsx("text", { fg: "#e879f9", children: modeLabel }),
-            /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: " \xB7 " }),
-            /* @__PURE__ */ jsx("text", { fg: "#00e5ff", children: fmtElapsed(elapsedSeconds) })
+          /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
+            /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "mode " }),
+            /* @__PURE__ */ jsx3("text", { fg: "#e879f9", children: modeLabel }),
+            /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: " \xB7 " }),
+            /* @__PURE__ */ jsx3("text", { fg: "#00e5ff", children: fmtElapsed(elapsedSeconds) })
           ] })
         ] }),
-        /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
-          /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: "\u{1F3AF} " }),
-          /* @__PURE__ */ jsx("text", { fg: "#f5e6ff", children: goal })
+        /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
+          /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "\u{1F3AF} " }),
+          /* @__PURE__ */ jsx3("text", { fg: "#f5e6ff", children: goal })
         ] }),
-        /* @__PURE__ */ jsx("box", { flexDirection: "row", marginTop: 1, children: phases.map((phase, i) => {
+        /* @__PURE__ */ jsx3("box", { flexDirection: "row", marginTop: 1, children: phases.map((phase, i) => {
           const isPast = i < currentIdx;
           const isCurrent = i === currentIdx;
           const nodeColor = isPast ? "#4ade80" : isCurrent ? "#ffbf00" : "#6b6b76";
           const node = isCurrent ? "\u25C6" : isPast ? "\u25C6" : "\u25C7";
           const connector = i < phases.length - 1 ? isPast ? " \u2500\u2500 " : " \u2508\u2508 " : "";
-          return /* @__PURE__ */ jsxs(React.Fragment, { children: [
-            /* @__PURE__ */ jsxs("text", { fg: nodeColor, children: [
+          return /* @__PURE__ */ jsxs3(React3.Fragment, { children: [
+            /* @__PURE__ */ jsxs3("text", { fg: nodeColor, children: [
               node,
               " ",
               phase.name
             ] }),
-            connector ? /* @__PURE__ */ jsx("text", { fg: isPast ? "#4ade80" : "#6b6b76", children: connector }) : null
+            connector ? /* @__PURE__ */ jsx3("text", { fg: isPast ? "#4ade80" : "#6b6b76", children: connector }) : null
           ] }, phase.id);
         }) })
       ]
@@ -727,10 +2041,10 @@ function HeaderBar({
 }
 function CouncilPanel({ agents, currentSpeaker }) {
   const maxContribs = Math.max(1, ...agents.map((a) => a.contributions));
-  return /* @__PURE__ */ jsxs("box", { flexDirection: "column", width: 30, flexShrink: 0, children: [
-    /* @__PURE__ */ jsxs("box", { border: true, borderColor: "#ffbf00", padding: 1, flexDirection: "column", children: [
-      /* @__PURE__ */ jsx("text", { fg: "#ffbf00", children: "COUNCIL" }),
-      /* @__PURE__ */ jsxs("text", { fg: "#6b6b76", children: [
+  return /* @__PURE__ */ jsxs3("box", { flexDirection: "column", width: 30, flexShrink: 0, children: [
+    /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#ffbf00", padding: 1, flexDirection: "column", children: [
+      /* @__PURE__ */ jsx3("text", { fg: "#ffbf00", children: "COUNCIL" }),
+      /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
         agents.length,
         " in the room"
       ] })
@@ -740,7 +2054,7 @@ function CouncilPanel({ agents, currentSpeaker }) {
       const color = agentColor(agent.id);
       const icon = isSpeaking ? "\u25B8" : STATE_ICON[agent.state] || "\xB7";
       const bar2 = buildBar(agent.contributions, maxContribs);
-      return /* @__PURE__ */ jsxs(
+      return /* @__PURE__ */ jsxs3(
         "box",
         {
           border: true,
@@ -749,17 +2063,17 @@ function CouncilPanel({ agents, currentSpeaker }) {
           marginTop: 1,
           flexDirection: "column",
           children: [
-            /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
-              /* @__PURE__ */ jsxs("text", { fg: isSpeaking ? "#00e5ff" : "#f5e6ff", children: [
+            /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
+              /* @__PURE__ */ jsxs3("text", { fg: isSpeaking ? "#00e5ff" : "#f5e6ff", children: [
                 icon,
                 " "
               ] }),
-              /* @__PURE__ */ jsx("text", { fg: color, children: agent.name })
+              /* @__PURE__ */ jsx3("text", { fg: color, children: agent.name })
             ] }),
-            agent.role ? /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: agent.role.slice(0, 26) }) : null,
-            /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
-              /* @__PURE__ */ jsx("text", { fg: isSpeaking ? "#00e5ff" : "#6b6b76", children: bar2 }),
-              /* @__PURE__ */ jsxs("text", { fg: "#6b6b76", children: [
+            agent.role ? /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: agent.role.slice(0, 26) }) : null,
+            /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
+              /* @__PURE__ */ jsx3("text", { fg: isSpeaking ? "#00e5ff" : "#6b6b76", children: bar2 }),
+              /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
                 " ",
                 agent.contributions
               ] })
@@ -779,19 +2093,19 @@ function DiscussionPane({ messages, maxRows = 20 }) {
     }
     return -1;
   })();
-  return /* @__PURE__ */ jsxs("box", { border: true, borderColor: "#2a2a32", padding: 1, flexGrow: 1, flexDirection: "column", children: [
-    /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
-      /* @__PURE__ */ jsx("text", { fg: "#00e5ff", children: "DISCUSSION" }),
-      /* @__PURE__ */ jsxs("text", { fg: "#6b6b76", children: [
+  return /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#2a2a32", padding: 1, flexGrow: 1, flexDirection: "column", children: [
+    /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
+      /* @__PURE__ */ jsx3("text", { fg: "#00e5ff", children: "DISCUSSION" }),
+      /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
         " \xB7 ",
         messages.length,
         " messages"
       ] })
     ] }),
-    /* @__PURE__ */ jsx("box", { marginTop: 1, flexDirection: "column", children: visible.length === 0 ? /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: "Waiting for the orchestrator to open the floor\u2026" }) : visible.map((msg, i) => {
+    /* @__PURE__ */ jsx3("box", { marginTop: 1, flexDirection: "column", children: visible.length === 0 ? /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "Waiting for the orchestrator to open the floor\u2026" }) : visible.map((msg, i) => {
       if (msg.agentId === "system") {
         const firstLine = msg.content.split("\n").find((l) => l.trim()) || "";
-        return /* @__PURE__ */ jsxs("text", { fg: "#6b6b76", children: [
+        return /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
           "\u25CE ",
           firstLine.slice(0, 140)
         ] }, msg.id);
@@ -800,7 +2114,7 @@ function DiscussionPane({ messages, maxRows = 20 }) {
       const color = agentColor(msg.agentId);
       const badge = TYPE_COLOR[msg.type];
       const body = msg.content.replace(/^\[[A-Z_]+\]\s*/, "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim().slice(0, 420);
-      return /* @__PURE__ */ jsxs(
+      return /* @__PURE__ */ jsxs3(
         "box",
         {
           flexDirection: "column",
@@ -809,19 +2123,19 @@ function DiscussionPane({ messages, maxRows = 20 }) {
           borderColor: isCurrent ? "#00e5ff" : void 0,
           padding: isCurrent ? 1 : 0,
           children: [
-            /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
-              isCurrent ? /* @__PURE__ */ jsx("text", { fg: "#00e5ff", children: "\u25CF NOW " }) : null,
-              /* @__PURE__ */ jsx("text", { fg: color, children: msg.agentId }),
-              badge ? /* @__PURE__ */ jsxs(Fragment, { children: [
-                /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: " \xB7 " }),
-                /* @__PURE__ */ jsxs("text", { fg: badge, children: [
+            /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
+              isCurrent ? /* @__PURE__ */ jsx3("text", { fg: "#00e5ff", children: "\u25CF NOW " }) : null,
+              /* @__PURE__ */ jsx3("text", { fg: color, children: msg.agentId }),
+              badge ? /* @__PURE__ */ jsxs3(Fragment, { children: [
+                /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: " \xB7 " }),
+                /* @__PURE__ */ jsxs3("text", { fg: badge, children: [
                   "[",
                   msg.type.toUpperCase(),
                   "]"
                 ] })
               ] }) : null
             ] }),
-            /* @__PURE__ */ jsx("text", { fg: "#f5e6ff", children: body })
+            /* @__PURE__ */ jsx3("text", { fg: "#f5e6ff", children: body })
           ]
         },
         msg.id
@@ -833,68 +2147,68 @@ function OrchestratorPanel(props) {
   const phaseRatio = props.phaseCount > 0 ? (props.phaseIdx + 1) / props.phaseCount : 0;
   const consensusTotal = props.consensusPoints + props.conflictPoints;
   const consensusRatio = consensusTotal > 0 ? props.consensusPoints / consensusTotal : 0.5;
-  return /* @__PURE__ */ jsxs("box", { flexDirection: "column", width: 28, flexShrink: 0, children: [
-    /* @__PURE__ */ jsxs("box", { border: true, borderColor: "#e879f9", padding: 1, flexDirection: "column", children: [
-      /* @__PURE__ */ jsx("text", { fg: "#e879f9", children: "ORCHESTRATOR" }),
-      /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: "phase machine" })
+  return /* @__PURE__ */ jsxs3("box", { flexDirection: "column", width: 28, flexShrink: 0, children: [
+    /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#e879f9", padding: 1, flexDirection: "column", children: [
+      /* @__PURE__ */ jsx3("text", { fg: "#e879f9", children: "ORCHESTRATOR" }),
+      /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "phase machine" })
     ] }),
-    /* @__PURE__ */ jsxs("box", { border: true, borderColor: "#2a2a32", padding: 1, marginTop: 1, flexDirection: "column", children: [
-      /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: "PHASE" }),
-      /* @__PURE__ */ jsx("text", { fg: "#ffbf00", children: props.phaseName }),
-      /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
-        /* @__PURE__ */ jsx("text", { fg: "#ffbf00", children: bar(phaseRatio) }),
-        /* @__PURE__ */ jsxs("text", { fg: "#6b6b76", children: [
+    /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#2a2a32", padding: 1, marginTop: 1, flexDirection: "column", children: [
+      /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "PHASE" }),
+      /* @__PURE__ */ jsx3("text", { fg: "#ffbf00", children: props.phaseName }),
+      /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
+        /* @__PURE__ */ jsx3("text", { fg: "#ffbf00", children: bar(phaseRatio) }),
+        /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
           " ",
           props.phaseIdx + 1,
           "/",
           props.phaseCount
         ] })
       ] }),
-      /* @__PURE__ */ jsxs("box", { flexDirection: "row", marginTop: 1, children: [
-        /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: "msgs " }),
-        /* @__PURE__ */ jsx("text", { fg: props.messagesInPhase > props.phaseMaxMessages * 0.8 ? "#ff5454" : "#00e5ff", children: props.messagesInPhase }),
-        /* @__PURE__ */ jsxs("text", { fg: "#6b6b76", children: [
+      /* @__PURE__ */ jsxs3("box", { flexDirection: "row", marginTop: 1, children: [
+        /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "msgs " }),
+        /* @__PURE__ */ jsx3("text", { fg: props.messagesInPhase > props.phaseMaxMessages * 0.8 ? "#ff5454" : "#00e5ff", children: props.messagesInPhase }),
+        /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
           "/",
           props.phaseMaxMessages || "\u2014"
         ] })
       ] })
     ] }),
-    /* @__PURE__ */ jsxs("box", { border: true, borderColor: "#2a2a32", padding: 1, marginTop: 1, flexDirection: "column", children: [
-      /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: "FLOOR" }),
-      props.currentSpeaker ? /* @__PURE__ */ jsxs("text", { fg: "#00e5ff", children: [
+    /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#2a2a32", padding: 1, marginTop: 1, flexDirection: "column", children: [
+      /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "FLOOR" }),
+      props.currentSpeaker ? /* @__PURE__ */ jsxs3("text", { fg: "#00e5ff", children: [
         "\u25B8 ",
         props.currentSpeaker
-      ] }) : /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: "open" }),
-      props.floorQueue.length > 0 ? /* @__PURE__ */ jsxs(Fragment, { children: [
-        /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: "queue" }),
-        props.floorQueue.slice(0, 3).map((q, i) => /* @__PURE__ */ jsxs("text", { fg: "#6b6b76", children: [
+      ] }) : /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "open" }),
+      props.floorQueue.length > 0 ? /* @__PURE__ */ jsxs3(Fragment, { children: [
+        /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "queue" }),
+        props.floorQueue.slice(0, 3).map((q, i) => /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
           i + 1,
           ". ",
           q
         ] }, q + i))
       ] }) : null
     ] }),
-    /* @__PURE__ */ jsxs("box", { border: true, borderColor: "#2a2a32", padding: 1, marginTop: 1, flexDirection: "column", children: [
-      /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: "CONSENSUS" }),
-      /* @__PURE__ */ jsxs("box", { flexDirection: "row", children: [
-        /* @__PURE__ */ jsxs("text", { fg: "#4ade80", children: [
+    /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#2a2a32", padding: 1, marginTop: 1, flexDirection: "column", children: [
+      /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "CONSENSUS" }),
+      /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
+        /* @__PURE__ */ jsxs3("text", { fg: "#4ade80", children: [
           "\u2713",
           props.consensusPoints
         ] }),
-        /* @__PURE__ */ jsx("text", { fg: "#6b6b76", children: " / " }),
-        /* @__PURE__ */ jsxs("text", { fg: "#ff5454", children: [
+        /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: " / " }),
+        /* @__PURE__ */ jsxs3("text", { fg: "#ff5454", children: [
           "\u2717",
           props.conflictPoints
         ] })
       ] }),
-      /* @__PURE__ */ jsx("text", { fg: "#4ade80", children: bar(consensusRatio) }),
-      /* @__PURE__ */ jsxs("text", { fg: "#6b6b76", children: [
+      /* @__PURE__ */ jsx3("text", { fg: "#4ade80", children: bar(consensusRatio) }),
+      /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
         "total ",
         props.totalMessages
       ] })
     ] }),
-    props.requiredOutputs.length > 0 ? /* @__PURE__ */ jsxs("box", { border: true, borderColor: "#2a2a32", padding: 1, marginTop: 1, flexDirection: "column", children: [
-      /* @__PURE__ */ jsxs("text", { fg: "#6b6b76", children: [
+    props.requiredOutputs.length > 0 ? /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#2a2a32", padding: 1, marginTop: 1, flexDirection: "column", children: [
+      /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
         "REQUIRED (",
         props.producedOutputs.size,
         "/",
@@ -903,7 +2217,7 @@ function OrchestratorPanel(props) {
       ] }),
       props.requiredOutputs.map((out) => {
         const done = props.producedOutputs.has(out);
-        return /* @__PURE__ */ jsxs("text", { fg: done ? "#4ade80" : "#6b6b76", children: [
+        return /* @__PURE__ */ jsxs3("text", { fg: done ? "#4ade80" : "#6b6b76", children: [
           done ? "\u2713" : "\u25CB",
           " ",
           out.replace(/_/g, " ")
@@ -918,27 +2232,33 @@ function OpenTuiApp({
   session,
   onExit
 }) {
-  const [messages, setMessages] = useState([]);
-  const [phase, setPhase] = useState("initialization");
-  const [currentSpeaker, setCurrentSpeaker] = useState(null);
-  const [queued, setQueued] = useState([]);
-  const [agentStates, setAgentStates] = useState(/* @__PURE__ */ new Map());
-  const [contributions, setContributions] = useState(/* @__PURE__ */ new Map());
-  const [consensusPoints, setConsensusPoints] = useState(0);
-  const [conflictPoints, setConflictPoints] = useState(0);
-  const [modeProgress, setModeProgress] = useState(
+  const [messages, setMessages] = useState3([]);
+  const [phase, setPhase] = useState3("initialization");
+  const [currentSpeaker, setCurrentSpeaker] = useState3(null);
+  const [queued, setQueued] = useState3([]);
+  const [agentStates, setAgentStates] = useState3(/* @__PURE__ */ new Map());
+  const [contributions, setContributions] = useState3(/* @__PURE__ */ new Map());
+  const [consensusPoints, setConsensusPoints] = useState3(0);
+  const [conflictPoints, setConflictPoints] = useState3(0);
+  const [modeProgress, setModeProgress] = useState3(
     () => orchestrator.getModeController().getProgress()
   );
+  const [showControl, setShowControl] = useState3(false);
+  useKeyboard3((event) => {
+    if (showControl) return;
+    const key = (event.name ?? "").toLowerCase();
+    if (key === "a") setShowControl(true);
+  });
   const startRef = useRef(Date.now());
-  const [elapsed, setElapsed] = useState(0);
-  useEffect(() => {
+  const [elapsed, setElapsed] = useState3(0);
+  useEffect3(() => {
     const t = setInterval(
       () => setElapsed(Math.floor((Date.now() - startRef.current) / 1e3)),
       1e3
     );
     return () => clearInterval(t);
   }, []);
-  useEffect(() => {
+  useEffect3(() => {
     let pending = false;
     const flush = () => {
       pending = false;
@@ -985,7 +2305,7 @@ function OpenTuiApp({
     };
   }, [orchestrator]);
   const mode = orchestrator.getModeController().getMode();
-  const modePhases = useMemo(
+  const modePhases = useMemo3(
     () => mode.phases.map((p) => ({ id: p.id, name: p.name || p.id })),
     [mode]
   );
@@ -1010,8 +2330,20 @@ function OpenTuiApp({
   void phase;
   void persistence;
   void onExit;
-  return /* @__PURE__ */ jsxs("box", { flexDirection: "column", height: "100%", children: [
-    /* @__PURE__ */ jsx(
+  if (showControl) {
+    return /* @__PURE__ */ jsx3(
+      AgentControlPanel,
+      {
+        orchestrator,
+        agentIds: session.config.enabledAgents,
+        currentSpeaker,
+        agentStates,
+        onClose: () => setShowControl(false)
+      }
+    );
+  }
+  return /* @__PURE__ */ jsxs3("box", { flexDirection: "column", height: "100%", children: [
+    /* @__PURE__ */ jsx3(
       HeaderBar,
       {
         projectName: session.config.projectName,
@@ -1022,10 +2354,10 @@ function OpenTuiApp({
         elapsedSeconds: elapsed
       }
     ),
-    /* @__PURE__ */ jsxs("box", { flexDirection: "row", flexGrow: 1, marginTop: 1, children: [
-      /* @__PURE__ */ jsx(CouncilPanel, { agents, currentSpeaker }),
-      /* @__PURE__ */ jsx("box", { flexGrow: 1, marginLeft: 1, marginRight: 1, children: /* @__PURE__ */ jsx(DiscussionPane, { messages }) }),
-      /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsxs3("box", { flexDirection: "row", flexGrow: 1, marginTop: 1, children: [
+      /* @__PURE__ */ jsx3(CouncilPanel, { agents, currentSpeaker }),
+      /* @__PURE__ */ jsx3("box", { flexGrow: 1, marginLeft: 1, marginRight: 1, children: /* @__PURE__ */ jsx3(DiscussionPane, { messages }) }),
+      /* @__PURE__ */ jsx3(
         OrchestratorPanel,
         {
           phaseName: currentPhaseConfig?.name || currentModePhase,
@@ -1042,6 +2374,11 @@ function OpenTuiApp({
           totalMessages: modeProgress.totalMessages
         }
       )
+    ] }),
+    /* @__PURE__ */ jsxs3("box", { flexDirection: "row", justifyContent: "flex-end", marginTop: 1, children: [
+      /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "press " }),
+      /* @__PURE__ */ jsx3("text", { fg: "#e879f9", children: "a" }),
+      /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: " for agent control" })
     ] })
   ] });
 }
@@ -1050,6 +2387,7 @@ var init_App = __esm({
   "cli/otui/App.tsx"() {
     "use strict";
     init_personas();
+    init_AgentControlPanel();
     TYPE_COLOR = {
       argument: "#ff5454",
       question: "#00e5ff",
@@ -1065,7 +2403,21 @@ var init_App = __esm({
       pragmatist: "#4ade80",
       analyst: "#00e5ff",
       advocate: "#e879f9",
-      contrarian: "#fb923c"
+      contrarian: "#fb923c",
+      // VC roles
+      "vc-partner": "#e879f9",
+      "vc-associate": "#00e5ff",
+      "lp-skeptic": "#facc15",
+      "founder-voice": "#ff5454",
+      // Tech-review roles
+      architect: "#60a5fa",
+      "perf-engineer": "#00e5ff",
+      "security-reviewer": "#ff5454",
+      "test-engineer": "#facc15",
+      // Red-team roles
+      "attack-planner": "#ff5454",
+      "social-engineer": "#e879f9",
+      "blue-team-lead": "#60a5fa"
     };
     agentColor = (id) => AGENT_COLOR[id] || "#f5e6ff";
     STATE_ICON = {
@@ -1096,11 +2448,11 @@ var init_App = __esm({
 });
 
 // cli/index.ts
-import { Command as Command10 } from "commander";
-import React2 from "react";
+import { Command as Command11 } from "commander";
+import React4 from "react";
 import { v4 as uuid2 } from "uuid";
-import * as path17 from "path";
-import * as fs13 from "fs/promises";
+import * as path20 from "path";
+import * as fs15 from "fs/promises";
 
 // cli/adapters/CLIAgentRunner.ts
 import Anthropic from "@anthropic-ai/sdk";
@@ -1441,8 +2793,8 @@ var SessionPersistence = class {
   autoSaveTimer = null;
   lastSavedMessageCount = 0;
   session = null;
-  constructor(fs14, config = {}) {
-    this.fs = fs14;
+  constructor(fs16, config = {}) {
+    this.fs = fs16;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
   /**
@@ -2833,22 +4185,77 @@ var ElectronAgentRunner = class {
 };
 var ClaudeCodeAgent = class {
   persona;
-  systemPrompt;
+  /**
+   * Persona + session base — built once at construction. Skills are
+   * composed in live so the Skill picker can toggle them mid-session
+   * without reconstructing the agent.
+   */
+  basePrompt;
+  /** Initial per-agent skills bundle — used when no override resolver fires. */
+  initialSkills;
   runner;
-  constructor(persona, config, context, skills, runner) {
+  /**
+   * Optional runtime config resolver. When supplied (CLI / OpenTUI path),
+   * each call looks up the agent's current provider+model, which lets the
+   * user reassign models mid-session from the Agent Control panel without
+   * recreating the agent. When absent (legacy paths), we fall back to the
+   * injected runner with its hardcoded defaults.
+   */
+  providers;
+  resolveConfig;
+  /**
+   * Live resolver for per-agent skills. Queried on every query so
+   * toggles via the TUI skill picker apply to the next response.
+   */
+  resolveSkills;
+  constructor(persona, config, context, skills, runner, providers, resolveConfig, resolveSkills) {
     this.persona = persona;
-    this.systemPrompt = generateAgentSystemPrompt(persona, config, context, skills);
+    this.basePrompt = generateAgentSystemPrompt(persona, config, context, void 0);
+    this.initialSkills = skills;
     this.runner = runner || new ElectronAgentRunner();
+    this.providers = providers;
+    this.resolveConfig = resolveConfig;
+    this.resolveSkills = resolveSkills;
+  }
+  effectiveConfig() {
+    return this.resolveConfig?.(this.persona.id);
+  }
+  effectiveSkills() {
+    const live = this.resolveSkills?.(this.persona.id);
+    return live !== void 0 ? live : this.initialSkills;
+  }
+  effectiveSystemPrompt() {
+    const cfg = this.effectiveConfig();
+    const skills = this.effectiveSkills();
+    const parts = [this.basePrompt];
+    if (skills && skills.trim()) {
+      parts.push(`## Available Skills
+${skills}`);
+    }
+    if (cfg?.systemSuffix) {
+      parts.push(`## Operator Directive
+${cfg.systemSuffix}`);
+    }
+    return parts.join("\n\n");
+  }
+  /**
+   * Route a query through the registered provider if we have one, else
+   * fall through to the legacy injected runner. Keeps both code paths
+   * alive while the Electron build still uses the old wiring.
+   */
+  async routedQuery(prompt, systemPrompt) {
+    const cfg = this.effectiveConfig();
+    if (cfg && this.providers) {
+      const provider = this.providers.tryGet(cfg.providerId) ?? this.providers.getDefault();
+      return provider.query({ prompt, systemPrompt, model: cfg.modelId });
+    }
+    return this.runner.query({ prompt, systemPrompt, model: "claude-sonnet-4-20250514" });
   }
   /**
    * Send a prompt and get a response
    */
   async query(conversationContext) {
-    const result = await this.runner.query({
-      prompt: conversationContext,
-      systemPrompt: this.systemPrompt,
-      model: "claude-sonnet-4-20250514"
-    });
+    const result = await this.routedQuery(conversationContext, this.effectiveSystemPrompt());
     if (!result.success) {
       throw new Error(result.error || "Failed to run agent query");
     }
@@ -2883,7 +4290,8 @@ Respond ONLY with JSON:
   "reason": "10 words max - why speak or pass",
   "responseType": "argument" | "question" | "proposal" | "agreement" | "disagreement" | ""
 }`;
-    const result = await this.runner.evaluate({ evalPrompt });
+    const cfg = this.effectiveConfig();
+    const result = cfg && this.providers ? await (this.providers.tryGet(cfg.providerId) ?? this.providers.getDefault()).evaluate({ evalPrompt }) : await this.runner.evaluate({ evalPrompt });
     return {
       urgency: result.urgency,
       reason: result.reason,
@@ -2949,12 +4357,22 @@ var AgentListener = class {
   claudeAgent = null;
   // Optional injected runner (for CLI)
   agentRunner;
-  constructor(agent, bus, config = {}, agentRunner) {
+  providers;
+  resolveConfig;
+  resolveSkills;
+  constructor(agent, bus, config = {}, agentRunner, providers, resolveConfig, resolveSkills) {
     this.id = agent.id;
     this.agent = agent;
     this.bus = bus;
     this.config = { ...DEFAULT_CONFIG2, ...config };
     this.agentRunner = agentRunner;
+    this.providers = providers;
+    this.resolveConfig = resolveConfig;
+    this.resolveSkills = resolveSkills;
+  }
+  /** True if the operator paused this agent via the Control panel. */
+  isPaused() {
+    return this.resolveConfig?.(this.id)?.paused === true;
   }
   /**
    * Start listening to the bus
@@ -2968,7 +4386,10 @@ var AgentListener = class {
       sessionConfig,
       context,
       skills,
-      this.agentRunner
+      this.agentRunner,
+      this.providers,
+      this.resolveConfig,
+      this.resolveSkills
     );
     this.unsubscribers.push(
       this.bus.subscribe("message:new", (payload) => {
@@ -3058,6 +4479,7 @@ var AgentListener = class {
   async evaluateAndReact() {
     if (!this.sessionConfig || !this.claudeAgent) return;
     if (this.state !== "listening") return;
+    if (this.isPaused()) return;
     if (this.messagesSinceSpoke < this.config.minSilenceBeforeReact) {
       return;
     }
@@ -4080,6 +5502,270 @@ RULES:
 - Include budget estimates where relevant
 - The output should be a checklist someone could execute`
 };
+var VC_PITCH_MODE = {
+  id: "vc-pitch",
+  name: "VC Pitch Meeting",
+  nameHe: "\u05E4\u05D2\u05D9\u05E9\u05EA \u05DE\u05E9\u05E7\u05D9\u05E2\u05D9\u05DD",
+  description: "Run a pitch through a simulated partner meeting and produce an investment memo",
+  icon: "\u{1F4BC}",
+  goalReminder: {
+    frequency: 10,
+    template: `\u{1F3AF} **PARTNER MEETING FOCUS**: {goal}
+
+We are here to decide: PASS / FOLLOW / INVEST.
+
+Work through:
+1. Thesis & wedge \u2014 why now, why this team
+2. Market sizing \u2014 TAM/SAM/SOM with evidence
+3. Unit economics \u2014 CAC, LTV, retention, payback
+4. Risks \u2014 the one thing that kills this
+
+No monologues. Each voice must carry a decision-ready question or assertion.`
+  },
+  phases: [
+    {
+      id: "pitch-digest",
+      name: "Pitch Digest",
+      order: 1,
+      maxMessages: 10,
+      autoTransition: true,
+      transitionCriteria: "Thesis and wedge understood",
+      agentFocus: "Let the Founder voice the thesis in one sentence. Partners restate the wedge."
+    },
+    {
+      id: "market-probe",
+      name: "Market Probe",
+      order: 2,
+      maxMessages: 15,
+      autoTransition: true,
+      transitionCriteria: "Market structure assessed",
+      agentFocus: "Probe TAM/SAM/SOM. Comparable companies. Timing \u2014 why now?"
+    },
+    {
+      id: "unit-economics",
+      name: "Unit Economics Grill",
+      order: 3,
+      maxMessages: 15,
+      autoTransition: true,
+      transitionCriteria: "Numbers stress-tested",
+      agentFocus: "Associate drives. CAC, LTV, payback, gross margin, retention curves."
+    },
+    {
+      id: "partner-debate",
+      name: "Partner Debate",
+      order: 4,
+      maxMessages: 12,
+      autoTransition: true,
+      transitionCriteria: "Positions stated",
+      agentFocus: "Each partner declares a leaning. LP proxy tests fit against thesis."
+    },
+    {
+      id: "investment-memo",
+      name: "Investment Memo",
+      order: 5,
+      maxMessages: 10,
+      autoTransition: false,
+      transitionCriteria: "Memo drafted",
+      agentFocus: "Synthesize a one-page memo: thesis, risks, verdict, proposed terms, next diligence."
+    }
+  ],
+  research: {
+    maxRequests: 8,
+    maxPerTopic: 2,
+    requiredBeforeSynthesis: 2
+  },
+  loopDetection: {
+    enabled: true,
+    maxSimilarMessages: 3,
+    maxRoundsWithoutProgress: 3,
+    intervention: `\u26A0\uFE0F The room is stalling. Move to positions.
+
+Each partner: PASS / FOLLOW / INVEST + one sentence. LP proxy: does this fit the fund?
+Founder: the one thing you'd change in the round structure.`
+  },
+  successCriteria: {
+    minConsensusPoints: 2,
+    requiredOutputs: ["thesis", "risks", "verdict", "next_diligence"],
+    maxMessages: 60
+  },
+  agentInstructions: `You are in a partner meeting, not a cheerleader session.
+
+RULES:
+- Founders: own the numbers. "We don't know yet" is acceptable; making them up is not.
+- Partners: one sharp question per turn beats five vague ones.
+- Every claim about market or retention needs a comparable or a source.
+- End with a verdict: PASS, FOLLOW (track, don't invest now), or INVEST with proposed cheque.
+- The deliverable is an investment memo a GP could forward to the investment committee.`
+};
+var TECH_REVIEW_MODE = {
+  id: "tech-review",
+  name: "Technical Review",
+  nameHe: "\u05E1\u05E7\u05D9\u05E8\u05D4 \u05D8\u05DB\u05E0\u05D9\u05EA",
+  description: "Specialist panel reviews a GitHub repo \u2014 architecture, perf, security, tests",
+  icon: "\u{1F9EA}",
+  goalReminder: {
+    frequency: 8,
+    template: `\u{1F3AF} **REVIEW TARGET**: {goal}
+
+The goal should include a GitHub repo URL (e.g. github.com/org/repo) and what we are reviewing for.
+
+Each reviewer must deliver their findings in the standard format:
+- FINDING: what, where (path:line when possible), severity (high/medium/low), evidence.
+
+We are producing an actionable review report, not a vibe check.`
+  },
+  phases: [
+    {
+      id: "recon",
+      name: "Recon",
+      order: 1,
+      maxMessages: 10,
+      autoTransition: true,
+      transitionCriteria: "Repo shape understood",
+      agentFocus: "Scan README, module tree, dependencies. State what the repo claims to do."
+    },
+    {
+      id: "architecture-read",
+      name: "Architecture Read",
+      order: 2,
+      maxMessages: 15,
+      autoTransition: true,
+      transitionCriteria: "Structure assessed",
+      agentFocus: "Architect drives. Map layers, data flow, module boundaries, obvious smells."
+    },
+    {
+      id: "hotspot-dive",
+      name: "Hotspot Dive",
+      order: 3,
+      maxMessages: 20,
+      autoTransition: true,
+      transitionCriteria: "Specialist concerns raised",
+      agentFocus: "Perf, Security, and Test reviewers each raise their top 3 findings with file paths."
+    },
+    {
+      id: "report",
+      name: "Review Report",
+      order: 4,
+      maxMessages: 12,
+      autoTransition: false,
+      transitionCriteria: "Report synthesized",
+      agentFocus: "Consolidate findings by severity. Recommend the top 3 things to fix this week."
+    }
+  ],
+  research: {
+    maxRequests: 10,
+    maxPerTopic: 3,
+    requiredBeforeSynthesis: 2
+  },
+  loopDetection: {
+    enabled: true,
+    maxSimilarMessages: 3,
+    maxRoundsWithoutProgress: 3,
+    intervention: `\u26A0\uFE0F We're re-debating. Move to findings.
+
+Each reviewer: list your TOP 2 findings as FINDING / severity / path:line / evidence.
+Stop re-litigating style; name concrete risks.`
+  },
+  successCriteria: {
+    minConsensusPoints: 2,
+    requiredOutputs: ["architecture_summary", "findings_by_severity", "recommended_fixes"],
+    maxMessages: 70
+  },
+  agentInstructions: `You are reviewing a real codebase. Be specific.
+
+RULES:
+- Prefer file paths and line numbers over generalities. "It's messy" is useless.
+- Format findings as: FINDING \xB7 severity \xB7 path[:line] \xB7 one-sentence evidence.
+- Separate theoretical problems from exploitable/expensive ones.
+- If you haven't opened the code, say so \u2014 don't guess.
+- The deliverable is a review report a maintainer can act on in a week.`
+};
+var RED_TEAM_MODE = {
+  id: "red-team",
+  name: "Red Team",
+  nameHe: "\u05E6\u05D5\u05D5\u05EA \u05D0\u05D3\u05D5\u05DD",
+  description: "Adversarial review \u2014 attack scenarios, threat modeling, mitigations",
+  icon: "\u{1FA78}",
+  goalReminder: {
+    frequency: 8,
+    template: `\u{1F3AF} **RED-TEAM TARGET**: {goal}
+
+We model a specific, named adversary \u2014 not "hackers generally".
+
+Deliverables:
+1. Threat model \u2014 who attacks, why, with what capability
+2. Attack chains \u2014 concrete paths from initial access to objective
+3. Mitigations \u2014 ranked by cost/impact
+4. Verdict \u2014 what we ship as-is, what we fix first
+
+Defender must score each attack against real detection and response capacity.`
+  },
+  phases: [
+    {
+      id: "recon",
+      name: "Target Recon",
+      order: 1,
+      maxMessages: 10,
+      autoTransition: true,
+      transitionCriteria: "Attack surface mapped",
+      agentFocus: "Describe the system, its trust boundaries, and the crown jewels."
+    },
+    {
+      id: "threat-model",
+      name: "Threat Model",
+      order: 2,
+      maxMessages: 12,
+      autoTransition: true,
+      transitionCriteria: "Adversary picked",
+      agentFocus: "Name the specific adversary (nation-state / criminal / insider / opportunist) and their objective."
+    },
+    {
+      id: "attack-chains",
+      name: "Attack Chains",
+      order: 3,
+      maxMessages: 18,
+      autoTransition: true,
+      transitionCriteria: "Chains drafted",
+      agentFocus: "Red team drafts 2\u20133 end-to-end kill chains. Defender scores detectability and cost."
+    },
+    {
+      id: "mitigations",
+      name: "Mitigations & Verdict",
+      order: 4,
+      maxMessages: 12,
+      autoTransition: false,
+      transitionCriteria: "Plan drafted",
+      agentFocus: "Rank mitigations by cost \xD7 risk reduction. Deliver a short go/no-go with top 3 fixes."
+    }
+  ],
+  research: {
+    maxRequests: 8,
+    maxPerTopic: 2,
+    requiredBeforeSynthesis: 1
+  },
+  loopDetection: {
+    enabled: true,
+    maxSimilarMessages: 3,
+    maxRoundsWithoutProgress: 3,
+    intervention: `\u26A0\uFE0F Stop listing theoretical attacks. Move to ranked chains.
+
+Each red-teamer: 1 concrete chain \u2014 Access \u2192 Pivot \u2192 Objective \u2014 with adversary named.
+Defender: score it on detection (0\u20135) and containment cost.`
+  },
+  successCriteria: {
+    minConsensusPoints: 2,
+    requiredOutputs: ["threat_model", "attack_chains", "top_mitigations", "verdict"],
+    maxMessages: 60
+  },
+  agentInstructions: `You are red-teaming, not brainstorming.
+
+RULES:
+- Name the adversary. "A hacker" is not an adversary; "a motivated opportunist with phished credentials" is.
+- Every attack is scored: probability \xD7 impact \xD7 detectability.
+- Mitigations ranked by cost \xD7 risk reduction, not by elegance.
+- Blue team must hold red team honest: if it can't be detected or contained, it's real.
+- The deliverable is a prioritized mitigation plan with a clear verdict.`
+};
 var CUSTOM_MODE = {
   id: "custom",
   name: "Custom",
@@ -4150,6 +5836,9 @@ var SESSION_MODES = {
   "site-survey": SITE_SURVEY_MODE,
   "business-plan": BUSINESS_PLAN_MODE,
   "gtm-strategy": GTM_STRATEGY_MODE,
+  "vc-pitch": VC_PITCH_MODE,
+  "tech-review": TECH_REVIEW_MODE,
+  "red-team": RED_TEAM_MODE,
   "custom": CUSTOM_MODE
 };
 function getModeById(id) {
@@ -4833,8 +6522,8 @@ async function introspectProject(opts) {
     skipDirs = DEFAULT_SKIP_DIRS
   } = opts;
   try {
-    const stat2 = await fs2.stat(projectDir);
-    if (!stat2.isDirectory()) {
+    const stat3 = await fs2.stat(projectDir);
+    if (!stat3.isDirectory()) {
       return {
         summary: `Project directory does not exist or is not a directory: ${projectDir}`,
         filesRead: [],
@@ -4882,8 +6571,8 @@ async function introspectProject(opts) {
     const rest = allFiles.filter((f) => !already.has(f)).slice(0, MAX_CONTENT_SCAN_CANDIDATES);
     for (const file of rest) {
       try {
-        const stat2 = await fs2.stat(file);
-        if (stat2.size > maxFileSize * 3) continue;
+        const stat3 = await fs2.stat(file);
+        if (stat3.size > maxFileSize * 3) continue;
         const content = (await fs2.readFile(file, "utf-8")).toLowerCase();
         let contentScore = 0;
         for (const kw of keywords) {
@@ -5023,6 +6712,101 @@ async function walkFiles(root, skipDirs, maxDepth) {
   return results;
 }
 
+// src/lib/eda/WorkdirManager.ts
+import * as path5 from "path";
+var WorkdirManager = class {
+  fs;
+  sessionDir;
+  agentPaths = /* @__PURE__ */ new Map();
+  consensusDir;
+  skillsDir;
+  initialized = false;
+  constructor(fs16, opts) {
+    this.fs = fs16;
+    this.sessionDir = opts.sessionDir;
+    this.consensusDir = path5.join(opts.sessionDir, "consensus");
+    this.skillsDir = path5.join(opts.sessionDir, "skills");
+    for (const id of opts.agentIds) {
+      const dir = path5.join(opts.sessionDir, "agents", id);
+      this.agentPaths.set(id, {
+        dir,
+        messagesPath: path5.join(dir, "messages.jsonl"),
+        notesDir: path5.join(dir, "notes")
+      });
+    }
+  }
+  async init() {
+    if (this.initialized) return;
+    await this.fs.ensureDir(this.consensusDir);
+    await this.fs.ensureDir(this.skillsDir);
+    for (const { dir, notesDir } of this.agentPaths.values()) {
+      await this.fs.ensureDir(dir);
+      await this.fs.ensureDir(notesDir);
+    }
+    this.initialized = true;
+  }
+  /**
+   * Persist each agent's resolved skill bundle as a self-describing
+   * artifact of the session. Future reruns can diff against this to
+   * see what knowledge the agents were primed with.
+   */
+  async writeSkills(perAgent) {
+    await this.init();
+    for (const [agentId, content] of perAgent) {
+      if (!content.trim()) continue;
+      const p = path5.join(this.skillsDir, `${agentId}.md`);
+      await this.fs.writeFile(p, content);
+    }
+  }
+  getAgentPaths(agentId) {
+    return this.agentPaths.get(agentId);
+  }
+  getConsensusDir() {
+    return this.consensusDir;
+  }
+  getSessionDir() {
+    return this.sessionDir;
+  }
+  /**
+   * Append a single message to the agent's own per-agent log. Called
+   * by the orchestrator on every new message so the per-agent folders
+   * build up independently of the session-wide messages.jsonl.
+   */
+  async appendAgentMessage(message) {
+    const paths = this.agentPaths.get(message.agentId);
+    if (!paths) return;
+    await this.init();
+    await this.fs.appendFile(paths.messagesPath, JSON.stringify(message) + "\n");
+  }
+  /**
+   * Write a consensus artifact. Triggered by the orchestrator when a
+   * message carries a [CONSENSUS] / [SYNTHESIS] tag — the idea being
+   * that what the group actually agreed on lives here, separate from
+   * the full discussion transcript.
+   */
+  async recordConsensus(message, opts) {
+    await this.init();
+    const ts = new Date(message.timestamp).toISOString().replace(/[:.]/g, "-");
+    const safePhase = opts.phaseId.replace(/[^a-z0-9_-]+/gi, "_");
+    const filename = `${safePhase}-${ts}-${message.agentId}.md`;
+    const p = path5.join(this.consensusDir, filename);
+    const body = [
+      `# ${opts.phaseId} \xB7 consensus \xB7 ${message.agentId}`,
+      "",
+      `- **type:** ${message.type}`,
+      `- **timestamp:** ${new Date(message.timestamp).toISOString()}`,
+      opts.reason ? `- **captured because:** ${opts.reason}` : null,
+      "",
+      "---",
+      "",
+      message.content,
+      ""
+    ].filter((l) => l !== null).join("\n");
+    await this.fs.writeFile(p, body);
+    return p;
+  }
+};
+
 // src/lib/eda/EDAOrchestrator.ts
 var COPY_SECTIONS = [
   { id: "hero", name: "Hero Section", nameHe: "\u05DB\u05D5\u05EA\u05E8\u05EA \u05E8\u05D0\u05E9\u05D9\u05EA" },
@@ -5062,6 +6846,21 @@ var EDAOrchestrator = class {
   // Dependency injection
   agentRunner;
   fileSystem;
+  // Per-agent runtime config — provider, model, paused, system suffix.
+  // The agent listeners resolve this map on every query, so mutations
+  // via `updateAgentConfig` take effect immediately.
+  providers;
+  agentConfigs = /* @__PURE__ */ new Map();
+  // Per-agent skills (combined shared + mode + agent-specific) and
+  // on-disk workdir layout. Both are optional — when absent the
+  // orchestrator falls back to the legacy single-skills-string path.
+  perAgentSkills;
+  workdir;
+  // Skill catalog + per-agent overrides. When an agent has overrides
+  // set (via the TUI Skill picker), the orchestrator assembles their
+  // bundle from the catalog instead of the init-time perAgentSkills.
+  skillCatalog;
+  agentSkillOverrides = /* @__PURE__ */ new Map();
   // Mode controller for goal anchoring and loop detection
   modeController;
   constructor(session, context, skills, options) {
@@ -5072,7 +6871,26 @@ var EDAOrchestrator = class {
     this.floorManager = new FloorManager(this.bus);
     this.agentRunner = options?.agentRunner;
     this.fileSystem = options?.fileSystem;
+    this.providers = options?.providers;
+    this.perAgentSkills = options?.perAgentSkills;
+    this.skillCatalog = options?.skillCatalog;
     this.autoRunPhaseMachine = options?.autoRunPhaseMachine ?? false;
+    if (options?.sessionWorkdir && options?.fileSystem) {
+      this.workdir = new WorkdirManager(options.fileSystem, {
+        sessionDir: options.sessionWorkdir,
+        agentIds: session.config.enabledAgents
+      });
+    }
+    if (this.providers) {
+      const def = this.providers.getDefault();
+      const seed = options?.initialAgentConfigs ?? {};
+      for (const agentId of session.config.enabledAgents) {
+        this.agentConfigs.set(agentId, seed[agentId] ?? {
+          providerId: def.id,
+          modelId: def.defaultModelId()
+        });
+      }
+    }
     if (options?.phaseMachineOptions?.speakTimeoutMs !== void 0) {
       this.speakTimeoutMs = options.phaseMachineOptions.speakTimeoutMs;
     }
@@ -5124,13 +6942,30 @@ ${firstPhase?.agentFocus || "Begin the discussion"}
     };
     this.bus.addMessage(systemMessage, "system");
     const modeInstructions = this.modeController.getAgentInstructions();
-    const combinedSkills = this.skills ? `${this.skills}
+    const fallbackSkills = this.skills ? `${this.skills}
 
 ## Mode Instructions
 ${modeInstructions}` : `## Mode Instructions
 ${modeInstructions}`;
-    for (const listener of this.agentListeners.values()) {
-      listener.start(this.session.config, this.context, combinedSkills);
+    if (this.workdir) {
+      try {
+        await this.workdir.init();
+        if (this.perAgentSkills) {
+          await this.workdir.writeSkills(this.perAgentSkills);
+        }
+      } catch (err2) {
+        console.error("[EDAOrchestrator] workdir init failed:", err2);
+      }
+    }
+    for (const [agentId, listener] of this.agentListeners) {
+      const agentSkillLayer = this.perAgentSkills?.get(agentId);
+      const composedSkills = this.composeAgentSkills(
+        agentId,
+        agentSkillLayer,
+        modeInstructions,
+        fallbackSkills
+      );
+      listener.start(this.session.config, this.context, composedSkills);
     }
     setTimeout(async () => {
       if (this.isStopped) return;
@@ -5208,6 +7043,12 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
           this.emit("agent_typing", { agentId: payload.fromAgent, typing: false });
         }
         this.emit("agent_message", { agentId: payload.fromAgent, message: payload.message });
+        if (this.workdir && payload.fromAgent !== "system") {
+          void this.workdir.appendAgentMessage(payload.message).catch((err2) => console.error("[workdir] appendAgentMessage failed:", err2));
+          this.maybeCaptureConsensus(payload.message).catch(
+            (err2) => console.error("[workdir] recordConsensus failed:", err2)
+          );
+        }
         this.checkForResearchRequests(payload.message);
         this.processModeInterventions(payload.message);
       }, "orchestrator")
@@ -5248,7 +7089,10 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
           // calls per incoming message and unbounded memory growth.
           skipAutonomousEval: true
         },
-        this.agentRunner
+        this.agentRunner,
+        this.providers,
+        (id) => this.getAgentConfig(id),
+        (id) => this.resolveAgentSkills(id)
       );
       this.agentListeners.set(agentId, listener);
     }
@@ -6327,6 +8171,170 @@ ${draft}`
   getMessages() {
     return this.bus.getAllMessages();
   }
+  // ─── Per-agent runtime control ───────────────────────────────────────
+  /**
+   * Read the current runtime config for an agent. When no provider
+   * registry is configured (legacy path) returns a harmless default so
+   * the UI can still render a row.
+   */
+  getAgentConfig(agentId) {
+    const existing = this.agentConfigs.get(agentId);
+    if (existing) return existing;
+    const fallback = this.providers ? {
+      providerId: this.providers.getDefault().id,
+      modelId: this.providers.getDefault().defaultModelId()
+    } : { providerId: "anthropic", modelId: "claude-sonnet-4-20250514" };
+    this.agentConfigs.set(agentId, fallback);
+    return fallback;
+  }
+  /** Snapshot of all agent configs — used by the control panel. */
+  getAllAgentConfigs() {
+    for (const id of this.session.config.enabledAgents) this.getAgentConfig(id);
+    return this.agentConfigs;
+  }
+  /**
+   * Mutate an agent's runtime config. Emits `agent_config_change` so the
+   * UI can re-render. The next `query`/`evaluate` call will pick up the
+   * change since listeners resolve config on each call.
+   */
+  updateAgentConfig(agentId, patch) {
+    const current = this.getAgentConfig(agentId);
+    const next = { ...current, ...patch };
+    this.agentConfigs.set(agentId, next);
+    this.emit("agent_config_change", { agentId, config: next });
+    return next;
+  }
+  /** Provider registry accessor for the UI. */
+  getProviders() {
+    return this.providers;
+  }
+  /**
+   * Force an agent to take the floor and speak on the current context.
+   * Returns null if the agent isn't registered or is mid-flight.
+   */
+  async forceSpeak(agentId, reason = "operator prompt") {
+    const listener = this.agentListeners.get(agentId);
+    if (!listener) return null;
+    return listener.speakNow(reason);
+  }
+  /**
+   * Inject an ad-hoc system prompt into an agent's next response. Stored
+   * on the runtime config and cleared after one use by the UI.
+   */
+  injectSystemSuffix(agentId, suffix) {
+    this.updateAgentConfig(agentId, { systemSuffix: suffix });
+  }
+  // ─── Skills + workdir helpers ────────────────────────────────────────
+  /**
+   * Build the full skill+workspace bundle for a single agent. Shape:
+   *
+   *   <agent-specific skills or fallback>
+   *   ---
+   *   ## Mode Instructions
+   *   <mode instructions>
+   *   ---
+   *   ## Session Workspace
+   *   - Agent workdir: <path>
+   *   - Consensus dir: <path>
+   *   - Tag synthesized/agreed content with [CONSENSUS] or [SYNTHESIS]
+   *     so the orchestrator captures it into the consensus dir.
+   */
+  composeAgentSkills(agentId, agentSkillLayer, modeInstructions, fallbackSkills) {
+    const parts = [];
+    if (agentSkillLayer && agentSkillLayer.trim()) {
+      parts.push(agentSkillLayer.trim());
+      parts.push(`## Mode Instructions
+${modeInstructions}`);
+    } else {
+      parts.push(fallbackSkills);
+    }
+    if (this.workdir) {
+      const paths = this.workdir.getAgentPaths(agentId);
+      const consensusDir = this.workdir.getConsensusDir();
+      parts.push(
+        [
+          "## Session Workspace",
+          paths ? `- Your workdir: ${paths.dir}` : null,
+          paths ? `- Scratch notes dir: ${paths.notesDir}` : null,
+          `- Consensus dir: ${consensusDir}`,
+          "- When the group agrees on a concrete deliverable, tag your",
+          "  message with [CONSENSUS] or [SYNTHESIS] and the orchestrator",
+          "  will save it as a consensus artifact automatically."
+        ].filter(Boolean).join("\n")
+      );
+    }
+    return parts.join("\n\n---\n\n");
+  }
+  /**
+   * If a message looks like consensus material, record it. The signal
+   * is either the `[CONSENSUS]` / `[SYNTHESIS]` type-tag convention
+   * the agents use, or a Message with `type === 'synthesis'` which is
+   * the canonical consensus type in the bus.
+   */
+  async maybeCaptureConsensus(message) {
+    if (!this.workdir) return;
+    const tagMatch = /\[(CONSENSUS|SYNTHESIS)\]/i.exec(message.content);
+    const isConsensus = message.type === "synthesis" || message.type === "consensus" || tagMatch !== null;
+    if (!isConsensus) return;
+    const reason = tagMatch ? `tag ${tagMatch[0]}` : `message.type=${message.type}`;
+    await this.workdir.recordConsensus(message, {
+      phaseId: this.modeController.getProgress().currentPhase,
+      reason
+    });
+  }
+  /**
+   * Exposes the workdir manager so the UI can show the consensus dir
+   * path in the header or an "Artifacts" pane.
+   */
+  getWorkdir() {
+    return this.workdir;
+  }
+  // ─── Live skill control ──────────────────────────────────────────────
+  /** Skill catalog exposed to the UI skill picker. */
+  getSkillCatalog() {
+    return this.skillCatalog;
+  }
+  /**
+   * IDs currently applied to an agent. If the operator has set
+   * overrides, those win; otherwise we infer from which catalog
+   * entries appear in the agent's init-time bundle.
+   */
+  getAgentSkillIds(agentId) {
+    const override = this.agentSkillOverrides.get(agentId);
+    if (override) return [...override];
+    if (!this.skillCatalog) return [];
+    const bundle = this.perAgentSkills?.get(agentId) ?? "";
+    if (!bundle.trim()) return [];
+    return this.skillCatalog.entries.filter((e) => e.content.trim() && bundle.includes(e.content.trim())).map((e) => e.id);
+  }
+  /**
+   * Replace an agent's applied skill IDs. Emits `agent_skills_change`
+   * so the TUI can re-render; the next query picks up the new bundle
+   * via the resolver wired into AgentListener.
+   */
+  setAgentSkillIds(agentId, skillIds) {
+    this.agentSkillOverrides.set(agentId, [...skillIds]);
+    this.emit("agent_skills_change", { agentId, skillIds: [...skillIds] });
+  }
+  /** Toggle a single skill on/off for an agent. */
+  toggleAgentSkill(agentId, skillId) {
+    const current = this.getAgentSkillIds(agentId);
+    const next = current.includes(skillId) ? current.filter((id) => id !== skillId) : [...current, skillId];
+    this.setAgentSkillIds(agentId, next);
+  }
+  /**
+   * Compose the active skill bundle for an agent. Invoked by the
+   * listener resolver on every query — cheap by design since it just
+   * looks up strings the catalog already cached in memory.
+   */
+  resolveAgentSkills(agentId) {
+    const override = this.agentSkillOverrides.get(agentId);
+    if (override && this.skillCatalog) {
+      const pieces = override.map((id) => this.skillCatalog.get(id)).filter((e) => e !== void 0).map((e) => e.content.trim()).filter(Boolean);
+      return pieces.join("\n\n---\n\n");
+    }
+    return this.perAgentSkills?.get(agentId);
+  }
 };
 
 // cli/index.ts
@@ -6334,7 +8342,7 @@ init_personas();
 
 // cli/commands/personas.ts
 import { Command } from "commander";
-import * as path5 from "path";
+import * as path6 from "path";
 import * as fs3 from "fs/promises";
 import Anthropic3 from "@anthropic-ai/sdk";
 var PERSONA_GENERATION_PROMPT = `You are an expert at creating debate personas for multi-agent deliberation systems.
@@ -6400,7 +8408,7 @@ function createPersonasCommand() {
     const cwd = process.cwd();
     let contextPrompt = "";
     if (options.brief) {
-      const briefPath = path5.join(cwd, "briefs", `${options.brief}.md`);
+      const briefPath = path6.join(cwd, "briefs", `${options.brief}.md`);
       try {
         const briefContent = await fs3.readFile(briefPath, "utf-8");
         contextPrompt = `## Project Brief
@@ -6466,12 +8474,12 @@ Generate exactly ${options.count} personas.`;
           process.exit(1);
         }
       }
-      const outputDir = path5.join(cwd, options.output);
+      const outputDir = path6.join(cwd, options.output);
       await fs3.mkdir(outputDir, { recursive: true });
-      const personasFile = path5.join(outputDir, `${options.name}.json`);
+      const personasFile = path6.join(outputDir, `${options.name}.json`);
       await fs3.writeFile(personasFile, JSON.stringify(personas2, null, 2));
       if (expertise) {
-        const skillsFile = path5.join(outputDir, `${options.name}.skills.md`);
+        const skillsFile = path6.join(outputDir, `${options.name}.skills.md`);
         await fs3.writeFile(skillsFile, expertise);
         console.log(`\u{1F4DA} Domain expertise saved to: ${skillsFile}`);
       }
@@ -6495,7 +8503,7 @@ Use with: forge start --personas ${options.name}`);
   });
   personas.command("list").description("List available persona sets").option("-d, --dir <dir>", "Personas directory", "personas").action(async (options) => {
     const cwd = process.cwd();
-    const personasDir = path5.join(cwd, options.dir);
+    const personasDir = path6.join(cwd, options.dir);
     try {
       const files = await fs3.readdir(personasDir);
       const jsonFiles = files.filter((f) => f.endsWith(".json"));
@@ -6506,8 +8514,8 @@ Use with: forge start --personas ${options.name}`);
       }
       console.log("Available persona sets:\n");
       for (const file of jsonFiles) {
-        const name = path5.basename(file, ".json");
-        const content = await fs3.readFile(path5.join(personasDir, file), "utf-8");
+        const name = path6.basename(file, ".json");
+        const content = await fs3.readFile(path6.join(personasDir, file), "utf-8");
         const personas2 = JSON.parse(content);
         console.log(`  \u2022 ${name} (${personas2.length} personas)`);
         for (const p of personas2) {
@@ -6522,7 +8530,7 @@ Use with: forge start --personas ${options.name}`);
   });
   personas.command("show <name>").description("Show details of a persona set").option("-d, --dir <dir>", "Personas directory", "personas").action(async (name, options) => {
     const cwd = process.cwd();
-    const filePath = path5.join(cwd, options.dir, `${name}.json`);
+    const filePath = path6.join(cwd, options.dir, `${name}.json`);
     try {
       const content = await fs3.readFile(filePath, "utf-8");
       const personas2 = JSON.parse(content);
@@ -6564,14 +8572,14 @@ Speaking Style: ${p.speakingStyle}`);
 // cli/commands/export.ts
 init_personas();
 import { Command as Command2 } from "commander";
-import * as path6 from "path";
+import * as path7 from "path";
 import * as fs4 from "fs/promises";
 function createExportCommand() {
   const exportCmd = new Command2("export").description("Export session data").option("-s, --session <dir>", "Session directory to export").option("-f, --format <fmt>", "Export format: md, json, html", "md").option("-t, --type <type>", "Export type: transcript, draft, summary, messages, all", "transcript").option("-o, --output <file>", "Output file path").option("-l, --latest", "Use the latest session", false).action(async (options) => {
     const cwd = process.cwd();
     let sessionDir = options.session;
     if (!sessionDir || options.latest) {
-      const outputDir = path6.join(cwd, "output/sessions");
+      const outputDir = path7.join(cwd, "output/sessions");
       try {
         const dirs = await fs4.readdir(outputDir, { withFileTypes: true });
         const sessionDirs = dirs.filter((d) => d.isDirectory()).map((d) => d.name).sort().reverse();
@@ -6579,7 +8587,7 @@ function createExportCommand() {
           console.error('No sessions found. Run "forge start" first.');
           process.exit(1);
         }
-        sessionDir = path6.join(outputDir, sessionDirs[0]);
+        sessionDir = path7.join(outputDir, sessionDirs[0]);
         console.log(`Using session: ${sessionDirs[0]}
 `);
       } catch {
@@ -6587,8 +8595,8 @@ function createExportCommand() {
         process.exit(1);
       }
     }
-    const metadataPath = path6.join(sessionDir, "session.json");
-    const messagesPath = path6.join(sessionDir, "messages.jsonl");
+    const metadataPath = path7.join(sessionDir, "session.json");
+    const messagesPath = path7.join(sessionDir, "messages.jsonl");
     let metadata = null;
     let messages = [];
     try {
@@ -6626,7 +8634,7 @@ function createExportCommand() {
         const types = ["transcript", "draft", "summary", "messages"];
         for (const t of types) {
           const typeOutput = generateByType(t, metadata, messages, options.format);
-          const typeFile = options.output ? path6.join(path6.dirname(options.output), `${t}.${options.format}`) : path6.join(sessionDir, `export-${t}.${options.format}`);
+          const typeFile = options.output ? path7.join(path7.dirname(options.output), `${t}.${options.format}`) : path7.join(sessionDir, `export-${t}.${options.format}`);
           await fs4.writeFile(typeFile, typeOutput);
           console.log(`\u2705 Exported ${t} to ${typeFile}`);
         }
@@ -6635,7 +8643,7 @@ function createExportCommand() {
         console.error(`Unknown export type: ${options.type}`);
         process.exit(1);
     }
-    const outputPath = options.output || path6.join(sessionDir, `export-${filename}`);
+    const outputPath = options.output || path7.join(sessionDir, `export-${filename}`);
     await fs4.writeFile(outputPath, output);
     console.log(`\u2705 Exported ${options.type} to ${outputPath}`);
   });
@@ -6912,7 +8920,7 @@ function escapeHtml(text) {
 
 // cli/commands/batch.ts
 import { Command as Command3 } from "commander";
-import * as path7 from "path";
+import * as path8 from "path";
 import * as fs5 from "fs/promises";
 import { glob } from "glob";
 import { v4 as uuid } from "uuid";
@@ -6927,7 +8935,7 @@ function createBatchCommand() {
 async function runBatch(pattern, options) {
   const cwd = process.cwd();
   const parallel = parseInt(options.parallel || "1", 10);
-  const outputDir = path7.resolve(cwd, options.output || "output/batch");
+  const outputDir = path8.resolve(cwd, options.output || "output/batch");
   const timeout = parseInt(options.timeout || "30", 10) * 60 * 1e3;
   const briefPaths = await glob(pattern, { cwd, absolute: true });
   if (briefPaths.length === 0) {
@@ -6949,7 +8957,7 @@ async function runBatch(pattern, options) {
   }
   if (options.dryRun) {
     const dryRunResults = briefPaths.map((p) => ({
-      brief: path7.relative(cwd, p),
+      brief: path8.relative(cwd, p),
       wouldProcess: true
     }));
     if (options.json) {
@@ -6964,7 +8972,7 @@ async function runBatch(pattern, options) {
   let toProcess = briefPaths;
   if (options.resume) {
     const processed = await getProcessedBriefs(outputDir);
-    toProcess = briefPaths.filter((p) => !processed.has(path7.basename(p, ".md")));
+    toProcess = briefPaths.filter((p) => !processed.has(path8.basename(p, ".md")));
     if (!options.json && toProcess.length < briefPaths.length) {
       console.log(`Skipping ${briefPaths.length - toProcess.length} already processed briefs.`);
     }
@@ -7031,7 +9039,7 @@ Processing batch ${Math.floor(i / parallel) + 1}/${Math.ceil(toProcess.length / 
   return failed > 0 ? 1 : 0;
 }
 async function processBrief(briefPath, opts) {
-  const briefName = path7.basename(briefPath, ".md");
+  const briefName = path8.basename(briefPath, ".md");
   const startTime = Date.now();
   if (!opts.json) {
     console.log(`  \u{1F4C4} ${briefName}...`);
@@ -7054,7 +9062,7 @@ async function processBrief(briefPath, opts) {
       // Shorter for batch
       consensusThreshold: 0.6,
       methodology: getDefaultMethodology(),
-      contextDir: path7.join(opts.cwd, "context"),
+      contextDir: path8.join(opts.cwd, "context"),
       outputDir: opts.outputDir,
       language: opts.language
     };
@@ -7070,7 +9078,7 @@ async function processBrief(briefPath, opts) {
       status: "running"
     };
     const persistence = new SessionPersistence(fsAdapter, {
-      outputDir: path7.join(opts.outputDir, briefName)
+      outputDir: path8.join(opts.outputDir, briefName)
     });
     await persistence.initSession(session);
     const orchestrator = new EDAOrchestrator(
@@ -7143,7 +9151,7 @@ async function getProcessedBriefs(outputDir) {
     for (const entry of entries) {
       if (entry.isDirectory() && !entry.name.startsWith(".")) {
         try {
-          await fs5.access(path7.join(outputDir, entry.name, "session.json"));
+          await fs5.access(path8.join(outputDir, entry.name, "session.json"));
           processed.add(entry.name);
         } catch {
         }
@@ -7156,7 +9164,7 @@ async function getProcessedBriefs(outputDir) {
 
 // cli/commands/sessions.ts
 import { Command as Command4 } from "commander";
-import * as path8 from "path";
+import * as path9 from "path";
 import * as fs6 from "fs/promises";
 import chalk from "chalk";
 function createSessionsCommand() {
@@ -7180,7 +9188,7 @@ function createSessionsCommand() {
 }
 async function listSessions(options) {
   const cwd = process.cwd();
-  const sessionsDir = path8.resolve(cwd, options.output || "output/sessions");
+  const sessionsDir = path9.resolve(cwd, options.output || "output/sessions");
   try {
     const entries = await fs6.readdir(sessionsDir, { withFileTypes: true });
     const sessionDirs = entries.filter((e) => e.isDirectory() && !e.name.startsWith("."));
@@ -7194,7 +9202,7 @@ async function listSessions(options) {
     }
     const sessions = [];
     for (const dir of sessionDirs) {
-      const meta = await loadSessionMeta(path8.join(sessionsDir, dir.name));
+      const meta = await loadSessionMeta(path9.join(sessionsDir, dir.name));
       if (meta) {
         sessions.push(meta);
       }
@@ -7228,7 +9236,7 @@ async function listSessions(options) {
 }
 async function showSession(name, options) {
   const cwd = process.cwd();
-  const sessionsDir = path8.resolve(cwd, options.output || "output/sessions");
+  const sessionsDir = path9.resolve(cwd, options.output || "output/sessions");
   const sessionDir = await findSession(sessionsDir, name);
   if (!sessionDir) {
     if (options.json) {
@@ -7239,11 +9247,11 @@ async function showSession(name, options) {
     process.exit(1);
   }
   try {
-    const sessionPath = path8.join(sessionDir, "session.json");
+    const sessionPath = path9.join(sessionDir, "session.json");
     const sessionData = JSON.parse(await fs6.readFile(sessionPath, "utf-8"));
     let messages = [];
     try {
-      const messagesPath = path8.join(sessionDir, "messages.jsonl");
+      const messagesPath = path9.join(sessionDir, "messages.jsonl");
       const content = await fs6.readFile(messagesPath, "utf-8");
       messages = content.trim().split("\n").filter((l) => l).map((l) => JSON.parse(l));
     } catch {
@@ -7288,7 +9296,7 @@ async function showSession(name, options) {
 }
 async function deleteSession(name, options) {
   const cwd = process.cwd();
-  const sessionsDir = path8.resolve(cwd, options.output || "output/sessions");
+  const sessionsDir = path9.resolve(cwd, options.output || "output/sessions");
   const sessionDir = await findSession(sessionsDir, name);
   if (!sessionDir) {
     console.error(`Session not found: ${name}`);
@@ -7301,7 +9309,7 @@ async function deleteSession(name, options) {
       output: process.stdout
     });
     const confirmed = await new Promise((resolve4) => {
-      rl.question(`Delete session "${path8.basename(sessionDir)}"? [y/N]: `, (answer) => {
+      rl.question(`Delete session "${path9.basename(sessionDir)}"? [y/N]: `, (answer) => {
         rl.close();
         resolve4(answer.toLowerCase() === "y");
       });
@@ -7313,7 +9321,7 @@ async function deleteSession(name, options) {
   }
   try {
     await fs6.rm(sessionDir, { recursive: true });
-    console.log(chalk.green(`Deleted: ${path8.basename(sessionDir)}`));
+    console.log(chalk.green(`Deleted: ${path9.basename(sessionDir)}`));
   } catch (error) {
     console.error(`Error deleting session: ${error.message}`);
     process.exit(1);
@@ -7321,7 +9329,7 @@ async function deleteSession(name, options) {
 }
 async function exportSession(name, options) {
   const cwd = process.cwd();
-  const sessionsDir = path8.resolve(cwd, options.output || "output/sessions");
+  const sessionsDir = path9.resolve(cwd, options.output || "output/sessions");
   const format = options.format || "md";
   const sessionDir = await findSession(sessionsDir, name);
   if (!sessionDir) {
@@ -7329,11 +9337,11 @@ async function exportSession(name, options) {
     process.exit(1);
   }
   try {
-    const sessionPath = path8.join(sessionDir, "session.json");
+    const sessionPath = path9.join(sessionDir, "session.json");
     const sessionData = JSON.parse(await fs6.readFile(sessionPath, "utf-8"));
     let messages = [];
     try {
-      const messagesPath = path8.join(sessionDir, "messages.jsonl");
+      const messagesPath = path9.join(sessionDir, "messages.jsonl");
       const content2 = await fs6.readFile(messagesPath, "utf-8");
       messages = content2.trim().split("\n").filter((l) => l).map((l) => JSON.parse(l));
     } catch {
@@ -7355,7 +9363,7 @@ async function exportSession(name, options) {
         ext = "md";
         break;
     }
-    const destPath = options.dest || path8.join(sessionDir, `export.${ext}`);
+    const destPath = options.dest || path9.join(sessionDir, `export.${ext}`);
     await fs6.writeFile(destPath, content);
     console.log(chalk.green(`Exported to: ${destPath}`));
   } catch (error) {
@@ -7365,7 +9373,7 @@ async function exportSession(name, options) {
 }
 async function cleanSessions(options) {
   const cwd = process.cwd();
-  const sessionsDir = path8.resolve(cwd, options.output || "output/sessions");
+  const sessionsDir = path9.resolve(cwd, options.output || "output/sessions");
   const days = parseInt(options.days || "30", 10);
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1e3;
   try {
@@ -7373,7 +9381,7 @@ async function cleanSessions(options) {
     const sessionDirs = entries.filter((e) => e.isDirectory() && !e.name.startsWith("."));
     const toDelete = [];
     for (const dir of sessionDirs) {
-      const dirPath = path8.join(sessionsDir, dir.name);
+      const dirPath = path9.join(sessionsDir, dir.name);
       const meta = await loadSessionMeta(dirPath);
       if (meta && new Date(meta.startedAt).getTime() < cutoff) {
         toDelete.push(dir.name);
@@ -7390,7 +9398,7 @@ async function cleanSessions(options) {
       return;
     }
     for (const name of toDelete) {
-      await fs6.rm(path8.join(sessionsDir, name), { recursive: true });
+      await fs6.rm(path9.join(sessionsDir, name), { recursive: true });
       console.log(chalk.green(`Deleted: ${name}`));
     }
     console.log(`
@@ -7402,18 +9410,18 @@ Deleted ${toDelete.length} sessions.`);
 }
 async function loadSessionMeta(sessionDir) {
   try {
-    const sessionPath = path8.join(sessionDir, "session.json");
+    const sessionPath = path9.join(sessionDir, "session.json");
     const data = JSON.parse(await fs6.readFile(sessionPath, "utf-8"));
     let messageCount = 0;
     try {
-      const messagesPath = path8.join(sessionDir, "messages.jsonl");
+      const messagesPath = path9.join(sessionDir, "messages.jsonl");
       const content = await fs6.readFile(messagesPath, "utf-8");
       messageCount = content.trim().split("\n").filter((l) => l).length;
     } catch {
     }
     return {
       id: data.id,
-      projectName: data.projectName || data.config?.projectName || path8.basename(sessionDir),
+      projectName: data.projectName || data.config?.projectName || path9.basename(sessionDir),
       goal: data.goal || data.config?.goal,
       startedAt: data.startedAt,
       status: data.status,
@@ -7431,11 +9439,11 @@ async function findSession(sessionsDir, nameOrIndex) {
     sessionDirs.sort().reverse();
     const index2 = parseInt(nameOrIndex, 10);
     if (!isNaN(index2) && index2 >= 1 && index2 <= sessionDirs.length) {
-      return path8.join(sessionsDir, sessionDirs[index2 - 1]);
+      return path9.join(sessionsDir, sessionDirs[index2 - 1]);
     }
     const match = sessionDirs.find((d) => d.includes(nameOrIndex));
     if (match) {
-      return path8.join(sessionsDir, match);
+      return path9.join(sessionsDir, match);
     }
     return null;
   } catch {
@@ -7514,7 +9522,7 @@ function escapeHtml2(text) {
 
 // cli/commands/watch.ts
 import { Command as Command5 } from "commander";
-import * as path9 from "path";
+import * as path10 from "path";
 import * as fs7 from "fs/promises";
 import { watch } from "fs";
 import chalk2 from "chalk";
@@ -7526,7 +9534,7 @@ function createWatchCommand() {
 }
 async function runWatch(options) {
   const cwd = process.cwd();
-  const contextDir = path9.resolve(cwd, options.context || "context");
+  const contextDir = path10.resolve(cwd, options.context || "context");
   const debounceMs = parseInt(options.debounce || "1000", 10);
   if (options.brief) {
     try {
@@ -7556,7 +9564,7 @@ async function runWatch(options) {
   }
   let pendingChanges = /* @__PURE__ */ new Map();
   const handleChange = (filePath, eventType) => {
-    const relativePath = path9.relative(cwd, filePath);
+    const relativePath = path10.relative(cwd, filePath);
     const existing = pendingChanges.get(filePath);
     if (existing) {
       clearTimeout(existing);
@@ -7583,7 +9591,7 @@ async function runWatch(options) {
   const watchRecursive = async (dir) => {
     const watcher = watch(dir, { recursive: true }, (eventType, filename) => {
       if (filename && !filename.startsWith(".")) {
-        handleChange(path9.join(dir, filename), eventType);
+        handleChange(path10.join(dir, filename), eventType);
       }
     });
     return watcher;
@@ -7933,7 +9941,7 @@ complete -c forge -n '__fish_seen_subcommand_from watch' -l json -d 'JSON output
 
 // cli/commands/config.ts
 import { Command as Command7 } from "commander";
-import * as path10 from "path";
+import * as path11 from "path";
 import * as fs8 from "fs/promises";
 import chalk4 from "chalk";
 var CONFIG_FILENAME = ".forgerc.json";
@@ -7975,10 +9983,10 @@ function createConfigCommand() {
 }
 function getGlobalConfigPath() {
   const home = process.env.HOME || process.env.USERPROFILE || "";
-  return path10.join(home, CONFIG_FILENAME);
+  return path11.join(home, CONFIG_FILENAME);
 }
 function getLocalConfigPath() {
-  return path10.join(process.cwd(), CONFIG_FILENAME);
+  return path11.join(process.cwd(), CONFIG_FILENAME);
 }
 async function loadConfig(configPath) {
   try {
@@ -8167,8 +10175,299 @@ async function initConfig(options) {
   console.log(chalk4.green(`Created config: ${configPath}`));
 }
 
-// cli/commands/login.ts
+// cli/commands/skills.ts
+init_skills();
 import { Command as Command8 } from "commander";
+import * as path13 from "path";
+import * as fs10 from "fs/promises";
+
+// src/lib/render/theme.ts
+var ESC = "\x1B[";
+var RESET = `${ESC}0m`;
+var fg = (code) => `${ESC}${code}m`;
+var bgRgb = (r, g, b) => `${ESC}48;2;${r};${g};${b}m`;
+var bold = `${ESC}1m`;
+var dim = `${ESC}2m`;
+var italic = `${ESC}3m`;
+var underline = `${ESC}4m`;
+var strikethrough = `${ESC}9m`;
+var forgeTheme = {
+  reset: RESET,
+  bold,
+  dim,
+  italic,
+  underline,
+  strikethrough,
+  text: {
+    primary: fg(37),
+    // white
+    muted: fg(90),
+    // bright black (grey)
+    emphasis: fg(35),
+    // magenta
+    strong: fg(33),
+    // yellow
+    link: `${underline}${fg(34)}`,
+    // blue underlined
+    inlineCode: fg(32)
+    // green
+  },
+  heading: {
+    h1: `${bold}${fg(36)}`,
+    // bold cyan
+    h2: `${bold}${fg(37)}`,
+    // bold white
+    h3: `${bold}${fg(34)}`
+    // bold blue
+  },
+  status: {
+    success: fg(32),
+    // green
+    warning: fg(33),
+    // yellow
+    error: fg(31),
+    // red
+    info: fg(36),
+    // cyan
+    running: fg(32),
+    // green
+    idle: fg(90)
+    // grey
+  },
+  agent: {
+    ronit: fg(35),
+    // magenta/pink
+    yossi: fg(32),
+    // green
+    noa: fg(34),
+    // blue
+    avi: fg(33),
+    // yellow/orange
+    michal: fg(36),
+    // cyan
+    dana: fg(31),
+    // red
+    system: fg(90),
+    // grey
+    human: fg(37)
+    // white
+  },
+  bg: {
+    surface: bgRgb(22, 27, 34),
+    // #161b22
+    codeBlock: bgRgb(30, 30, 46),
+    // dark grey-blue
+    overlay: bgRgb(13, 17, 23)
+    // #0d1117
+  },
+  border: {
+    normal: fg(90),
+    // grey
+    accent: fg(36),
+    // cyan
+    muted: `${dim}${fg(90)}`
+  },
+  consensus: {
+    agree: fg(32),
+    // green
+    disagree: fg(31),
+    // red
+    neutral: fg(33),
+    // yellow
+    proposal: fg(36)
+    // cyan
+  },
+  phase: {
+    label: `${bold}${fg(36)}`,
+    // bold cyan
+    separator: fg(90),
+    // grey
+    active: `${bold}${fg(33)}`,
+    // bold yellow
+    done: fg(32)
+    // green
+  },
+  spinner: {
+    active: fg(36),
+    // cyan
+    done: fg(32),
+    // green
+    failed: fg(31)
+    // red
+  },
+  quote: fg(90),
+  // grey
+  diff: {
+    added: fg(32),
+    // green
+    removed: fg(31),
+    // red
+    context: fg(90)
+    // grey
+  }
+};
+var style = (theme, text) => `${theme}${text}${RESET}`;
+
+// cli/commands/skills.ts
+var RESET2 = forgeTheme.reset;
+var BOLD = forgeTheme.bold;
+var DIM = forgeTheme.dim;
+var GREEN = forgeTheme.status.success;
+var CYAN = forgeTheme.status.info;
+var YELLOW = forgeTheme.status.warning;
+var RED = forgeTheme.status.error;
+async function listCmd(opts) {
+  const catalog = await discoverSkills({ cwd: process.cwd() });
+  const filtered = opts.source ? catalog.entries.filter((e) => e.source === opts.source) : catalog.entries;
+  if (opts.json) {
+    process.stdout.write(
+      JSON.stringify(
+        filtered.map((e) => ({
+          id: e.id,
+          label: e.label,
+          source: e.source,
+          path: e.path,
+          summary: e.summary,
+          tags: e.tags ?? []
+        })),
+        null,
+        2
+      ) + "\n"
+    );
+    return;
+  }
+  if (filtered.length === 0) {
+    console.log(`${DIM}No skills discovered.${RESET2}`);
+    console.log(
+      `${DIM}Add markdown files to ./skills/, ~/.claude/skills/forge/, or supply a skills.sh hook.${RESET2}`
+    );
+    return;
+  }
+  console.log(`${CYAN}${BOLD}SKILL CATALOG${RESET2}`);
+  console.log(`${DIM}${filtered.length} skill${filtered.length === 1 ? "" : "s"} discovered${RESET2}`);
+  console.log("");
+  for (const entry of filtered) {
+    const sourceTag = sourceLabel(entry.source);
+    console.log(`  ${GREEN}\u25CF${RESET2} ${BOLD}${entry.label}${RESET2}  ${DIM}${sourceTag}${RESET2}`);
+    console.log(`    ${DIM}${entry.id}${RESET2}`);
+    if (entry.summary) {
+      console.log(`    ${entry.summary.slice(0, 120)}`);
+    }
+    if (entry.tags && entry.tags.length > 0) {
+      console.log(`    ${DIM}tags: ${entry.tags.join(", ")}${RESET2}`);
+    }
+    console.log("");
+  }
+}
+function sourceLabel(source) {
+  switch (source) {
+    case "project":
+      return "\xB7 project";
+    case "user":
+      return "\xB7 user";
+    case "plugin":
+      return "\xB7 plugin";
+    case "hook":
+      return "\xB7 skills.sh";
+    default:
+      return `\xB7 ${source}`;
+  }
+}
+async function showCmd(id) {
+  const catalog = await discoverSkills({ cwd: process.cwd() });
+  const entry = catalog.get(id);
+  if (!entry) {
+    console.error(`${RED}Skill not found: ${id}${RESET2}`);
+    console.error(`${DIM}Try: forge skills list${RESET2}`);
+    process.exit(1);
+  }
+  console.log(`${CYAN}${BOLD}${entry.label}${RESET2}`);
+  console.log(`${DIM}${entry.id}  \xB7  ${sourceLabel(entry.source).slice(2)}  \xB7  ${entry.path}${RESET2}`);
+  if (entry.tags && entry.tags.length > 0) {
+    console.log(`${DIM}tags: ${entry.tags.join(", ")}${RESET2}`);
+  }
+  console.log("");
+  console.log(entry.content);
+}
+async function findLatestSession(outputDir) {
+  try {
+    const entries = await fs10.readdir(outputDir, { withFileTypes: true });
+    const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+    if (dirs.length === 0) return null;
+    dirs.sort();
+    return path13.join(outputDir, dirs[dirs.length - 1]);
+  } catch {
+    return null;
+  }
+}
+async function applyCmd(agentId, skillId, opts) {
+  const catalog = await discoverSkills({ cwd: process.cwd() });
+  const entry = catalog.get(skillId);
+  if (!entry) {
+    console.error(`${RED}Skill not found: ${skillId}${RESET2}`);
+    console.error(`${DIM}Try: forge skills list${RESET2}`);
+    process.exit(1);
+  }
+  const outputDir = opts.output ?? "output/sessions";
+  const sessionDir = opts.session ? path13.isAbsolute(opts.session) ? opts.session : path13.join(outputDir, opts.session) : await findLatestSession(outputDir);
+  if (!sessionDir) {
+    console.error(`${RED}No session found in ${outputDir}.${RESET2}`);
+    console.error(`${DIM}Pass --session <name> or run a session first.${RESET2}`);
+    process.exit(1);
+  }
+  const configPath = path13.join(sessionDir, "agent-configs.json");
+  let configs = {};
+  try {
+    const raw = await fs10.readFile(configPath, "utf-8");
+    configs = JSON.parse(raw);
+  } catch {
+  }
+  const current = configs[agentId];
+  if (!current) {
+    console.error(`${RED}Agent '${agentId}' not found in ${configPath}.${RESET2}`);
+    console.error(`${DIM}Available agents: ${Object.keys(configs).join(", ") || "(none)"}${RESET2}`);
+    process.exit(1);
+  }
+  const existing = Array.isArray(current.skillIds) ? current.skillIds : [];
+  const next = opts.replace ? [skillId] : existing.includes(skillId) ? existing : [...existing, skillId];
+  configs[agentId] = { ...current, skillIds: next };
+  await fs10.writeFile(configPath, JSON.stringify(configs, null, 2));
+  console.log(
+    `${GREEN}\u2714${RESET2} Applied ${BOLD}${entry.label}${RESET2} to ${BOLD}${agentId}${RESET2}`
+  );
+  console.log(`${DIM}  session: ${sessionDir}${RESET2}`);
+  console.log(`${DIM}  skills applied: ${next.join(", ")}${RESET2}`);
+  console.log(
+    `${YELLOW}Note:${RESET2} this updates the saved config file. Running orchestrators pick up overrides live \u2014 use the TUI Skill Picker (${CYAN}a \u2192 k${RESET2}) for mid-session changes.`
+  );
+}
+function createSkillsCommand() {
+  const skills = new Command8("skills").description(
+    "Browse and apply per-agent skills from the CLI"
+  );
+  skills.command("list").alias("ls").description("Print the discovered skill catalog").option("--json", "Emit JSON instead of the formatted list").option(
+    "--source <name>",
+    "Filter by source: project | user | plugin | hook"
+  ).action(async (opts) => {
+    await listCmd(opts);
+  });
+  skills.command("show <id>").description("Dump the content of a single skill").action(async (id) => {
+    await showCmd(id);
+  });
+  skills.command("apply <agent> <skill>").description("Add a skill id to an agent's override list in the session workdir").option(
+    "-s, --session <name>",
+    "Session directory (name relative to --output, or absolute path). Defaults to the latest session."
+  ).option("-o, --output <dir>", "Output directory for sessions", "output/sessions").option(
+    "--replace",
+    "Replace the agent's skill list instead of appending"
+  ).action(async (agent, skill, opts) => {
+    await applyCmd(agent, skill, opts);
+  });
+  return skills;
+}
+
+// cli/commands/login.ts
+import { Command as Command9 } from "commander";
 import * as readline from "readline";
 
 // src/lib/core/result.ts
@@ -8643,19 +10942,19 @@ var createSessionRepository = (bridgeResolver = getElectronBridge) => {
 var sessionRepo = createSessionRepository();
 
 // cli/adapters/auth-bridge.ts
-import * as fs9 from "fs/promises";
-import * as path11 from "path";
-import * as os2 from "os";
-var FORGE_DIR = path11.join(os2.homedir(), ".forge");
-var AUTH_FILE = path11.join(FORGE_DIR, "auth.json");
+import * as fs11 from "fs/promises";
+import * as path14 from "path";
+import * as os3 from "os";
+var FORGE_DIR = path14.join(os3.homedir(), ".forge");
+var AUTH_FILE = path14.join(FORGE_DIR, "auth.json");
 var ensureDir = async () => {
-  await fs9.mkdir(FORGE_DIR, { recursive: true });
+  await fs11.mkdir(FORGE_DIR, { recursive: true });
 };
 var createFileAuthBridge = () => ({
   save: async (payload) => {
     try {
       await ensureDir();
-      await fs9.writeFile(AUTH_FILE, JSON.stringify(payload, null, 2), {
+      await fs11.writeFile(AUTH_FILE, JSON.stringify(payload, null, 2), {
         encoding: "utf-8",
         mode: 384
       });
@@ -8667,7 +10966,7 @@ var createFileAuthBridge = () => ({
   },
   load: async () => {
     try {
-      const data = await fs9.readFile(AUTH_FILE, "utf-8");
+      const data = await fs11.readFile(AUTH_FILE, "utf-8");
       return JSON.parse(data);
     } catch {
       return null;
@@ -8675,7 +10974,7 @@ var createFileAuthBridge = () => ({
   },
   clear: async () => {
     try {
-      await fs9.unlink(AUTH_FILE);
+      await fs11.unlink(AUTH_FILE);
       return true;
     } catch {
       return true;
@@ -8683,133 +10982,6 @@ var createFileAuthBridge = () => ({
   }
 });
 var forgeDataDir = FORGE_DIR;
-
-// src/lib/render/theme.ts
-var ESC = "\x1B[";
-var RESET = `${ESC}0m`;
-var fg = (code) => `${ESC}${code}m`;
-var bgRgb = (r, g, b) => `${ESC}48;2;${r};${g};${b}m`;
-var bold = `${ESC}1m`;
-var dim = `${ESC}2m`;
-var italic = `${ESC}3m`;
-var underline = `${ESC}4m`;
-var strikethrough = `${ESC}9m`;
-var forgeTheme = {
-  reset: RESET,
-  bold,
-  dim,
-  italic,
-  underline,
-  strikethrough,
-  text: {
-    primary: fg(37),
-    // white
-    muted: fg(90),
-    // bright black (grey)
-    emphasis: fg(35),
-    // magenta
-    strong: fg(33),
-    // yellow
-    link: `${underline}${fg(34)}`,
-    // blue underlined
-    inlineCode: fg(32)
-    // green
-  },
-  heading: {
-    h1: `${bold}${fg(36)}`,
-    // bold cyan
-    h2: `${bold}${fg(37)}`,
-    // bold white
-    h3: `${bold}${fg(34)}`
-    // bold blue
-  },
-  status: {
-    success: fg(32),
-    // green
-    warning: fg(33),
-    // yellow
-    error: fg(31),
-    // red
-    info: fg(36),
-    // cyan
-    running: fg(32),
-    // green
-    idle: fg(90)
-    // grey
-  },
-  agent: {
-    ronit: fg(35),
-    // magenta/pink
-    yossi: fg(32),
-    // green
-    noa: fg(34),
-    // blue
-    avi: fg(33),
-    // yellow/orange
-    michal: fg(36),
-    // cyan
-    dana: fg(31),
-    // red
-    system: fg(90),
-    // grey
-    human: fg(37)
-    // white
-  },
-  bg: {
-    surface: bgRgb(22, 27, 34),
-    // #161b22
-    codeBlock: bgRgb(30, 30, 46),
-    // dark grey-blue
-    overlay: bgRgb(13, 17, 23)
-    // #0d1117
-  },
-  border: {
-    normal: fg(90),
-    // grey
-    accent: fg(36),
-    // cyan
-    muted: `${dim}${fg(90)}`
-  },
-  consensus: {
-    agree: fg(32),
-    // green
-    disagree: fg(31),
-    // red
-    neutral: fg(33),
-    // yellow
-    proposal: fg(36)
-    // cyan
-  },
-  phase: {
-    label: `${bold}${fg(36)}`,
-    // bold cyan
-    separator: fg(90),
-    // grey
-    active: `${bold}${fg(33)}`,
-    // bold yellow
-    done: fg(32)
-    // green
-  },
-  spinner: {
-    active: fg(36),
-    // cyan
-    done: fg(32),
-    // green
-    failed: fg(31)
-    // red
-  },
-  quote: fg(90),
-  // grey
-  diff: {
-    added: fg(32),
-    // green
-    removed: fg(31),
-    // red
-    context: fg(90)
-    // grey
-  }
-};
-var style = (theme, text) => `${theme}${text}${RESET}`;
 
 // src/lib/render/progress.ts
 var attestationDots = (count, max = 5) => {
@@ -8845,7 +11017,7 @@ var printIdentity = (state) => {
   console.log("");
 };
 var createLoginCommand = () => {
-  const cmd = new Command8("login").description("Create or restore your decentralized DID identity").option("--new", "Force create a new identity (replaces existing)").action(async (opts) => {
+  const cmd = new Command9("login").description("Create or restore your decentralized DID identity").option("--new", "Force create a new identity (replaces existing)").action(async (opts) => {
     if (!opts.new) {
       const restoreResult = await repo.restoreSession();
       const restored = restoreResult.match(
@@ -8909,7 +11081,7 @@ var createLoginCommand = () => {
     }
   });
   cmd.addCommand(
-    new Command8("status").description("Show current identity status").action(async () => {
+    new Command9("status").description("Show current identity status").action(async () => {
       const result = await repo.restoreSession();
       result.match(
         (s) => {
@@ -8926,7 +11098,7 @@ var createLoginCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command8("logout").description("Remove stored identity").action(async () => {
+    new Command9("logout").description("Remove stored identity").action(async () => {
       await repo.logout();
       console.log(style(forgeTheme.status.success, "  \u2714 Identity cleared"));
     })
@@ -8935,7 +11107,7 @@ var createLoginCommand = () => {
 };
 
 // cli/commands/community.ts
-import { Command as Command9 } from "commander";
+import { Command as Command10 } from "commander";
 import * as readline2 from "readline";
 
 // src/lib/p2p/errors.ts
@@ -9020,7 +11192,7 @@ var fetchAll = () => ResultAsync.fromPromise(
 });
 
 // cli/adapters/services.ts
-import * as path15 from "path";
+import * as path18 from "path";
 
 // src/lib/connections/errors.ts
 var bridgeUnavailable3 = makeError("BridgeUnavailable");
@@ -9051,7 +11223,7 @@ var started = false;
 async function ensureServices() {
   if (started) return;
   started = true;
-  const p2pDataDir = path15.join(forgeDataDir, "p2p");
+  const p2pDataDir = path18.join(forgeDataDir, "p2p");
   try {
     const { peerId } = await startP2P(p2pDataDir);
     console.log(`\x1B[2m[p2p] peer: ${peerId.slice(0, 12)}\u2026\x1B[0m`);
@@ -9111,9 +11283,9 @@ var ask2 = (question) => {
   });
 };
 var createCommunityCommand = () => {
-  const cmd = new Command9("community").description("Browse and publish community contributions (P2P)");
+  const cmd = new Command10("community").description("Browse and publish community contributions (P2P)");
   cmd.addCommand(
-    new Command9("list").description("List contributions from connected peers").option("-k, --kind <kind>", "Filter by kind (persona|insight|template|prompt)").action(async (opts) => {
+    new Command10("list").description("List contributions from connected peers").option("-k, --kind <kind>", "Filter by kind (persona|insight|template|prompt)").action(async (opts) => {
       await ensureServices();
       const result = await fetchAll();
       result.match(
@@ -9156,7 +11328,7 @@ var createCommunityCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command9("publish").description("Publish a new contribution").requiredOption("-k, --kind <kind>", "Contribution kind (persona|insight|template|prompt)").requiredOption("-t, --title <title>", "Title").requiredOption("-d, --description <desc>", "One-line description").option("-b, --body <body>", "Body content (or will prompt)").option("--tags <tags>", "Comma-separated tags").action(async (opts) => {
+    new Command10("publish").description("Publish a new contribution").requiredOption("-k, --kind <kind>", "Contribution kind (persona|insight|template|prompt)").requiredOption("-t, --title <title>", "Title").requiredOption("-d, --description <desc>", "One-line description").option("-b, --body <body>", "Body content (or will prompt)").option("--tags <tags>", "Comma-separated tags").action(async (opts) => {
       await ensureServices();
       const session = await repo2.restoreSession();
       const authState = session.match((s) => s, () => null);
@@ -9216,7 +11388,7 @@ var createCommunityCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command9("vote").description("Upvote or downvote a contribution").argument("<id>", "Contribution ID (or prefix)").option("--down", "Downvote instead of upvote").action(async (idOrPrefix, opts) => {
+    new Command10("vote").description("Upvote or downvote a contribution").argument("<id>", "Contribution ID (or prefix)").option("--down", "Downvote instead of upvote").action(async (idOrPrefix, opts) => {
       await ensureServices();
       const session = await repo2.restoreSession();
       const authState = session.match((s) => s, () => null);
@@ -9259,20 +11431,27 @@ var createCommunityCommand = () => {
 };
 
 // cli/index.ts
-var RESET2 = forgeTheme.reset;
-var BOLD = forgeTheme.bold;
-var DIM = forgeTheme.dim;
-var GREEN = forgeTheme.status.success;
-var YELLOW = forgeTheme.status.warning;
-var CYAN = forgeTheme.status.info;
-var RED = forgeTheme.status.error;
+var RESET3 = forgeTheme.reset;
+var BOLD2 = forgeTheme.bold;
+var DIM2 = forgeTheme.dim;
+var GREEN2 = forgeTheme.status.success;
+var YELLOW2 = forgeTheme.status.warning;
+var CYAN2 = forgeTheme.status.info;
+var RED2 = forgeTheme.status.error;
 var MAGENTA = forgeTheme.text.emphasis;
-var program = new Command10();
+var program = new Command11();
 program.name("forge").description("Multi-agent deliberation engine - reach consensus through structured debate").version("1.0.0");
 program.command("start").description("Start a new debate session").option("-b, --brief <name>", "Brief name to load (from briefs/ directory)").option("-p, --project <name>", "Project name", "New Project").option("-g, --goal <goal>", "Project goal").option("-a, --agents <ids>", "Comma-separated agent IDs (from default or custom personas)").option("-m, --mode <mode>", "Deliberation mode: copywrite, idea-validation, ideation, will-it-work, site-survey, business-plan, gtm-strategy, custom", "copywrite").option("--personas <name>", "Use custom persona set (from personas/ directory)").option("-l, --language <lang>", "Language: hebrew, english, mixed", "hebrew").option("--human", "Enable human participation", true).option("--no-human", "Disable human participation").option("-o, --output <dir>", "Output directory for sessions", "output/sessions").action(async (options) => {
   const cwd = process.cwd();
   const fsAdapter = new FileSystemAdapter(cwd);
   const agentRunner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner() : new ClaudeCodeCLIRunner();
+  const { ProviderRegistry: ProviderRegistry2, AnthropicProvider: AnthropicProvider2, GeminiProvider: GeminiProvider2, OpenAIProvider: OpenAIProvider2 } = await Promise.resolve().then(() => (init_providers(), providers_exports));
+  const providers = new ProviderRegistry2();
+  providers.register(new AnthropicProvider2(agentRunner, true), { asDefault: true });
+  const gemini = new GeminiProvider2();
+  if (gemini.isAvailable()) providers.register(gemini);
+  const openai = new OpenAIProvider2();
+  if (openai.isAvailable()) providers.register(openai);
   let briefContent = "";
   let projectName = options.project;
   let goal = options.goal || "";
@@ -9299,9 +11478,9 @@ program.command("start").description("Start a new debate session").option("-b, -
   let domainSkills;
   let personaSetName = options.personas || null;
   if (personaSetName && availablePersonas === AGENT_PERSONAS) {
-    const personasPath = path17.join(cwd, "personas", `${personaSetName}.json`);
+    const personasPath = path20.join(cwd, "personas", `${personaSetName}.json`);
     try {
-      const content = await fs13.readFile(personasPath, "utf-8");
+      const content = await fs15.readFile(personasPath, "utf-8");
       availablePersonas = JSON.parse(content);
     } catch {
       console.error(`Persona set "${personaSetName}" not found in personas/ directory`);
@@ -9309,9 +11488,9 @@ program.command("start").description("Start a new debate session").option("-b, -
     }
   }
   if (personaSetName) {
-    const skillsPath = path17.join(cwd, "personas", `${personaSetName}.skills.md`);
+    const skillsPath = path20.join(cwd, "personas", `${personaSetName}.skills.md`);
     try {
-      domainSkills = await fs13.readFile(skillsPath, "utf-8");
+      domainSkills = await fs15.readFile(skillsPath, "utf-8");
       console.log(`\u{1F4DA} Loaded domain expertise: ${personaSetName}.skills.md`);
     } catch {
     }
@@ -9344,7 +11523,7 @@ program.command("start").description("Start a new debate session").option("-b, -
     maxRounds: 10,
     consensusThreshold: 0.6,
     methodology: getDefaultMethodology(),
-    contextDir: path17.join(cwd, "context"),
+    contextDir: path20.join(cwd, "context"),
     outputDir: options.output,
     language: options.language,
     mode: options.mode
@@ -9364,6 +11543,25 @@ program.command("start").description("Start a new debate session").option("-b, -
     outputDir: options.output
   });
   await persistence.initSession(session);
+  const { loadSkills: loadSkills2, discoverSkills: discoverSkills2 } = await Promise.resolve().then(() => (init_skills(), skills_exports));
+  const resolvedSkills = await loadSkills2({
+    cwd,
+    modeId: options.mode || "copywrite",
+    enabledAgents: validAgents,
+    sessionWorkdir: persistence.getSessionDir(),
+    goal
+  });
+  for (const [agentId, used] of resolvedSkills.sources) {
+    if (used.length > 0) {
+      console.log(`${GREEN2}  \u2714 Skills for ${agentId}: ${used.join(", ")}${RESET3}`);
+    }
+  }
+  const skillCatalog = await discoverSkills2({ cwd });
+  if (skillCatalog.entries.length > 0) {
+    console.log(
+      `${DIM2}  \xB7 skill catalog: ${skillCatalog.entries.length} discovered \u2014 press 'k' in the agent panel to browse${RESET3}`
+    );
+  }
   const orchestrator = new EDAOrchestrator(
     session,
     void 0,
@@ -9373,7 +11571,11 @@ program.command("start").description("Start a new debate session").option("-b, -
     {
       agentRunner,
       fileSystem: fsAdapter,
-      autoRunPhaseMachine: !options.human
+      autoRunPhaseMachine: !options.human,
+      providers,
+      sessionWorkdir: persistence.getSessionDir(),
+      perAgentSkills: resolvedSkills.perAgent,
+      skillCatalog
     }
   );
   orchestrator.on((event) => {
@@ -9381,20 +11583,38 @@ program.command("start").description("Start a new debate session").option("-b, -
       persistence.updateSession(orchestrator.getSession());
     }
   });
+  let configFlushPending = false;
+  orchestrator.on(async (event) => {
+    if (event.type !== "agent_config_change") return;
+    if (configFlushPending) return;
+    configFlushPending = true;
+    queueMicrotask(async () => {
+      configFlushPending = false;
+      try {
+        const snapshot = Object.fromEntries(orchestrator.getAllAgentConfigs());
+        await fsAdapter.writeFile(
+          path20.join(persistence.getSessionDir(), "agent-configs.json"),
+          JSON.stringify(snapshot, null, 2)
+        );
+      } catch (err2) {
+        console.error("[agent-configs] persist failed:", err2);
+      }
+    });
+  });
   const authRepo = createSessionRepository(
     () => ResultAsync.fromSafePromise(Promise.resolve(createFileAuthBridge()))
   );
   const authResult = await authRepo.restoreSession();
   const authState = authResult.match((s) => s, () => null);
   if (!authState) {
-    console.log(`${CYAN}  Creating Forge identity (did:key)\u2026${RESET2}`);
+    console.log(`${CYAN2}  Creating Forge identity (did:key)\u2026${RESET3}`);
     const createResult = await authRepo.createIdentity();
     createResult.match(
-      (s) => console.log(`${GREEN}  \u2714 Identity: ${s.did.slice(0, 24)}\u2026${RESET2}`),
-      (err2) => console.log(`${YELLOW}  \u26A0 Identity creation failed: ${err2.message}${RESET2}`)
+      (s) => console.log(`${GREEN2}  \u2714 Identity: ${s.did.slice(0, 24)}\u2026${RESET3}`),
+      (err2) => console.log(`${YELLOW2}  \u26A0 Identity creation failed: ${err2.message}${RESET3}`)
     );
   } else {
-    console.log(`${GREEN}  \u2714 Identity: ${authState.did.slice(0, 24)}\u2026${RESET2}`);
+    console.log(`${GREEN2}  \u2714 Identity: ${authState.did.slice(0, 24)}\u2026${RESET3}`);
   }
   const { captureConsoleToFile: captureConsoleToFile2 } = await Promise.resolve().then(() => (init_console_capture(), console_capture_exports));
   const captured = captureConsoleToFile2(persistence.getSessionDir());
@@ -9409,7 +11629,7 @@ program.command("start").description("Start a new debate session").option("-b, -
     renderer.on("destroy", () => resolve4());
   });
   root.render(
-    React2.createElement(OpenTuiApp2, {
+    React4.createElement(OpenTuiApp2, {
       orchestrator,
       persistence,
       session,
@@ -9461,6 +11681,7 @@ program.addCommand(createSessionsCommand());
 program.addCommand(createWatchCommand());
 program.addCommand(createCompletionsCommand());
 program.addCommand(createConfigCommand());
+program.addCommand(createSkillsCommand());
 program.addCommand(createLoginCommand());
 program.addCommand(createCommunityCommand());
 program.action(async () => {
@@ -9473,7 +11694,8 @@ program.action(async () => {
     "",
     "  Available modes:",
     "    copywrite \xB7 idea-validation \xB7 ideation \xB7 will-it-work",
-    "    site-survey \xB7 business-plan \xB7 gtm-strategy \xB7 custom",
+    "    site-survey \xB7 business-plan \xB7 gtm-strategy",
+    "    vc-pitch \xB7 tech-review \xB7 red-team \xB7 custom",
     "",
     "  Example:",
     '    forge start -m will-it-work -g "Ship Q2 migration?"',

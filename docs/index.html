@@ -891,10 +891,13 @@ kbd {
    INSTALL — wide terminal slab
    ══════════════════════════════════════════════════════════════════════ */
 .install {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  gap: 48px;
-  align-items: start;
+  /* Stacked, not side-by-side — two equal columns compete for width
+     with the terminal's unwrappable <pre>, producing per-word wraps in
+     the copy column. Stacking gives copy a comfortable reading width
+     and lets the terminal take the full block below. */
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
 }
 .install-copy h3 {
   font-size: clamp(24px, 3vw, 36px);
@@ -902,38 +905,21 @@ kbd {
   letter-spacing: -0.028em;
   line-height: 1.05;
   color: var(--fg);
-  max-width: 14ch;
 }
 .install-copy h3 em { color: var(--accent); font-style: normal; }
 .install-copy p {
-  margin-top: 16px;
+  margin-top: 14px;
   color: var(--fg-2);
-  max-width: 48ch;
+  max-width: 62ch;
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
 }
-.install-copy ul {
-  margin-top: 22px;
-  list-style: none;
-  display: grid;
-  gap: 10px;
-  font-size: 14px;
+.install-copy p strong { color: var(--fg); font-weight: 600; }
+.install-copy p code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
 }
-.install-copy li {
-  display: grid;
-  grid-template-columns: 14px 1fr;
-  gap: 10px;
-  color: var(--fg-2);
-}
-.install-copy li::before {
-  content: "";
-  display: block;
-  width: 6px; height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
-  margin-top: 7px;
-}
-.install-copy li strong { color: var(--fg); font-weight: 600; }
 
 .terminal {
   border: 1px solid var(--line);
@@ -1499,16 +1485,10 @@ kbd {
         <div class="install-copy">
           <h3>Sixty seconds to a <em>verdict.</em></h3>
           <p>
-            If you already run Claude Code, your existing auth carries through — no pasted API key,
-            no new portal, no extra monthly bill. Gemini and OpenAI activate per-provider when you
-            set their keys.
+            Anthropic inherits your local <strong>Claude Code</strong> session — zero config. Set
+            <code>GEMINI_API_KEY</code> or <code>OPENAI_API_KEY</code> to activate those providers.
+            Requires <strong>Bun</strong>.
           </p>
-          <ul>
-            <li><strong>Anthropic:</strong> inherits your local Claude Code session — zero config.</li>
-            <li><strong>Gemini:</strong> export <code>GEMINI_API_KEY</code> to unlock the Gemini provider.</li>
-            <li><strong>OpenAI:</strong> export <code>OPENAI_API_KEY</code> to unlock GPT-class models.</li>
-            <li><strong>Runtime:</strong> Bun — <code>curl -fsSL https://bun.sh/install | bash</code> if you need it.</li>
-          </ul>
         </div>
 
         <div class="terminal" aria-label="Install commands for Forge">
