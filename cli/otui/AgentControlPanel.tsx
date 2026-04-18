@@ -4,12 +4,13 @@
  * every alive agent in the current deliberation.
  *
  * Toggled by pressing `a` from the main OpenTUI view. Keys while open:
- *   ↑/↓ or j/k  — select agent
- *   ←/→ or h/l  — cycle model within the current provider
- *   p           — cycle provider (e.g. Anthropic → Gemini)
- *   space       — pause/resume the agent
- *   s           — force-speak (agent takes the floor next)
- *   esc / a     — close the panel
+ *   ↑/↓ or j     — select agent (vim-k is reserved for the skill picker)
+ *   ←/→ or h/l   — cycle model within the current provider
+ *   p            — cycle provider (e.g. Anthropic → Gemini)
+ *   space        — pause/resume the agent
+ *   s            — force-speak (agent takes the floor next)
+ *   k            — open the Skill Picker for the selected agent
+ *   esc / a      — close the panel back to the deliberation view
  *
  * The panel is a pure rendering surface. All mutations go through the
  * orchestrator's `updateAgentConfig` / `forceSpeak`, which emit EDA
@@ -120,7 +121,7 @@ export function AgentControlPanel({
     }
     if (rows.length === 0) return;
 
-    if (key === 'up' || key === 'k') {
+    if (key === 'up') {
       setSelectedIdx((i) => (i - 1 + rows.length) % rows.length);
       return;
     }

@@ -5,9 +5,9 @@
  * from AgentControlPanel by pressing `k` on a selected agent.
  *
  * Keys:
- *   ↑/↓ or j/k  — select skill
- *   space/enter — toggle applied for the current agent
- *   esc/k       — close back to AgentControlPanel
+ *   ↑/↓ or j     — select skill (vim-k is not aliased, it closes instead)
+ *   space/enter  — toggle the selected skill applied/removed for the agent
+ *   esc / k      — close back to AgentControlPanel
  *
  * The orchestrator stores overrides in-memory and the ClaudeCodeAgent
  * resolves them on every query, so toggles apply to the very next
@@ -75,7 +75,7 @@ export function SkillPicker({
     }
     if (entries.length === 0) return;
 
-    if (key === 'up' || key === 'k') {
+    if (key === 'up') {
       setSelectedIdx((i) => (i - 1 + entries.length) % entries.length);
       return;
     }
