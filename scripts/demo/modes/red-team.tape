@@ -17,11 +17,14 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
-Show
 
+# Type the command while Hidden; Show only after the TUI renders.
 Type "forge start -m red-team -p CheckoutV2Launch -g "
 Type@25ms `"Red-team the Checkout v2 launch: new payment vendor, new DB, 3x traffic. Adversary set: motivated opportunist + insider risk + supply-chain."`
 Type " -a attack-planner,social-engineer,blue-team-lead --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 210s
+
+Sleep 6s
+Show
+Sleep 204s

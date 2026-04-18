@@ -88,6 +88,42 @@ const STATE_ICON: Record<string, string> = {
   paused: '#',
 };
 
+/**
+ * Strip the markdown noise that agents emit so the TUI renders clean
+ * prose instead of `**bold**`, backticks, numbered-header artifacts.
+ * Keeps semantic text; drops delimiters + emojis the terminal can't
+ * render cleanly. Leaves ` · ` separators alone.
+ */
+function cleanMessageBody(raw: string): string {
+  return raw
+    // Kill type tags like [ARGUMENT], [SYNTHESIS]
+    .replace(/^\[[A-Z_ ]+\]\s*/, '')
+    // HTML entities
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    // Headers: drop leading # marks but keep a space so the title
+    // word doesn't crash into the body ("## HERO" → "HERO ")
+    .replace(/(^|\n)\s{0,3}#{1,6}\s*/g, '$1')
+    // Bold / italic: drop the asterisks / underscores but keep the text
+    .replace(/\*\*([\s\S]+?)\*\*/g, '$1')
+    .replace(/__([\s\S]+?)__/g, '$1')
+    .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '$1')
+    .replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '$1')
+    // Inline code fences and blocks
+    .replace(/```[a-z]*\n?/gi, '')
+    .replace(/`([^`\n]+?)`/g, '$1')
+    // Bullet/list markers at line start
+    .replace(/(^|\n)[-*]\s+/g, '$1')
+    // Strip the noisy TUI emojis agents inherit from system-prompt examples
+    .replace(/[🎙️📢📍🎯✍️🔎🧭🔍💡⚠️📋📊🔥⚒]/gu, '')
+    // Collapse all runs of whitespace (including newlines eaten by the
+    // strips above) into a single space, THEN re-introduce breaks at
+    // sentence boundaries so the display has some rhythm.
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // ─── HeaderBar ─────────────────────────────────────────────────────────────
 
 interface HeaderBarProps {
@@ -254,24 +290,20 @@ function DiscussionPane({ messages, maxRows = 20 }: DiscussionPaneProps): React.
         ) : (
           visible.map((msg, i) => {
             if (msg.agentId === 'system') {
+              // Grab the first non-empty line, then clean markdown/emoji
+              // artifacts the orchestrator emits (**PHASE 1/4**, 🎙️, etc.).
               const firstLine = msg.content.split('\n').find((l) => l.trim()) || '';
+              const line = cleanMessageBody(firstLine).slice(0, 140);
               return (
                 <text key={msg.id} fg="#6b6b76">
-                  ◎ {firstLine.slice(0, 140)}
+                  ◎ {line}
                 </text>
               );
             }
             const isCurrent = i === lastAgentIdx;
             const color = agentColor(msg.agentId);
             const badge = TYPE_COLOR[msg.type];
-            const body = msg.content
-              .replace(/^\[[A-Z_]+\]\s*/, '')
-              .replace(/&quot;/g, '"')
-              .replace(/&#39;/g, "'")
-              .replace(/&amp;/g, '&')
-              .replace(/\s+/g, ' ')
-              .trim()
-              .slice(0, 420);
+            const body = cleanMessageBody(msg.content).slice(0, 420);
 
             return (
               <box

@@ -20,18 +20,19 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
-Show
 
-# Boot a short will-it-work session — enough agents in the room to
-# demonstrate per-agent control.
+# Type the command while Hidden; Show only after the session has
+# booted and reached Discovery so the recording jumps straight to
+# agent control material instead of watching a command being typed.
 Type "forge start -m will-it-work -p AgentControlDemo -g "
 Type@25ms `"Will adding a dark-mode toggle ship in Q2?"`
 Type " -a skeptic,pragmatist,analyst --no-human -l english"
 Sleep 400ms
 Enter
 
-# Let the session reach Discovery so the council has rendered.
+# Let the session boot (TUI render) + reach Discovery (council visible).
 Sleep 22s
+Show
 
 # Open Agent Control panel
 Type "a"

@@ -36,18 +36,18 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
-Show
 
-# Boot tech-review session from the tmp workdir (so skills/ is
-# discovered relative to cwd). `forge` is on PATH via `bun link`.
+# Boot the session while Hidden so the recording starts when the TUI
+# is live, not while `forge start ...` is being typed.
 Type "forge start -m tech-review -p SkillPickerDemo -g "
 Type@25ms `"Audit the checkout service."`
 Type " -a architect,security-reviewer --no-human -l english"
 Sleep 400ms
 Enter
 
-# Wait for deliberation to begin
+# Wait for deliberation to begin; THEN reveal.
 Sleep 20s
+Show
 
 # Open Agent Control, then Skill Picker on the selected agent
 Type "a"

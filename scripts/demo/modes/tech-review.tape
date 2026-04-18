@@ -17,11 +17,14 @@ Enter
 Type "clear"
 Enter
 Sleep 200ms
-Show
 
+# Type the command while Hidden; Show only after the TUI renders.
 Type "forge start -m tech-review -p ForgeSelfAudit -g "
 Type@25ms `"Review github.com/SaharBarak/forge — focus on EDAOrchestrator coupling, SkillsLoader attack surface, and test coverage gaps."`
 Type " -a architect,perf-engineer,security-reviewer,test-engineer --no-human -l english"
 Sleep 400ms
 Enter
-Sleep 210s
+
+Sleep 6s
+Show
+Sleep 204s

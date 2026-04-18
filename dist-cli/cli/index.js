@@ -2113,6 +2113,9 @@ __export(App_exports, {
 import React3, { useState as useState3, useEffect as useEffect3, useRef, useMemo as useMemo3 } from "react";
 import { useKeyboard as useKeyboard3 } from "@opentui/react";
 import { Fragment, jsx as jsx3, jsxs as jsxs3 } from "@opentui/react/jsx-runtime";
+function cleanMessageBody(raw) {
+  return raw.replace(/^\[[A-Z_ ]+\]\s*/, "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/(^|\n)\s{0,3}#{1,6}\s*/g, "$1").replace(/\*\*([\s\S]+?)\*\*/g, "$1").replace(/__([\s\S]+?)__/g, "$1").replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, "$1").replace(/(?<!_)_([^_\n]+?)_(?!_)/g, "$1").replace(/```[a-z]*\n?/gi, "").replace(/`([^`\n]+?)`/g, "$1").replace(/(^|\n)[-*]\s+/g, "$1").replace(/[🎙️📢📍🎯✍️🔎🧭🔍💡⚠️📋📊🔥⚒]/gu, "").replace(/\s+/g, " ").trim();
+}
 function HeaderBar({
   projectName,
   goal,
@@ -2233,15 +2236,16 @@ function DiscussionPane({ messages, maxRows = 20 }) {
     /* @__PURE__ */ jsx3("box", { marginTop: 1, flexDirection: "column", children: visible.length === 0 ? /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "Waiting for the orchestrator to open the floor\u2026" }) : visible.map((msg, i) => {
       if (msg.agentId === "system") {
         const firstLine = msg.content.split("\n").find((l) => l.trim()) || "";
+        const line = cleanMessageBody(firstLine).slice(0, 140);
         return /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
           "\u25CE ",
-          firstLine.slice(0, 140)
+          line
         ] }, msg.id);
       }
       const isCurrent = i === lastAgentIdx;
       const color = agentColor(msg.agentId);
       const badge = TYPE_COLOR[msg.type];
-      const body = msg.content.replace(/^\[[A-Z_]+\]\s*/, "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim().slice(0, 420);
+      const body = cleanMessageBody(msg.content).slice(0, 420);
       return /* @__PURE__ */ jsxs3(
         "box",
         {
