@@ -31,7 +31,8 @@ import { createCompletionsCommand } from './commands/completions';
 import { createConfigCommand } from './commands/config';
 import { createSkillsCommand } from './commands/skills';
 import { createInitCommand } from './commands/init';
-import { loadConfig, resolveProviderKey } from '../src/lib/config/ForgeConfig';
+import { createMenuCommand } from './commands/menu';
+import { launchSession } from './lib/session-launcher';
 import { createLoginCommand } from './commands/login';
 import { createCommunityCommand } from './commands/community';
 import { createFileAuthBridge } from './adapters/auth-bridge';
@@ -324,323 +325,43 @@ program
   .description('Multi-agent deliberation engine - reach consensus through structured debate')
   .version('1.0.0');
 
-// Start command - main debate entry point
+// Start command - power-user path (flags only). Intended for scripts
+// and CI; interactive humans should run bare `forge` for the wizard.
 program
-  .command('start')
-  .description('Start a new debate session')
+  .command('start', { hidden: true })
+  .description('[power-user] Launch a session directly from flags (regular use: run `forge` for the menu)')
   .option('-b, --brief <name>', 'Brief name to load (from briefs/ directory)')
   .option('-p, --project <name>', 'Project name', 'New Project')
   .option('-g, --goal <goal>', 'Project goal')
   .option('-a, --agents <ids>', 'Comma-separated agent IDs (from default or custom personas)')
-  .option('-m, --mode <mode>', 'Deliberation mode: copywrite, idea-validation, ideation, will-it-work, site-survey, business-plan, gtm-strategy, custom', 'copywrite')
+  .option('-m, --mode <mode>', 'Deliberation mode (see `forge --help`)', 'will-it-work')
   .option('--personas <name>', 'Use custom persona set (from personas/ directory)')
-  .option('-l, --language <lang>', 'Language: hebrew, english, mixed', 'hebrew')
+  .option('-l, --language <lang>', 'Language: hebrew, english, mixed', 'english')
   .option('--human', 'Enable human participation', true)
   .option('--no-human', 'Disable human participation')
   .option('-o, --output <dir>', 'Output directory for sessions', 'output/sessions')
   .action(async (options) => {
-    const cwd = process.cwd();
-    const fsAdapter = new FileSystemAdapter(cwd);
-    // Use the Claude Code CLI runner by default — it inherits the user's
-    // authenticated `claude` session, no ANTHROPIC_API_KEY required. This is
-    // the spec in README.md and project memory. Fall back to the direct SDK
-    // runner only if ANTHROPIC_API_KEY is explicitly set.
-    const agentRunner = process.env.ANTHROPIC_API_KEY
-      ? new CLIAgentRunner()
-      : new ClaudeCodeCLIRunner();
-
-    // Build the provider registry. Anthropic is always available because
-    // it wraps whichever runner we just instantiated (SDK or Claude Code).
-    // Gemini activates only when GEMINI_API_KEY / GOOGLE_API_KEY is set.
-    const { ProviderRegistry, AnthropicProvider, GeminiProvider, OpenAIProvider, OllamaProvider } =
-      await import('../src/lib/providers');
-
-    // Read persistent settings from ~/.config/forge/config.json; env
-    // vars still override so CI / ad-hoc shells Just Work.
-    const forgeSettings = await loadConfig();
-
-    const providers = new ProviderRegistry();
-    providers.register(new AnthropicProvider(agentRunner, true), { asDefault: true });
-
-    const geminiKey = resolveProviderKey(forgeSettings, 'gemini', 'GEMINI_API_KEY')
-      ?? resolveProviderKey(forgeSettings, 'gemini', 'GOOGLE_API_KEY');
-    const gemini = new GeminiProvider(geminiKey);
-    if (gemini.isAvailable()) providers.register(gemini);
-
-    const openaiKey = resolveProviderKey(forgeSettings, 'openai', 'OPENAI_API_KEY');
-    const openai = new OpenAIProvider(openaiKey);
-    if (openai.isAvailable()) providers.register(openai);
-
-    // Ollama auto-detects — probe the daemon once. If up, the local
-    // models (Gemma / Llama / Qwen / Mistral / DeepSeek / ...) become
-    // selectable from the Agent Control panel.
-    const ollamaCfg = forgeSettings.providers.ollama;
-    if (ollamaCfg?.enabled !== false) {
-      const ollama = new OllamaProvider({ baseUrl: ollamaCfg?.baseUrl });
-      if (await ollama.probe()) providers.register(ollama);
-    }
-
-    // Load brief if specified
-    let briefContent = '';
-    let projectName = options.project;
-    let goal = options.goal || '';
-
-    if (options.brief) {
-      const brief = await fsAdapter.readBrief(options.brief);
-      if (brief) {
-        briefContent = brief;
-        // Try to extract project name and goal from brief
-        const titleMatch = brief.match(/^#\s+(.+)$/m);
-        if (titleMatch && projectName === 'New Project') {
-          projectName = titleMatch[1];
-        }
-        if (!goal) {
-          goal = `Create website copy for ${projectName}`;
-        }
-      } else {
-        console.error(`Brief "${options.brief}" not found in briefs/ directory`);
-        process.exit(1);
-      }
-    }
-
-    if (!goal) {
-      goal = `Debate and reach consensus on: ${projectName}`;
-    }
-
-    // Load personas (custom or default)
-    let availablePersonas: AgentPersona[] = AGENT_PERSONAS;
-    let domainSkills: string | undefined;
-    let personaSetName: string | null = options.personas || null;
-
-    // If no personas specified, use the built-in default council.
-    // The old readline-based `selectPersonas` prompt has been removed —
-    // it polluted stdout and scrolled the terminal before Ink could own
-    // it. If the user wants to pick a saved persona set, they can pass
-    // `--personas <name>` explicitly; otherwise the Ink StartWizard (from
-    // the Shell) handles persona selection as a proper Ink screen.
-    // Here in the direct `forge start` action we just fall through to the
-    // default persona set silently.
-
-    // Load personas from file if specified
-    if (personaSetName && availablePersonas === AGENT_PERSONAS) {
-      const personasPath = path.join(cwd, 'personas', `${personaSetName}.json`);
-      try {
-        const content = await fs.readFile(personasPath, 'utf-8');
-        availablePersonas = JSON.parse(content);
-      } catch {
-        console.error(`Persona set "${personaSetName}" not found in personas/ directory`);
-        process.exit(1);
-      }
-    }
-
-    // Load domain skills if custom personas
-    if (personaSetName) {
-      const skillsPath = path.join(cwd, 'personas', `${personaSetName}.skills.md`);
-      try {
-        domainSkills = await fs.readFile(skillsPath, 'utf-8');
-        console.log(`📚 Loaded domain expertise: ${personaSetName}.skills.md`);
-      } catch {
-        // No skills file - that's OK
-      }
-    }
-
-    // Parse agent IDs or use interactive selection
-    let validAgents: string[] = [];
-
-    if (options.agents) {
-      // Use command-line specified agents
-      const enabledAgents = options.agents.split(',').map((id: string) => id.trim());
-      validAgents = enabledAgents.filter((id: string) =>
-        availablePersonas.some(a => a.id === id)
-      );
-
-      if (validAgents.length === 0) {
-        console.error('No valid agents specified. Available agents:');
-        availablePersonas.forEach(a => console.error(`  - ${a.id}: ${a.name} (${a.role})`));
-        process.exit(1);
-      }
-    } else {
-      // No -a flag: use all agents from the active persona set. The old
-      // readline-based interactive selector polluted stdout; CLI users who
-      // want a subset should pass -a skeptic,pragmatist,analyst explicitly.
-      validAgents = availablePersonas.map((a) => a.id);
-    }
-
-    // Register custom personas if using a custom set
-    if (personaSetName) {
-      registerCustomPersonas(availablePersonas);
-    } else {
-      clearCustomPersonas(); // Ensure we use defaults
-    }
-
-    // Create session config
-    const config: SessionConfig = {
-      id: uuid(),
-      projectName,
-      goal,
-      enabledAgents: validAgents,
-      humanParticipation: options.human,
-      maxRounds: 10,
-      consensusThreshold: 0.6,
-      methodology: getDefaultMethodology(),
-      contextDir: path.join(cwd, 'context'),
-      outputDir: options.output,
-      language: options.language,
-      mode: options.mode,
-    };
-
-    // Create session
-    const session: Session = {
-      id: config.id,
-      config,
-      messages: [],
-      currentPhase: 'initialization',
-      currentRound: 0,
-      decisions: [],
-      drafts: [],
-      startedAt: new Date(),
-      status: 'running',
-    };
-
-    // Create persistence
-    const persistence = new SessionPersistence(fsAdapter, {
-      outputDir: options.output,
+    // Parse --mode and --agents (comma list) into the SessionLaunchRequest
+    // shape. Everything else goes through launchSession() — the same
+    // runway the interactive menu uses.
+    const agents = options.agents
+      ? String(options.agents).split(",").map((s) => s.trim()).filter(Boolean)
+      : ["skeptic","pragmatist","analyst"];
+    const result = await launchSession({
+      projectName: options.project ?? "New Project",
+      goal: options.goal ?? `Debate and reach consensus on: ${options.project ?? "New Project"}`,
+      mode: options.mode ?? "will-it-work",
+      agents,
+      language: (options.language as "english" | "hebrew" | "mixed") ?? "english",
+      humanParticipation: options.human !== false,
+      outputDir: options.output ?? "output/sessions",
+      personaSet: options.personas ?? null,
+      brief: options.brief,
     });
-    await persistence.initSession(session);
-
-    // Resolve per-agent skills. Runs the optional `skills.sh` hook, then
-    // picks up skills/<agentId>.md, skills/<mode>.md, and skills/shared.md.
-    // The returned map is self-descriptive — each entry already includes
-    // shared + mode layers, so the orchestrator just forwards it.
-    const { loadSkills, discoverSkills } = await import('../src/lib/skills');
-    const resolvedSkills = await loadSkills({
-      cwd,
-      modeId: options.mode || 'copywrite',
-      enabledAgents: validAgents,
-      sessionWorkdir: persistence.getSessionDir(),
-      goal,
-    });
-    for (const [agentId, used] of resolvedSkills.sources) {
-      if (used.length > 0) {
-        console.log(`${GREEN}  ✔ Skills for ${agentId}: ${used.join(', ')}${RESET}`);
-      }
+    if (!result.success) {
+      console.error(`${RED}${result.error ?? "Session did not start"}${RESET}`);
+      process.exit(1);
     }
-
-    // Build the full catalog the TUI skill picker browses. Runs in
-    // parallel with orchestrator init because it only touches disk.
-    const skillCatalog = await discoverSkills({ cwd });
-    if (skillCatalog.entries.length > 0) {
-      console.log(
-        `${DIM}  · skill catalog: ${skillCatalog.entries.length} discovered — press 'k' in the agent panel to browse${RESET}`
-      );
-    }
-
-    // Create orchestrator with CLI adapters.
-    // When --no-human is set, no one can advance phases manually, so the
-    // orchestrator must drive the phase state machine itself.
-    const orchestrator = new EDAOrchestrator(
-      session,
-      undefined, // context
-      domainSkills, // domain-specific skills (or undefined for default copywriting)
-      {
-        agentRunner,
-        fileSystem: fsAdapter,
-        autoRunPhaseMachine: !options.human,
-        providers,
-        sessionWorkdir: persistence.getSessionDir(),
-        perAgentSkills: resolvedSkills.perAgent,
-        skillCatalog,
-      }
-    );
-
-    // Update persistence with session reference
-    orchestrator.on((event) => {
-      if (event.type === 'agent_message') {
-        persistence.updateSession(orchestrator.getSession());
-      }
-    });
-
-    // Persist per-agent runtime configs to a sidecar file so rerunning
-    // this session picks up the operator's model assignments. Debounced
-    // behind a microtask because the control panel can emit a burst of
-    // changes when cycling through models.
-    let configFlushPending = false;
-    orchestrator.on(async (event) => {
-      if (event.type !== 'agent_config_change') return;
-      if (configFlushPending) return;
-      configFlushPending = true;
-      queueMicrotask(async () => {
-        configFlushPending = false;
-        try {
-          const snapshot = Object.fromEntries(orchestrator.getAllAgentConfigs());
-          await fsAdapter.writeFile(
-            path.join(persistence.getSessionDir(), 'agent-configs.json'),
-            JSON.stringify(snapshot, null, 2)
-          );
-        } catch (err) {
-          // Non-fatal — TUI keeps running, just log to session.log
-          console.error('[agent-configs] persist failed:', err);
-        }
-      });
-    });
-
-    // Check for DID identity — create one if missing.
-    const authRepo = createSessionRepository(
-      () => ResultAsync.fromSafePromise(Promise.resolve(createFileAuthBridge()))
-    );
-    const authResult = await authRepo.restoreSession();
-    const authState = authResult.match((s) => s, () => null);
-    if (!authState) {
-      console.log(`${CYAN}  Creating Forge identity (did:key)…${RESET}`);
-      const createResult = await authRepo.createIdentity();
-      createResult.match(
-        (s) => console.log(`${GREEN}  ✔ Identity: ${s.did.slice(0, 24)}…${RESET}`),
-        (err) => console.log(`${YELLOW}  ⚠ Identity creation failed: ${err.message}${RESET}`)
-      );
-    } else {
-      console.log(`${GREEN}  ✔ Identity: ${authState.did.slice(0, 24)}…${RESET}`);
-    }
-
-    // (intentionally no console.log here — Ink owns stdout from here on.
-    // The session path is printed after Ink unmounts.)
-
-    // Silence stray console.log/error calls from the orchestrator so
-    // they don't pollute the TUI. Output lands in session.log.
-    const { captureConsoleToFile } = await import('./adapters/console-capture');
-    const captured = captureConsoleToFile(persistence.getSessionDir());
-
-    // Render the main deliberation UI via OpenTUI's React reconciler.
-    // OpenTUI uses a native Zig core with dirty-rectangle optimization at
-    // 60 FPS — no full viewport redraws, so no flicker (which was the
-    // fundamental architectural problem with Ink).
-    const { createCliRenderer } = await import('@opentui/core');
-    const { createRoot } = await import('@opentui/react');
-    const { OpenTuiApp } = await import('./otui/App');
-
-    const renderer = await createCliRenderer({
-      exitOnCtrlC: true,
-    });
-    const root = createRoot(renderer);
-    const done = new Promise<void>((resolve) => {
-      renderer.on('destroy', () => resolve());
-    });
-    root.render(
-      React.createElement(OpenTuiApp, {
-        orchestrator,
-        persistence,
-        session,
-        onExit: () => {
-          renderer.destroy();
-        },
-      })
-    );
-
-    await done;
-    captured.restore();
-    await persistence.saveFull();
-    clearCustomPersonas();
-    console.log(`\n✅ Session saved to ${persistence.getSessionDir()}`);
-    console.log(`   Debug log: ${captured.logPath}`);
   });
 
 // Briefs command - list available briefs
@@ -716,34 +437,15 @@ program.addCommand(createLoginCommand());
 program.addCommand(createCommunityCommand());
 
 
-// Default action — print a short help screen.
+// Bare `forge` → interactive menu. This IS the primary entry point.
+// Shows the Last Supper banner + a @clack/prompts menu that walks the
+// user through mode + project + goal + agents + language before
+// handing off to the OpenTUI deliberation view.
 //
-// The Ink-based HomeScreen + StartWizard flow (cli/app/Shell.tsx) has been
-// disabled while we migrate to OpenTUI. Ink's bundled react-reconciler
-// uses React 18 internals that crash under React 19 (which OpenTUI
-// requires). Until Shell/StartWizard are ported to OpenTUI, the bare
-// `forge` command just prints usage and exits.
-program.action(async () => {
-  const banner = [
-    '',
-    '  ⚒  FORGE — multi-agent deliberation engine',
-    '',
-    '  Start a deliberation:',
-    '    forge start -m <mode> -g "<goal>"',
-    '',
-    '  Available modes:',
-    '    copywrite · idea-validation · ideation · will-it-work',
-    '    site-survey · business-plan · gtm-strategy',
-    '    vc-pitch · tech-review · red-team · custom',
-    '',
-    '  Example:',
-    '    forge start -m will-it-work -g "Ship Q2 migration?"',
-    '',
-    '  Full help:  forge --help',
-    '',
-  ];
-  console.log(banner.join('\n'));
-});
+// The old direct `forge start -m -g -a ...` form is still available
+// (marked hidden in the command declaration above) for scripts and CI;
+// interactive humans should just run `forge`.
+program.action(createMenuCommand());
 
 // ---- graceful shutdown ----
 

@@ -644,28 +644,28 @@ var init_personas = __esm({
 });
 
 // src/lib/skills/SkillsLoader.ts
-import * as path12 from "path";
-import * as os2 from "os";
+import * as path11 from "path";
+import * as os from "os";
 import * as fs9 from "fs/promises";
 import { spawnSync } from "child_process";
-async function readIfExists(p2) {
+async function readIfExists(p3) {
   try {
-    const content = await fs9.readFile(p2, "utf-8");
+    const content = await fs9.readFile(p3, "utf-8");
     return content.trim() ? content : null;
   } catch {
     return null;
   }
 }
-async function isExecutable(p2) {
+async function isExecutable(p3) {
   try {
-    const stat3 = await fs9.stat(p2);
+    const stat3 = await fs9.stat(p3);
     return stat3.isFile() && (stat3.mode & 73) !== 0;
   } catch {
     return false;
   }
 }
 async function runHook(src) {
-  const hookPath = path12.join(src.cwd, SKILLS_HOOK);
+  const hookPath = path11.join(src.cwd, SKILLS_HOOK);
   if (!await isExecutable(hookPath)) return { ran: false, exitCode: null };
   const result = spawnSync(hookPath, [], {
     cwd: src.cwd,
@@ -688,18 +688,18 @@ async function runHook(src) {
 }
 async function loadSkills(src) {
   await runHook(src);
-  const projectSkillsDir = path12.join(src.cwd, "skills");
-  const userSkillsDir = path12.join(os2.homedir(), ".claude", "skills", "forge");
-  const shared = await readIfExists(path12.join(projectSkillsDir, "shared.md")) ?? "";
-  const modeLayer = await readIfExists(path12.join(projectSkillsDir, `${src.modeId}.md`)) ?? "";
+  const projectSkillsDir = path11.join(src.cwd, "skills");
+  const userSkillsDir = path11.join(os.homedir(), ".claude", "skills", "forge");
+  const shared = await readIfExists(path11.join(projectSkillsDir, "shared.md")) ?? "";
+  const modeLayer = await readIfExists(path11.join(projectSkillsDir, `${src.modeId}.md`)) ?? "";
   const sharedCombined = [shared, modeLayer].filter(Boolean).join("\n\n---\n\n");
   const perAgent = /* @__PURE__ */ new Map();
   const sources = /* @__PURE__ */ new Map();
   for (const agentId of src.enabledAgents) {
     const used = [];
     let agentLayer = null;
-    const projectAgentPath = path12.join(projectSkillsDir, `${agentId}.md`);
-    const userAgentPath = path12.join(userSkillsDir, `${agentId}.md`);
+    const projectAgentPath = path11.join(projectSkillsDir, `${agentId}.md`);
+    const userAgentPath = path11.join(userSkillsDir, `${agentId}.md`);
     agentLayer = await readIfExists(projectAgentPath);
     if (agentLayer) used.push(`skills/${agentId}.md`);
     if (!agentLayer) {
@@ -743,7 +743,7 @@ async function listDirMd(dir) {
   }
 }
 async function runHookList(cwd) {
-  const hookPath = path12.join(cwd, SKILLS_HOOK);
+  const hookPath = path11.join(cwd, SKILLS_HOOK);
   if (!await isExecutable(hookPath)) return [];
   const result = spawnSync(hookPath, ["list"], {
     cwd,
@@ -787,25 +787,25 @@ async function discoverSkills({ cwd }) {
     if (catalog.has(entry.id)) return;
     catalog.set(entry.id, entry);
   };
-  const projectDir = path12.join(cwd, "skills");
+  const projectDir = path11.join(cwd, "skills");
   for (const name of await listDirMd(projectDir)) {
     const id = name.replace(/\.md$/, "");
-    addEntry(await readSkillFile(path12.join(projectDir, name), id, "project"));
+    addEntry(await readSkillFile(path11.join(projectDir, name), id, "project"));
   }
-  const userDir = path12.join(os2.homedir(), ".claude", "skills", "forge");
+  const userDir = path11.join(os.homedir(), ".claude", "skills", "forge");
   for (const name of await listDirMd(userDir)) {
     const id = `user:${name.replace(/\.md$/, "")}`;
-    addEntry(await readSkillFile(path12.join(userDir, name), id, "user"));
+    addEntry(await readSkillFile(path11.join(userDir, name), id, "user"));
   }
   try {
-    const pluginsDir = path12.join(os2.homedir(), ".claude", "plugins");
+    const pluginsDir = path11.join(os.homedir(), ".claude", "plugins");
     const plugins = await fs9.readdir(pluginsDir, { withFileTypes: true });
     for (const plugin of plugins) {
       if (!plugin.isDirectory()) continue;
-      const skillsDir = path12.join(pluginsDir, plugin.name, "skills");
+      const skillsDir = path11.join(pluginsDir, plugin.name, "skills");
       for (const name of await listDirMd(skillsDir)) {
         const id = `plugin:${plugin.name}/${name.replace(/\.md$/, "")}`;
-        addEntry(await readSkillFile(path12.join(skillsDir, name), id, "plugin"));
+        addEntry(await readSkillFile(path11.join(skillsDir, name), id, "plugin"));
       }
     }
   } catch {
@@ -839,6 +839,48 @@ var init_skills = __esm({
   "src/lib/skills/index.ts"() {
     "use strict";
     init_SkillsLoader();
+  }
+});
+
+// src/lib/config/ForgeConfig.ts
+import * as path13 from "path";
+import * as os2 from "os";
+import * as fs11 from "fs/promises";
+function configDir() {
+  const xdg = process.env.XDG_CONFIG_HOME;
+  return path13.join(xdg ?? path13.join(os2.homedir(), ".config"), "forge");
+}
+function configPath() {
+  return path13.join(configDir(), "config.json");
+}
+async function loadConfig2() {
+  try {
+    const raw = await fs11.readFile(configPath(), "utf-8");
+    const parsed = JSON.parse(raw);
+    if (!parsed.providers || typeof parsed.providers !== "object") {
+      parsed.providers = {};
+    }
+    return parsed;
+  } catch {
+    return { ...EMPTY };
+  }
+}
+async function saveConfig2(settings) {
+  await fs11.mkdir(configDir(), { recursive: true });
+  await fs11.writeFile(configPath(), JSON.stringify(settings, null, 2) + "\n", "utf-8");
+}
+function resolveProviderKey(settings, provider, envName) {
+  const envKey = envName ? process.env[envName] : void 0;
+  if (envKey) return envKey;
+  const cfg = settings.providers[provider];
+  if (!cfg || cfg.enabled === false) return void 0;
+  return cfg.apiKey;
+}
+var EMPTY;
+var init_ForgeConfig = __esm({
+  "src/lib/config/ForgeConfig.ts"() {
+    "use strict";
+    EMPTY = { providers: {} };
   }
 });
 
@@ -968,342 +1010,167 @@ var init_OllamaProvider = __esm({
   }
 });
 
-// electron/p2p/node.js
-var node_exports = {};
-__export(node_exports, {
-  allDocs: () => allDocs,
-  deleteDoc: () => deleteDoc,
-  getDoc: () => getDoc,
-  getStatus: () => getStatus,
-  onUpdate: () => onUpdate,
-  putDoc: () => putDoc,
-  startNode: () => startNode,
-  stopNode: () => stopNode
+// cli/commands/init.ts
+var init_exports = {};
+__export(init_exports, {
+  createInitCommand: () => createInitCommand
 });
-import path16 from "path";
-import fs13 from "fs/promises";
-async function startNode({ dataDir: dataDir2 }) {
-  storePath = path16.join(dataDir2, "store.jsonl");
-  await fs13.mkdir(dataDir2, { recursive: true });
-  try {
-    const content = await fs13.readFile(storePath, "utf-8");
-    for (const line of content.split("\n")) {
-      if (!line.trim()) continue;
-      try {
-        const doc = JSON.parse(line);
-        if (doc._tombstone) {
-          docs.delete(doc._id);
-        } else if (doc._id) {
-          docs.set(doc._id, doc);
-        }
-      } catch {
-      }
-    }
-  } catch {
-  }
-  console.log(`[p2p] store opened: ${docs.size} docs from ${storePath}`);
+import { Command as Command9 } from "commander";
+import * as p from "@clack/prompts";
+import chalk5 from "chalk";
+async function probeOllama() {
+  const provider = new OllamaProvider();
+  const up = await provider.probe();
+  if (!up) return { up: false, models: [] };
   return {
-    peerId: `local-${Date.now().toString(36)}`,
-    dbAddress: storePath
+    up: true,
+    models: provider.listModels().map((m) => m.id)
   };
 }
-async function stopNode() {
-  docs.clear();
-  updateListeners.clear();
-  storePath = null;
+async function runInit(opts) {
+  p.intro(chalk5.bold("\u2692  forge init"));
+  const existing = await loadConfig2();
+  const hasExisting = Object.keys(existing.providers ?? {}).length > 0;
+  if (hasExisting && !opts.force) {
+    const keep = await p.confirm({
+      message: `Existing config at ${configPath()}. Edit it?`,
+      initialValue: true
+    });
+    if (p.isCancel(keep) || !keep) {
+      p.cancel("No changes.");
+      return;
+    }
+  }
+  const next = {
+    ...existing,
+    providers: { ...existing.providers }
+  };
+  const anthropic = await p.confirm({
+    message: "Enable Anthropic (Claude)? Uses your local `claude` CLI auth \u2014 no key needed.",
+    initialValue: next.providers.anthropic?.enabled ?? true
+  });
+  if (p.isCancel(anthropic)) return abortAndReturn();
+  next.providers.anthropic = {
+    enabled: !!anthropic,
+    defaultModel: next.providers.anthropic?.defaultModel ?? "claude-sonnet-4-20250514"
+  };
+  const gemini = await p.confirm({
+    message: "Enable Gemini (Google)?",
+    initialValue: next.providers.gemini?.enabled ?? false
+  });
+  if (p.isCancel(gemini)) return abortAndReturn();
+  if (gemini) {
+    const key = await p.password({
+      message: "Paste GEMINI_API_KEY (enter to skip \u2014 env var still works):",
+      mask: "\u2022"
+    });
+    if (p.isCancel(key)) return abortAndReturn();
+    next.providers.gemini = {
+      enabled: true,
+      apiKey: key ? String(key).trim() : next.providers.gemini?.apiKey,
+      defaultModel: next.providers.gemini?.defaultModel ?? "gemini-2.5-flash"
+    };
+  } else {
+    next.providers.gemini = { enabled: false };
+  }
+  const openai = await p.confirm({
+    message: "Enable OpenAI (GPT)?",
+    initialValue: next.providers.openai?.enabled ?? false
+  });
+  if (p.isCancel(openai)) return abortAndReturn();
+  if (openai) {
+    const key = await p.password({
+      message: "Paste OPENAI_API_KEY (enter to skip \u2014 env var still works):",
+      mask: "\u2022"
+    });
+    if (p.isCancel(key)) return abortAndReturn();
+    next.providers.openai = {
+      enabled: true,
+      apiKey: key ? String(key).trim() : next.providers.openai?.apiKey,
+      defaultModel: next.providers.openai?.defaultModel ?? "gpt-4o"
+    };
+  } else {
+    next.providers.openai = { enabled: false };
+  }
+  const spin = p.spinner();
+  spin.start("Probing Ollama at http://localhost:11434");
+  const ollama = await probeOllama();
+  spin.stop(
+    ollama.up ? `Ollama daemon up \xB7 ${ollama.models.length} model${ollama.models.length === 1 ? "" : "s"} installed` : "No Ollama daemon (install from ollama.com if you want local models like Gemma)"
+  );
+  if (ollama.up) {
+    const pick = await p.confirm({
+      message: "Enable Ollama for local models (Gemma, Llama, Qwen, Mistral, DeepSeek)?",
+      initialValue: next.providers.ollama?.enabled ?? true
+    });
+    if (p.isCancel(pick)) return abortAndReturn();
+    let defaultModel = next.providers.ollama?.defaultModel;
+    if (pick && ollama.models.length > 0 && !defaultModel) {
+      const m = await p.select({
+        message: "Default local model to seed new agents with:",
+        options: ollama.models.map((id) => ({ value: id, label: id })),
+        initialValue: ollama.models[0]
+      });
+      if (p.isCancel(m)) return abortAndReturn();
+      defaultModel = String(m);
+    }
+    next.providers.ollama = {
+      enabled: !!pick,
+      baseUrl: next.providers.ollama?.baseUrl ?? "http://localhost:11434",
+      defaultModel
+    };
+  } else {
+    next.providers.ollama = { enabled: false };
+  }
+  const mode = await p.select({
+    message: "Default mode when `forge start` is called without -m:",
+    options: [
+      { value: "will-it-work", label: "will-it-work \u2014 force a YES/NO/MAYBE-IF verdict" },
+      { value: "idea-validation", label: "idea-validation \u2014 GO/NO-GO/PIVOT" },
+      { value: "tech-review", label: "tech-review \u2014 specialist repo audit" },
+      { value: "red-team", label: "red-team \u2014 adversarial review" },
+      { value: "vc-pitch", label: "vc-pitch \u2014 simulated partner meeting" },
+      { value: "copywrite", label: "copywrite \u2014 section-by-section drafting" },
+      { value: "custom", label: "custom \u2014 your phases" }
+    ],
+    initialValue: next.defaults?.mode ?? "will-it-work"
+  });
+  if (p.isCancel(mode)) return abortAndReturn();
+  next.defaults = { ...next.defaults, mode: String(mode) };
+  await saveConfig2(next);
+  const enabled = Object.entries(next.providers).filter(([, cfg]) => cfg?.enabled).map(([id]) => id);
+  p.note(
+    [
+      `Config saved \u2192 ${configPath()}`,
+      "",
+      `Providers enabled: ${enabled.length > 0 ? enabled.join(", ") : "(none)"}`,
+      `Default mode:      ${next.defaults.mode}`,
+      "",
+      chalk5.dim("Re-run `forge init` any time to edit."),
+      chalk5.dim("Env vars (GEMINI_API_KEY, OPENAI_API_KEY) always override the saved config.")
+    ].join("\n"),
+    "Done"
+  );
+  p.outro(chalk5.green("Ready. Try `forge start -m " + next.defaults.mode + "` to run your first deliberation."));
 }
-function requireStarted() {
-  if (!storePath) throw new Error("Store not started");
+function abortAndReturn() {
+  p.cancel("Cancelled \u2014 nothing saved.");
 }
-async function putDoc(doc) {
-  requireStarted();
-  if (!doc || !doc._id) throw new Error("putDoc requires _id");
-  docs.set(doc._id, doc);
-  await fs13.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
-  for (const cb of updateListeners) {
+function createInitCommand() {
+  return new Command9("init").description("Interactive setup: enable providers, paste API keys, pick defaults").option("-f, --force", 'Skip the "edit existing?" prompt and rewrite directly').action(async (opts) => {
     try {
-      cb({ hash: doc._id, id: doc._id, op: "PUT" });
-    } catch {
+      await runInit(opts);
+    } catch (err2) {
+      console.error(chalk5.red("forge init failed:"), err2 instanceof Error ? err2.message : err2);
+      process.exit(1);
     }
-  }
-  return { hash: doc._id, id: doc._id };
+  });
 }
-async function getDoc(id) {
-  requireStarted();
-  return docs.get(id) ?? null;
-}
-async function allDocs() {
-  requireStarted();
-  return Array.from(docs.entries()).map(([id, doc]) => ({
-    hash: id,
-    doc
-  }));
-}
-async function deleteDoc(id) {
-  requireStarted();
-  docs.delete(id);
-  await fs13.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
-  return id;
-}
-async function getStatus() {
-  return {
-    running: !!storePath,
-    peerId: storePath ? "local" : void 0,
-    dbAddress: storePath ?? void 0,
-    peerCount: 0,
-    connectionCount: 0,
-    docCount: docs.size
-  };
-}
-function onUpdate(cb) {
-  updateListeners.add(cb);
-  return () => updateListeners.delete(cb);
-}
-var storePath, docs, updateListeners;
-var init_node = __esm({
-  "electron/p2p/node.js"() {
+var init_init = __esm({
+  "cli/commands/init.ts"() {
     "use strict";
-    storePath = null;
-    docs = /* @__PURE__ */ new Map();
-    updateListeners = /* @__PURE__ */ new Set();
-  }
-});
-
-// electron/connections/embeddings.js
-var MODEL_ID, DIMENSIONS, pipelinePromise, pipelineInstance, loading, loadPipeline, ensureReady, embed, getStatus2, EMBEDDING_DIMENSIONS;
-var init_embeddings = __esm({
-  "electron/connections/embeddings.js"() {
-    "use strict";
-    MODEL_ID = "Xenova/all-MiniLM-L6-v2";
-    DIMENSIONS = 384;
-    pipelinePromise = null;
-    pipelineInstance = null;
-    loading = false;
-    loadPipeline = async () => {
-      const { pipeline, env } = await import("@huggingface/transformers");
-      env.allowRemoteModels = true;
-      env.allowLocalModels = true;
-      return pipeline("feature-extraction", MODEL_ID, {
-        // `quantized: true` would halve memory but we keep full precision for
-        // better small-model quality. Revisit if bundle size becomes an issue.
-        quantized: false
-      });
-    };
-    ensureReady = async () => {
-      if (pipelineInstance) return pipelineInstance;
-      if (pipelinePromise) return pipelinePromise;
-      loading = true;
-      pipelinePromise = loadPipeline().then((p2) => {
-        pipelineInstance = p2;
-        loading = false;
-        console.log("[embeddings] model loaded:", MODEL_ID);
-        return p2;
-      }).catch((err2) => {
-        loading = false;
-        pipelinePromise = null;
-        console.error("[embeddings] failed to load model:", err2);
-        throw err2;
-      });
-      return pipelinePromise;
-    };
-    embed = async (text) => {
-      const pipe = await ensureReady();
-      const output = await pipe(text, { pooling: "mean", normalize: true });
-      return new Float32Array(output.data);
-    };
-    getStatus2 = () => ({
-      loaded: !!pipelineInstance,
-      loading,
-      model: MODEL_ID,
-      dimensions: DIMENSIONS
-    });
-    EMBEDDING_DIMENSIONS = DIMENSIONS;
-  }
-});
-
-// electron/connections/vector-index.js
-import path17 from "path";
-import fs14 from "fs/promises";
-var Index, MetricKind, index, idMap, dataDir, indexPath, mapPath, dimensions, dirty, loadUsearch, loadIdMap, saveIdMap, load, requireOpen, addVector, hasId, removeVector, searchSimilar, size, save, close;
-var init_vector_index = __esm({
-  "electron/connections/vector-index.js"() {
-    "use strict";
-    Index = null;
-    MetricKind = null;
-    index = null;
-    idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
-    dataDir = null;
-    indexPath = null;
-    mapPath = null;
-    dimensions = 384;
-    dirty = false;
-    loadUsearch = async () => {
-      if (!Index) {
-        const mod = await import("usearch");
-        Index = mod.Index;
-        MetricKind = mod.MetricKind;
-      }
-    };
-    loadIdMap = async () => {
-      try {
-        const raw = await fs14.readFile(mapPath, "utf-8");
-        idMap = JSON.parse(raw);
-      } catch {
-        idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
-      }
-    };
-    saveIdMap = async () => {
-      await fs14.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
-    };
-    load = async ({ dir, dims = 384 }) => {
-      if (index) return;
-      await loadUsearch();
-      dataDir = dir;
-      dimensions = dims;
-      indexPath = path17.join(dir, "index.usearch");
-      mapPath = path17.join(dir, "id-map.json");
-      await fs14.mkdir(dir, { recursive: true });
-      await loadIdMap();
-      index = new Index(dimensions, MetricKind.Cos);
-      try {
-        await fs14.access(indexPath);
-        index.load(indexPath);
-        console.log(`[vector-index] loaded ${index.size()} vectors from ${indexPath}`);
-      } catch {
-        console.log("[vector-index] starting fresh index");
-      }
-    };
-    requireOpen = () => {
-      if (!index) throw new Error("Vector index not open \u2014 call load() first");
-    };
-    addVector = (id, vector) => {
-      requireOpen();
-      if (idMap.strToNum[id] !== void 0) return;
-      const numericKey = idMap.nextKey++;
-      idMap.strToNum[id] = numericKey;
-      idMap.numToStr[numericKey] = id;
-      index.add(BigInt(numericKey), vector);
-      dirty = true;
-    };
-    hasId = (id) => {
-      requireOpen();
-      return idMap.strToNum[id] !== void 0;
-    };
-    removeVector = (id) => {
-      requireOpen();
-      const numericKey = idMap.strToNum[id];
-      if (numericKey === void 0) return;
-      try {
-        index.remove(BigInt(numericKey));
-      } catch (err2) {
-        console.warn("[vector-index] remove failed:", err2.message);
-      }
-      delete idMap.strToNum[id];
-      delete idMap.numToStr[numericKey];
-      dirty = true;
-    };
-    searchSimilar = (vector, k = 10) => {
-      requireOpen();
-      if (index.size() === 0) return [];
-      const limit = Math.min(k, index.size());
-      const matches = index.search(vector, limit, 1);
-      const results = [];
-      for (let i = 0; i < matches.keys.length; i++) {
-        const numericKey = Number(matches.keys[i]);
-        const id = idMap.numToStr[numericKey];
-        if (!id) continue;
-        const distance = matches.distances[i];
-        const similarity = Math.max(0, 1 - distance / 2);
-        results.push({ id, similarity, distance });
-      }
-      return results;
-    };
-    size = () => {
-      if (!index) return 0;
-      return index.size();
-    };
-    save = async () => {
-      requireOpen();
-      if (!dirty) return;
-      index.save(indexPath);
-      await saveIdMap();
-      dirty = false;
-      console.log(`[vector-index] saved ${index.size()} vectors`);
-    };
-    close = async () => {
-      if (!index) return;
-      if (dirty) await save();
-      index = null;
-      idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
-      dataDir = null;
-    };
-  }
-});
-
-// electron/connections/service.js
-var service_exports = {};
-__export(service_exports, {
-  deindexContribution: () => deindexContribution,
-  findSimilarByText: () => findSimilarByText,
-  indexContribution: () => indexContribution,
-  startService: () => startService,
-  status: () => status,
-  stopService: () => stopService
-});
-import path18 from "path";
-var serviceDataDir, startService, stopService, indexContribution, deindexContribution, findSimilarByText, status;
-var init_service = __esm({
-  "electron/connections/service.js"() {
-    "use strict";
-    init_embeddings();
-    init_vector_index();
-    serviceDataDir = null;
-    startService = async ({ dataDir: dataDir2 }) => {
-      serviceDataDir = path18.join(dataDir2, "connections");
-      await load({ dir: serviceDataDir, dims: EMBEDDING_DIMENSIONS });
-      ensureReady().catch(
-        (err2) => console.error("[connections] model warmup failed:", err2)
-      );
-      console.log("[connections] service started");
-    };
-    stopService = async () => {
-      try {
-        await save();
-      } catch (err2) {
-        console.error("[connections] save error:", err2);
-      }
-      try {
-        await close();
-      } catch (err2) {
-        console.error("[connections] close error:", err2);
-      }
-      serviceDataDir = null;
-      console.log("[connections] service stopped");
-    };
-    indexContribution = async (id, text) => {
-      if (hasId(id)) return { skipped: true, reason: "already indexed" };
-      const vector = await embed(text);
-      addVector(id, vector);
-      if (size() % 32 === 0) {
-        await save().catch((err2) => console.error("[connections] autosave:", err2));
-      }
-      return { skipped: false };
-    };
-    deindexContribution = (id) => {
-      if (!hasId(id)) return { skipped: true };
-      removeVector(id);
-      return { skipped: false };
-    };
-    findSimilarByText = async (text, k = 10, excludeId = null) => {
-      const vector = await embed(text);
-      const raw = searchSimilar(vector, k + (excludeId ? 1 : 0));
-      return excludeId ? raw.filter((m) => m.id !== excludeId).slice(0, k) : raw.slice(0, k);
-    };
-    status = () => ({
-      ...getStatus2(),
-      indexSize: size(),
-      dataDir: serviceDataDir
-    });
+    init_ForgeConfig();
+    init_OllamaProvider();
   }
 });
 
@@ -1322,13 +1189,13 @@ var init_registry = __esm({
         }
       }
       get(id) {
-        const p2 = this.providers.get(id);
-        if (!p2) {
+        const p3 = this.providers.get(id);
+        if (!p3) {
           throw new Error(
             `Unknown provider '${id}'. Available: ${Array.from(this.providers.keys()).join(", ") || "none"}`
           );
         }
-        return p2;
+        return p3;
       }
       tryGet(id) {
         return this.providers.get(id);
@@ -1337,7 +1204,7 @@ var init_registry = __esm({
         return Array.from(this.providers.values());
       }
       listAvailable() {
-        return this.list().filter((p2) => p2.isAvailable());
+        return this.list().filter((p3) => p3.isAvailable());
       }
       getDefault() {
         if (!this.defaultId) {
@@ -1705,15 +1572,15 @@ var console_capture_exports = {};
 __export(console_capture_exports, {
   captureConsoleToFile: () => captureConsoleToFile
 });
-import * as fs15 from "fs";
-import * as path20 from "path";
+import * as fs13 from "fs";
+import * as path16 from "path";
 function captureConsoleToFile(logDir) {
   try {
-    fs15.mkdirSync(logDir, { recursive: true });
+    fs13.mkdirSync(logDir, { recursive: true });
   } catch {
   }
-  const logPath = path20.join(logDir, "session.log");
-  const stream = fs15.createWriteStream(logPath, { flags: "a" });
+  const logPath = path16.join(logDir, "session.log");
+  const stream = fs13.createWriteStream(logPath, { flags: "a" });
   const originals = {};
   const writeLine = (level, args) => {
     try {
@@ -1985,7 +1852,7 @@ function AgentControlPanel({
       const next = cycle(
         availableProviders,
         availableProviders[0],
-        (p2) => p2.id === selected.config.providerId
+        (p3) => p3.id === selected.config.providerId
       );
       orchestrator.updateAgentConfig(selected.id, {
         providerId: next.id,
@@ -2124,7 +1991,7 @@ function HeaderBar({
   currentPhaseId,
   elapsedSeconds
 }) {
-  const currentIdx = Math.max(0, phases.findIndex((p2) => p2.id === currentPhaseId));
+  const currentIdx = Math.max(0, phases.findIndex((p3) => p3.id === currentPhaseId));
   return /* @__PURE__ */ jsxs3(
     "box",
     {
@@ -2438,13 +2305,13 @@ function OpenTuiApp({
   }, [orchestrator]);
   const mode = orchestrator.getModeController().getMode();
   const modePhases = useMemo3(
-    () => mode.phases.map((p2) => ({ id: p2.id, name: p2.name || p2.id })),
+    () => mode.phases.map((p3) => ({ id: p3.id, name: p3.name || p3.id })),
     [mode]
   );
   const currentModePhase = modeProgress.currentPhase;
   const currentPhaseIdx = Math.max(
     0,
-    modePhases.findIndex((p2) => p2.id === currentModePhase)
+    modePhases.findIndex((p3) => p3.id === currentModePhase)
   );
   const currentPhaseConfig = mode.phases[currentPhaseIdx];
   const phaseMaxMessages = currentPhaseConfig?.maxMessages ?? 0;
@@ -2579,20 +2446,1079 @@ var init_App = __esm({
   }
 });
 
+// electron/p2p/node.js
+var node_exports = {};
+__export(node_exports, {
+  allDocs: () => allDocs,
+  deleteDoc: () => deleteDoc,
+  getDoc: () => getDoc,
+  getStatus: () => getStatus,
+  onUpdate: () => onUpdate,
+  putDoc: () => putDoc,
+  startNode: () => startNode,
+  stopNode: () => stopNode
+});
+import path19 from "path";
+import fs16 from "fs/promises";
+async function startNode({ dataDir: dataDir2 }) {
+  storePath = path19.join(dataDir2, "store.jsonl");
+  await fs16.mkdir(dataDir2, { recursive: true });
+  try {
+    const content = await fs16.readFile(storePath, "utf-8");
+    for (const line of content.split("\n")) {
+      if (!line.trim()) continue;
+      try {
+        const doc = JSON.parse(line);
+        if (doc._tombstone) {
+          docs.delete(doc._id);
+        } else if (doc._id) {
+          docs.set(doc._id, doc);
+        }
+      } catch {
+      }
+    }
+  } catch {
+  }
+  console.log(`[p2p] store opened: ${docs.size} docs from ${storePath}`);
+  return {
+    peerId: `local-${Date.now().toString(36)}`,
+    dbAddress: storePath
+  };
+}
+async function stopNode() {
+  docs.clear();
+  updateListeners.clear();
+  storePath = null;
+}
+function requireStarted() {
+  if (!storePath) throw new Error("Store not started");
+}
+async function putDoc(doc) {
+  requireStarted();
+  if (!doc || !doc._id) throw new Error("putDoc requires _id");
+  docs.set(doc._id, doc);
+  await fs16.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
+  for (const cb of updateListeners) {
+    try {
+      cb({ hash: doc._id, id: doc._id, op: "PUT" });
+    } catch {
+    }
+  }
+  return { hash: doc._id, id: doc._id };
+}
+async function getDoc(id) {
+  requireStarted();
+  return docs.get(id) ?? null;
+}
+async function allDocs() {
+  requireStarted();
+  return Array.from(docs.entries()).map(([id, doc]) => ({
+    hash: id,
+    doc
+  }));
+}
+async function deleteDoc(id) {
+  requireStarted();
+  docs.delete(id);
+  await fs16.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
+  return id;
+}
+async function getStatus() {
+  return {
+    running: !!storePath,
+    peerId: storePath ? "local" : void 0,
+    dbAddress: storePath ?? void 0,
+    peerCount: 0,
+    connectionCount: 0,
+    docCount: docs.size
+  };
+}
+function onUpdate(cb) {
+  updateListeners.add(cb);
+  return () => updateListeners.delete(cb);
+}
+var storePath, docs, updateListeners;
+var init_node = __esm({
+  "electron/p2p/node.js"() {
+    "use strict";
+    storePath = null;
+    docs = /* @__PURE__ */ new Map();
+    updateListeners = /* @__PURE__ */ new Set();
+  }
+});
+
+// electron/connections/embeddings.js
+var MODEL_ID, DIMENSIONS, pipelinePromise, pipelineInstance, loading, loadPipeline, ensureReady, embed, getStatus2, EMBEDDING_DIMENSIONS;
+var init_embeddings = __esm({
+  "electron/connections/embeddings.js"() {
+    "use strict";
+    MODEL_ID = "Xenova/all-MiniLM-L6-v2";
+    DIMENSIONS = 384;
+    pipelinePromise = null;
+    pipelineInstance = null;
+    loading = false;
+    loadPipeline = async () => {
+      const { pipeline, env } = await import("@huggingface/transformers");
+      env.allowRemoteModels = true;
+      env.allowLocalModels = true;
+      return pipeline("feature-extraction", MODEL_ID, {
+        // `quantized: true` would halve memory but we keep full precision for
+        // better small-model quality. Revisit if bundle size becomes an issue.
+        quantized: false
+      });
+    };
+    ensureReady = async () => {
+      if (pipelineInstance) return pipelineInstance;
+      if (pipelinePromise) return pipelinePromise;
+      loading = true;
+      pipelinePromise = loadPipeline().then((p3) => {
+        pipelineInstance = p3;
+        loading = false;
+        console.log("[embeddings] model loaded:", MODEL_ID);
+        return p3;
+      }).catch((err2) => {
+        loading = false;
+        pipelinePromise = null;
+        console.error("[embeddings] failed to load model:", err2);
+        throw err2;
+      });
+      return pipelinePromise;
+    };
+    embed = async (text2) => {
+      const pipe = await ensureReady();
+      const output = await pipe(text2, { pooling: "mean", normalize: true });
+      return new Float32Array(output.data);
+    };
+    getStatus2 = () => ({
+      loaded: !!pipelineInstance,
+      loading,
+      model: MODEL_ID,
+      dimensions: DIMENSIONS
+    });
+    EMBEDDING_DIMENSIONS = DIMENSIONS;
+  }
+});
+
+// electron/connections/vector-index.js
+import path20 from "path";
+import fs17 from "fs/promises";
+var Index, MetricKind, index, idMap, dataDir, indexPath, mapPath, dimensions, dirty, loadUsearch, loadIdMap, saveIdMap, load, requireOpen, addVector, hasId, removeVector, searchSimilar, size, save, close;
+var init_vector_index = __esm({
+  "electron/connections/vector-index.js"() {
+    "use strict";
+    Index = null;
+    MetricKind = null;
+    index = null;
+    idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
+    dataDir = null;
+    indexPath = null;
+    mapPath = null;
+    dimensions = 384;
+    dirty = false;
+    loadUsearch = async () => {
+      if (!Index) {
+        const mod = await import("usearch");
+        Index = mod.Index;
+        MetricKind = mod.MetricKind;
+      }
+    };
+    loadIdMap = async () => {
+      try {
+        const raw = await fs17.readFile(mapPath, "utf-8");
+        idMap = JSON.parse(raw);
+      } catch {
+        idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
+      }
+    };
+    saveIdMap = async () => {
+      await fs17.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
+    };
+    load = async ({ dir, dims = 384 }) => {
+      if (index) return;
+      await loadUsearch();
+      dataDir = dir;
+      dimensions = dims;
+      indexPath = path20.join(dir, "index.usearch");
+      mapPath = path20.join(dir, "id-map.json");
+      await fs17.mkdir(dir, { recursive: true });
+      await loadIdMap();
+      index = new Index(dimensions, MetricKind.Cos);
+      try {
+        await fs17.access(indexPath);
+        index.load(indexPath);
+        console.log(`[vector-index] loaded ${index.size()} vectors from ${indexPath}`);
+      } catch {
+        console.log("[vector-index] starting fresh index");
+      }
+    };
+    requireOpen = () => {
+      if (!index) throw new Error("Vector index not open \u2014 call load() first");
+    };
+    addVector = (id, vector) => {
+      requireOpen();
+      if (idMap.strToNum[id] !== void 0) return;
+      const numericKey = idMap.nextKey++;
+      idMap.strToNum[id] = numericKey;
+      idMap.numToStr[numericKey] = id;
+      index.add(BigInt(numericKey), vector);
+      dirty = true;
+    };
+    hasId = (id) => {
+      requireOpen();
+      return idMap.strToNum[id] !== void 0;
+    };
+    removeVector = (id) => {
+      requireOpen();
+      const numericKey = idMap.strToNum[id];
+      if (numericKey === void 0) return;
+      try {
+        index.remove(BigInt(numericKey));
+      } catch (err2) {
+        console.warn("[vector-index] remove failed:", err2.message);
+      }
+      delete idMap.strToNum[id];
+      delete idMap.numToStr[numericKey];
+      dirty = true;
+    };
+    searchSimilar = (vector, k = 10) => {
+      requireOpen();
+      if (index.size() === 0) return [];
+      const limit = Math.min(k, index.size());
+      const matches = index.search(vector, limit, 1);
+      const results = [];
+      for (let i = 0; i < matches.keys.length; i++) {
+        const numericKey = Number(matches.keys[i]);
+        const id = idMap.numToStr[numericKey];
+        if (!id) continue;
+        const distance = matches.distances[i];
+        const similarity = Math.max(0, 1 - distance / 2);
+        results.push({ id, similarity, distance });
+      }
+      return results;
+    };
+    size = () => {
+      if (!index) return 0;
+      return index.size();
+    };
+    save = async () => {
+      requireOpen();
+      if (!dirty) return;
+      index.save(indexPath);
+      await saveIdMap();
+      dirty = false;
+      console.log(`[vector-index] saved ${index.size()} vectors`);
+    };
+    close = async () => {
+      if (!index) return;
+      if (dirty) await save();
+      index = null;
+      idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
+      dataDir = null;
+    };
+  }
+});
+
+// electron/connections/service.js
+var service_exports = {};
+__export(service_exports, {
+  deindexContribution: () => deindexContribution,
+  findSimilarByText: () => findSimilarByText,
+  indexContribution: () => indexContribution,
+  startService: () => startService,
+  status: () => status,
+  stopService: () => stopService
+});
+import path21 from "path";
+var serviceDataDir, startService, stopService, indexContribution, deindexContribution, findSimilarByText, status;
+var init_service = __esm({
+  "electron/connections/service.js"() {
+    "use strict";
+    init_embeddings();
+    init_vector_index();
+    serviceDataDir = null;
+    startService = async ({ dataDir: dataDir2 }) => {
+      serviceDataDir = path21.join(dataDir2, "connections");
+      await load({ dir: serviceDataDir, dims: EMBEDDING_DIMENSIONS });
+      ensureReady().catch(
+        (err2) => console.error("[connections] model warmup failed:", err2)
+      );
+      console.log("[connections] service started");
+    };
+    stopService = async () => {
+      try {
+        await save();
+      } catch (err2) {
+        console.error("[connections] save error:", err2);
+      }
+      try {
+        await close();
+      } catch (err2) {
+        console.error("[connections] close error:", err2);
+      }
+      serviceDataDir = null;
+      console.log("[connections] service stopped");
+    };
+    indexContribution = async (id, text2) => {
+      if (hasId(id)) return { skipped: true, reason: "already indexed" };
+      const vector = await embed(text2);
+      addVector(id, vector);
+      if (size() % 32 === 0) {
+        await save().catch((err2) => console.error("[connections] autosave:", err2));
+      }
+      return { skipped: false };
+    };
+    deindexContribution = (id) => {
+      if (!hasId(id)) return { skipped: true };
+      removeVector(id);
+      return { skipped: false };
+    };
+    findSimilarByText = async (text2, k = 10, excludeId = null) => {
+      const vector = await embed(text2);
+      const raw = searchSimilar(vector, k + (excludeId ? 1 : 0));
+      return excludeId ? raw.filter((m) => m.id !== excludeId).slice(0, k) : raw.slice(0, k);
+    };
+    status = () => ({
+      ...getStatus2(),
+      indexSize: size(),
+      dataDir: serviceDataDir
+    });
+  }
+});
+
 // cli/index.ts
 import { Command as Command12 } from "commander";
-import React4 from "react";
-import { v4 as uuid2 } from "uuid";
-import * as path21 from "path";
-import * as fs16 from "fs/promises";
+
+// cli/adapters/FileSystemAdapter.ts
+import * as fs from "fs/promises";
+import * as path from "path";
+import { glob as globLib } from "glob";
+var FileSystemAdapter = class {
+  cwd;
+  constructor(cwd) {
+    this.cwd = cwd || process.cwd();
+  }
+  async readDir(dirPath) {
+    try {
+      const fullPath = path.isAbsolute(dirPath) ? dirPath : path.join(this.cwd, dirPath);
+      const entries = await fs.readdir(fullPath, { withFileTypes: true });
+      return entries.map((entry) => ({
+        name: entry.name,
+        isDirectory: entry.isDirectory(),
+        path: path.join(fullPath, entry.name)
+      }));
+    } catch {
+      return [];
+    }
+  }
+  async readFile(filePath) {
+    try {
+      const fullPath = path.isAbsolute(filePath) ? filePath : path.join(this.cwd, filePath);
+      return await fs.readFile(fullPath, "utf-8");
+    } catch {
+      return null;
+    }
+  }
+  async writeFile(filePath, content) {
+    try {
+      const fullPath = path.isAbsolute(filePath) ? filePath : path.join(this.cwd, filePath);
+      await this.ensureDir(path.dirname(fullPath));
+      await fs.writeFile(fullPath, content, "utf-8");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  async glob(pattern, options) {
+    try {
+      const cwd = options?.cwd || this.cwd;
+      return await globLib(pattern, { cwd, absolute: true });
+    } catch {
+      return [];
+    }
+  }
+  async exists(filePath) {
+    try {
+      const fullPath = path.isAbsolute(filePath) ? filePath : path.join(this.cwd, filePath);
+      await fs.access(fullPath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  async loadContext(contextDir) {
+    const fullPath = path.isAbsolute(contextDir) ? contextDir : path.join(this.cwd, contextDir);
+    const result = {
+      brand: null,
+      audience: null,
+      research: [],
+      examples: [],
+      competitors: []
+    };
+    const brandPath = path.join(fullPath, "brand.md");
+    result.brand = await this.readFile(brandPath);
+    const audiencePath = path.join(fullPath, "audience.md");
+    result.audience = await this.readFile(audiencePath);
+    const researchFiles = await this.glob("research/*.md", { cwd: fullPath });
+    for (const file of researchFiles) {
+      const content = await this.readFile(file);
+      if (content) {
+        result.research.push({ file: path.basename(file), content });
+      }
+    }
+    const exampleFiles = await this.glob("examples/*.md", { cwd: fullPath });
+    for (const file of exampleFiles) {
+      const content = await this.readFile(file);
+      if (content) {
+        result.examples.push({ file: path.basename(file), content });
+      }
+    }
+    const competitorFiles = await this.glob("competitors/*.md", { cwd: fullPath });
+    for (const file of competitorFiles) {
+      const content = await this.readFile(file);
+      if (content) {
+        result.competitors.push({ file: path.basename(file), content });
+      }
+    }
+    return result;
+  }
+  async readBrief(briefName) {
+    const withExt = briefName.endsWith(".md") ? briefName : `${briefName}.md`;
+    const briefPath = path.join(this.cwd, "briefs", withExt);
+    return this.readFile(briefPath);
+  }
+  async listBriefs() {
+    const briefsDir = path.join(this.cwd, "briefs");
+    const files = await this.glob("*.md", { cwd: briefsDir });
+    return files.map((f) => path.basename(f, ".md"));
+  }
+  async ensureDir(dirPath) {
+    try {
+      const fullPath = path.isAbsolute(dirPath) ? dirPath : path.join(this.cwd, dirPath);
+      await fs.mkdir(fullPath, { recursive: true });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  async appendFile(filePath, content) {
+    try {
+      const fullPath = path.isAbsolute(filePath) ? filePath : path.join(this.cwd, filePath);
+      await this.ensureDir(path.dirname(fullPath));
+      await fs.appendFile(fullPath, content, "utf-8");
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  async listDir(dirPath) {
+    try {
+      const fullPath = path.isAbsolute(dirPath) ? dirPath : path.join(this.cwd, dirPath);
+      const entries = await fs.readdir(fullPath, { withFileTypes: true });
+      return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+    } catch {
+      return [];
+    }
+  }
+  getCwd() {
+    return this.cwd;
+  }
+};
+
+// cli/index.ts
+init_personas();
+
+// cli/commands/personas.ts
+import { Command } from "commander";
+import * as path2 from "path";
+import * as fs2 from "fs/promises";
+import Anthropic from "@anthropic-ai/sdk";
+var PERSONA_GENERATION_PROMPT = `You are an expert at creating debate personas for multi-agent deliberation systems.
+
+Your task is to generate a set of personas that will engage in productive debate about a specific domain or project. Each persona should:
+
+1. **Represent a distinct stakeholder perspective** - Different roles, backgrounds, or viewpoints that naturally create productive tension
+2. **Have complementary blind spots** - What one misses, another catches
+3. **Bring unique expertise** - Each persona should have domain knowledge the others lack
+4. **Have realistic biases** - Based on their background and role
+5. **Create productive conflict** - Their perspectives should naturally clash in ways that lead to better outcomes
+
+## Output Format
+Return a JSON object with TWO fields:
+
+### 1. "expertise" field
+A markdown string containing domain-specific knowledge ALL personas should have. This should include:
+- Key terminology and concepts for the domain
+- Best practices and frameworks
+- Common pitfalls to avoid
+- Decision-making criteria relevant to the domain
+- Industry standards or regulations if applicable
+
+### 2. "personas" field
+An array of personas. Each persona must have:
+- id: lowercase, no spaces (e.g., "skeptical-engineer")
+- name: A realistic first name
+- nameHe: Hebrew version of the name (transliterate if needed)
+- role: Short role description (e.g., "The Risk-Averse Investor")
+- age: Realistic age for their role
+- background: 2-3 sentence background explaining their perspective
+- personality: Array of 4-5 personality traits relevant to debates
+- biases: Array of 3-4 biases they bring to discussions
+- strengths: Array of 3-4 debate/analysis strengths
+- weaknesses: Array of 2 potential blind spots
+- speakingStyle: How they communicate in debates
+- color: One of: pink, green, purple, orange, blue, cyan, yellow, red
+- expertise: Array of 3-5 specific areas THIS persona is expert in (unique to them)
+
+## Example Output Structure
+{
+  "expertise": "## Domain Expertise\\n\\n### Key Concepts\\n- Concept 1...\\n### Best Practices\\n- Practice 1...",
+  "personas": [
+    {
+      "id": "cautious-analyst",
+      "name": "Sarah",
+      ...
+      "expertise": ["risk assessment", "regulatory compliance", "data analysis"]
+    }
+  ]
+}
+
+## Important
+- Create 4-6 personas unless specified otherwise
+- Ensure diversity in age, background, and perspective
+- Make them feel like real people, not caricatures
+- Their conflicts should be productive, not personal
+- The shared expertise should be comprehensive enough to inform good debates
+- Each persona's individual expertise should be distinct`;
+function createPersonasCommand() {
+  const personas = new Command("personas").description("Manage debate personas");
+  personas.command("generate").description("Generate new personas for a domain").option("-d, --domain <domain>", "Domain or topic for the debate").option("-b, --brief <name>", "Generate from a brief file").option("-c, --count <n>", "Number of personas to generate", "5").option("-r, --roles <roles>", "Specific roles to include (comma-separated)").option("-n, --name <name>", "Name for the persona set", "custom").option("-o, --output <dir>", "Output directory", "personas").action(async (options) => {
+    const cwd = process.cwd();
+    let contextPrompt = "";
+    if (options.brief) {
+      const briefPath = path2.join(cwd, "briefs", `${options.brief}.md`);
+      try {
+        const briefContent = await fs2.readFile(briefPath, "utf-8");
+        contextPrompt = `## Project Brief
+${briefContent}
+
+Generate personas that would be valuable stakeholders in debating and creating content/strategy for this project.`;
+      } catch {
+        console.error(`Brief "${options.brief}" not found`);
+        process.exit(1);
+      }
+    } else if (options.domain) {
+      contextPrompt = `## Domain
+${options.domain}
+
+Generate personas that would be valuable stakeholders in debating decisions and strategy for this domain.`;
+    } else {
+      console.error("Please specify either --domain or --brief");
+      process.exit(1);
+    }
+    if (options.roles) {
+      contextPrompt += `
+
+## Required Roles
+Make sure to include personas for these roles: ${options.roles}`;
+    }
+    contextPrompt += `
+
+## Number of Personas
+Generate exactly ${options.count} personas.`;
+    console.log("\u{1F525} Generating personas...\n");
+    try {
+      const client2 = new Anthropic();
+      const response = await client2.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: PERSONA_GENERATION_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: contextPrompt
+          }
+        ]
+      });
+      const text2 = response.content[0].type === "text" ? response.content[0].text : "";
+      const jsonMatch = text2.match(/\{[\s\S]*\}/) || text2.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        console.error("Failed to parse personas from response");
+        console.log("Raw response:", text2);
+        process.exit(1);
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      let personas2;
+      let expertise = "";
+      if (Array.isArray(parsed)) {
+        personas2 = parsed;
+      } else {
+        personas2 = parsed.personas;
+        expertise = parsed.expertise || "";
+      }
+      for (const p3 of personas2) {
+        if (!p3.id || !p3.name || !p3.role) {
+          console.error("Invalid persona structure:", p3);
+          process.exit(1);
+        }
+      }
+      const outputDir = path2.join(cwd, options.output);
+      await fs2.mkdir(outputDir, { recursive: true });
+      const personasFile = path2.join(outputDir, `${options.name}.json`);
+      await fs2.writeFile(personasFile, JSON.stringify(personas2, null, 2));
+      if (expertise) {
+        const skillsFile = path2.join(outputDir, `${options.name}.skills.md`);
+        await fs2.writeFile(skillsFile, expertise);
+        console.log(`\u{1F4DA} Domain expertise saved to: ${skillsFile}`);
+      }
+      console.log(`\u2705 Generated ${personas2.length} personas:
+`);
+      for (const p3 of personas2) {
+        console.log(`  \u2022 ${p3.name} (${p3.nameHe}) - ${p3.role}`);
+        console.log(`    ${p3.background.slice(0, 80)}...`);
+        if (p3.expertise) {
+          console.log(`    Expertise: ${p3.expertise.slice(0, 3).join(", ")}`);
+        }
+        console.log("");
+      }
+      console.log(`\u{1F4C1} Personas saved to: ${personasFile}`);
+      console.log(`
+Use with: forge start --personas ${options.name}`);
+    } catch (error) {
+      console.error("Error generating personas:", error);
+      process.exit(1);
+    }
+  });
+  personas.command("list").description("List available persona sets").option("-d, --dir <dir>", "Personas directory", "personas").action(async (options) => {
+    const cwd = process.cwd();
+    const personasDir = path2.join(cwd, options.dir);
+    try {
+      const files = await fs2.readdir(personasDir);
+      const jsonFiles = files.filter((f) => f.endsWith(".json"));
+      if (jsonFiles.length === 0) {
+        console.log("No persona sets found.");
+        console.log('Generate some with: forge personas generate --domain "your domain"');
+        return;
+      }
+      console.log("Available persona sets:\n");
+      for (const file of jsonFiles) {
+        const name = path2.basename(file, ".json");
+        const content = await fs2.readFile(path2.join(personasDir, file), "utf-8");
+        const personas2 = JSON.parse(content);
+        console.log(`  \u2022 ${name} (${personas2.length} personas)`);
+        for (const p3 of personas2) {
+          console.log(`    - ${p3.name}: ${p3.role}`);
+        }
+        console.log("");
+      }
+    } catch {
+      console.log("No personas directory found.");
+      console.log('Generate some with: forge personas generate --domain "your domain"');
+    }
+  });
+  personas.command("show <name>").description("Show details of a persona set").option("-d, --dir <dir>", "Personas directory", "personas").action(async (name, options) => {
+    const cwd = process.cwd();
+    const filePath = path2.join(cwd, options.dir, `${name}.json`);
+    try {
+      const content = await fs2.readFile(filePath, "utf-8");
+      const personas2 = JSON.parse(content);
+      console.log(`
+\u{1F4CB} Persona Set: ${name}
+`);
+      console.log("\u2500".repeat(60));
+      for (const p3 of personas2) {
+        console.log(`
+### ${p3.name} (${p3.nameHe}) - ${p3.role}`);
+        console.log(`Age: ${p3.age} | Color: ${p3.color}`);
+        console.log(`
+Background:
+${p3.background}`);
+        console.log(`
+Personality:`);
+        p3.personality.forEach((t) => console.log(`  \u2022 ${t}`));
+        console.log(`
+Biases:`);
+        p3.biases.forEach((b) => console.log(`  \u2022 ${b}`));
+        console.log(`
+Strengths:`);
+        p3.strengths.forEach((s) => console.log(`  \u2022 ${s}`));
+        console.log(`
+Weaknesses:`);
+        p3.weaknesses.forEach((w) => console.log(`  \u2022 ${w}`));
+        console.log(`
+Speaking Style: ${p3.speakingStyle}`);
+        console.log("\n" + "\u2500".repeat(60));
+      }
+    } catch {
+      console.error(`Persona set "${name}" not found`);
+      process.exit(1);
+    }
+  });
+  return personas;
+}
+
+// cli/commands/export.ts
+init_personas();
+import { Command as Command2 } from "commander";
+import * as path3 from "path";
+import * as fs3 from "fs/promises";
+function createExportCommand() {
+  const exportCmd = new Command2("export").description("Export session data").option("-s, --session <dir>", "Session directory to export").option("-f, --format <fmt>", "Export format: md, json, html", "md").option("-t, --type <type>", "Export type: transcript, draft, summary, messages, all", "transcript").option("-o, --output <file>", "Output file path").option("-l, --latest", "Use the latest session", false).action(async (options) => {
+    const cwd = process.cwd();
+    let sessionDir = options.session;
+    if (!sessionDir || options.latest) {
+      const outputDir = path3.join(cwd, "output/sessions");
+      try {
+        const dirs = await fs3.readdir(outputDir, { withFileTypes: true });
+        const sessionDirs = dirs.filter((d) => d.isDirectory()).map((d) => d.name).sort().reverse();
+        if (sessionDirs.length === 0) {
+          console.error('No sessions found. Run "forge start" first.');
+          process.exit(1);
+        }
+        sessionDir = path3.join(outputDir, sessionDirs[0]);
+        console.log(`Using session: ${sessionDirs[0]}
+`);
+      } catch {
+        console.error("No sessions directory found.");
+        process.exit(1);
+      }
+    }
+    const metadataPath = path3.join(sessionDir, "session.json");
+    const messagesPath = path3.join(sessionDir, "messages.jsonl");
+    let metadata = null;
+    let messages = [];
+    try {
+      const metaContent = await fs3.readFile(metadataPath, "utf-8");
+      metadata = JSON.parse(metaContent);
+    } catch {
+      console.warn("Warning: Could not load session metadata");
+    }
+    try {
+      const msgContent = await fs3.readFile(messagesPath, "utf-8");
+      messages = msgContent.trim().split("\n").filter((line) => line.trim()).map((line) => JSON.parse(line));
+    } catch {
+      console.warn("Warning: Could not load messages");
+    }
+    let output = "";
+    let filename = "";
+    switch (options.type) {
+      case "transcript":
+        output = generateTranscript(metadata, messages, options.format);
+        filename = `transcript.${options.format}`;
+        break;
+      case "draft":
+        output = generateDraft(metadata, messages, options.format);
+        filename = `draft.${options.format}`;
+        break;
+      case "summary":
+        output = generateSummary(metadata, messages, options.format);
+        filename = `summary.${options.format}`;
+        break;
+      case "messages":
+        output = generateMessages(messages, options.format);
+        filename = `messages.${options.format}`;
+        break;
+      case "all":
+        const types = ["transcript", "draft", "summary", "messages"];
+        for (const t of types) {
+          const typeOutput = generateByType(t, metadata, messages, options.format);
+          const typeFile = options.output ? path3.join(path3.dirname(options.output), `${t}.${options.format}`) : path3.join(sessionDir, `export-${t}.${options.format}`);
+          await fs3.writeFile(typeFile, typeOutput);
+          console.log(`\u2705 Exported ${t} to ${typeFile}`);
+        }
+        return;
+      default:
+        console.error(`Unknown export type: ${options.type}`);
+        process.exit(1);
+    }
+    const outputPath = options.output || path3.join(sessionDir, `export-${filename}`);
+    await fs3.writeFile(outputPath, output);
+    console.log(`\u2705 Exported ${options.type} to ${outputPath}`);
+  });
+  return exportCmd;
+}
+function generateByType(type, metadata, messages, format) {
+  switch (type) {
+    case "transcript":
+      return generateTranscript(metadata, messages, format);
+    case "draft":
+      return generateDraft(metadata, messages, format);
+    case "summary":
+      return generateSummary(metadata, messages, format);
+    case "messages":
+      return generateMessages(messages, format);
+    default:
+      return "";
+  }
+}
+function generateTranscript(metadata, messages, format) {
+  if (format === "json") {
+    return JSON.stringify({ metadata, messages }, null, 2);
+  }
+  if (format === "html") {
+    return generateHTMLTranscript(metadata, messages);
+  }
+  const lines = [];
+  if (metadata) {
+    lines.push(`# ${metadata.projectName} - Debate Transcript`);
+    lines.push("");
+    lines.push(`**Goal:** ${metadata.goal}`);
+    lines.push(`**Started:** ${metadata.startedAt}`);
+    if (metadata.endedAt) lines.push(`**Ended:** ${metadata.endedAt}`);
+    lines.push(`**Agents:** ${metadata.enabledAgents.join(", ")}`);
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  }
+  for (const msg of messages) {
+    const sender = getSenderName(msg.agentId);
+    const time = new Date(msg.timestamp).toLocaleTimeString();
+    const typeTag = msg.type !== "system" ? `[${msg.type.toUpperCase()}]` : "";
+    lines.push(`### ${sender} ${typeTag}`);
+    lines.push(`*${time}*`);
+    lines.push("");
+    lines.push(msg.content);
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+function generateDraft(metadata, messages, format) {
+  const draftMessages = messages.filter(
+    (m) => m.type === "synthesis" || m.content.includes("## Hero") || m.content.includes("## Problem") || m.content.includes("## Solution") || m.content.includes("**Hero") || m.content.includes("**\u05DB\u05D5\u05EA\u05E8\u05EA")
+  );
+  const draftingContent = messages.filter(
+    (m) => m.agentId !== "system" && m.agentId !== "human" && (m.content.includes("[PROPOSAL]") || m.content.includes("[SYNTHESIS]"))
+  );
+  const allDrafts = [...draftMessages, ...draftingContent];
+  if (format === "json") {
+    return JSON.stringify({
+      metadata,
+      drafts: allDrafts.map((m) => ({
+        agentId: m.agentId,
+        content: m.content,
+        timestamp: m.timestamp
+      }))
+    }, null, 2);
+  }
+  if (format === "html") {
+    return generateHTMLDraft(metadata, allDrafts);
+  }
+  const lines = [];
+  if (metadata) {
+    lines.push(`# ${metadata.projectName} - Draft Copy`);
+    lines.push("");
+    lines.push(`**Goal:** ${metadata.goal}`);
+    lines.push(`**Generated:** ${(/* @__PURE__ */ new Date()).toISOString()}`);
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  }
+  if (allDrafts.length === 0) {
+    lines.push("*No draft content found. The debate may not have reached the drafting phase.*");
+  } else {
+    for (const msg of allDrafts) {
+      const sender = getSenderName(msg.agentId);
+      lines.push(`## From ${sender}`);
+      lines.push("");
+      lines.push(msg.content);
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+function generateSummary(metadata, messages, format) {
+  const agentCounts = /* @__PURE__ */ new Map();
+  const typeBreakdown = /* @__PURE__ */ new Map();
+  for (const msg of messages) {
+    if (msg.agentId !== "system") {
+      agentCounts.set(msg.agentId, (agentCounts.get(msg.agentId) || 0) + 1);
+    }
+    typeBreakdown.set(msg.type, (typeBreakdown.get(msg.type) || 0) + 1);
+  }
+  const syntheses = messages.filter((m) => m.type === "synthesis");
+  const agreements = messages.filter((m) => m.content.includes("[AGREEMENT]"));
+  const disagreements = messages.filter((m) => m.content.includes("[DISAGREEMENT]"));
+  const proposals = messages.filter((m) => m.content.includes("[PROPOSAL]"));
+  const summary = {
+    metadata,
+    stats: {
+      totalMessages: messages.length,
+      agentParticipation: Object.fromEntries(agentCounts),
+      messageTypes: Object.fromEntries(typeBreakdown),
+      syntheses: syntheses.length,
+      agreements: agreements.length,
+      disagreements: disagreements.length,
+      proposals: proposals.length
+    },
+    keyMoments: {
+      lastSynthesis: syntheses[syntheses.length - 1]?.content.slice(0, 500),
+      topProposals: proposals.slice(-3).map((m) => ({
+        from: getSenderName(m.agentId),
+        preview: m.content.slice(0, 200)
+      }))
+    }
+  };
+  if (format === "json") {
+    return JSON.stringify(summary, null, 2);
+  }
+  const lines = [];
+  if (metadata) {
+    lines.push(`# ${metadata.projectName} - Session Summary`);
+    lines.push("");
+    lines.push(`**Goal:** ${metadata.goal}`);
+    lines.push(`**Duration:** ${metadata.startedAt} - ${metadata.endedAt || "ongoing"}`);
+    lines.push("");
+  }
+  lines.push("## Statistics");
+  lines.push("");
+  lines.push(`- **Total Messages:** ${summary.stats.totalMessages}`);
+  lines.push(`- **Syntheses:** ${summary.stats.syntheses}`);
+  lines.push(`- **Agreements:** ${summary.stats.agreements}`);
+  lines.push(`- **Disagreements:** ${summary.stats.disagreements}`);
+  lines.push(`- **Proposals:** ${summary.stats.proposals}`);
+  lines.push("");
+  lines.push("## Agent Participation");
+  lines.push("");
+  for (const [agent, count] of agentCounts) {
+    lines.push(`- **${getSenderName(agent)}:** ${count} messages`);
+  }
+  lines.push("");
+  if (summary.keyMoments.lastSynthesis) {
+    lines.push("## Latest Synthesis");
+    lines.push("");
+    lines.push(summary.keyMoments.lastSynthesis + "...");
+    lines.push("");
+  }
+  if (summary.keyMoments.topProposals.length > 0) {
+    lines.push("## Recent Proposals");
+    lines.push("");
+    for (const p3 of summary.keyMoments.topProposals) {
+      lines.push(`### From ${p3.from}`);
+      lines.push(p3.preview + "...");
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+function generateMessages(messages, format) {
+  if (format === "json") {
+    return JSON.stringify(messages, null, 2);
+  }
+  const lines = messages.map((m) => {
+    const sender = getSenderName(m.agentId);
+    const time = new Date(m.timestamp).toLocaleTimeString();
+    return `**${sender}** (${time}): ${m.content.slice(0, 100)}...`;
+  });
+  return lines.join("\n\n");
+}
+function generateHTMLTranscript(metadata, messages) {
+  const agentColors = {
+    ronit: "#9B59B6",
+    avi: "#3498DB",
+    dana: "#E74C3C",
+    yossi: "#2ECC71",
+    michal: "#F39C12",
+    noa: "#8E44AD",
+    system: "#95A5A6",
+    human: "#34495E"
+  };
+  let html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${metadata?.projectName || "Forge Debate"} - Transcript</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #1a1a2e; color: #eee; }
+    h1 { color: #00d9ff; }
+    .meta { color: #888; margin-bottom: 20px; }
+    .message { margin: 20px 0; padding: 15px; border-radius: 8px; background: #16213e; }
+    .sender { font-weight: bold; margin-bottom: 5px; }
+    .time { color: #666; font-size: 0.8em; }
+    .content { white-space: pre-wrap; line-height: 1.6; }
+    .type-tag { font-size: 0.8em; padding: 2px 6px; border-radius: 4px; background: #333; margin-left: 10px; }
+  </style>
+</head>
+<body>
+  <h1>\u{1F525} ${metadata?.projectName || "Forge Debate"}</h1>
+  <div class="meta">
+    <p><strong>Goal:</strong> ${metadata?.goal || "N/A"}</p>
+    <p><strong>Started:</strong> ${metadata?.startedAt || "N/A"}</p>
+  </div>
+`;
+  for (const msg of messages) {
+    const color = agentColors[msg.agentId] || "#888";
+    const sender = getSenderName(msg.agentId);
+    const time = new Date(msg.timestamp).toLocaleTimeString();
+    html += `
+  <div class="message">
+    <div class="sender" style="color: ${color}">
+      ${sender}
+      ${msg.type !== "system" ? `<span class="type-tag">${msg.type}</span>` : ""}
+      <span class="time">${time}</span>
+    </div>
+    <div class="content">${escapeHtml(msg.content)}</div>
+  </div>
+`;
+  }
+  html += `</body></html>`;
+  return html;
+}
+function generateHTMLDraft(metadata, drafts) {
+  let html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${metadata?.projectName || "Forge"} - Draft</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    h1 { color: #333; }
+    .draft-section { margin: 30px 0; padding: 20px; border-left: 4px solid #00d9ff; background: #f9f9f9; }
+    .author { color: #666; font-size: 0.9em; margin-bottom: 10px; }
+    .content { white-space: pre-wrap; line-height: 1.8; }
+  </style>
+</head>
+<body>
+  <h1>${metadata?.projectName || "Draft"}</h1>
+  <p><em>Generated by Forge</em></p>
+`;
+  for (const draft of drafts) {
+    html += `
+  <div class="draft-section">
+    <div class="author">From: ${getSenderName(draft.agentId)}</div>
+    <div class="content">${escapeHtml(draft.content)}</div>
+  </div>
+`;
+  }
+  html += `</body></html>`;
+  return html;
+}
+function getSenderName(agentId) {
+  if (agentId === "human") return "Human";
+  if (agentId === "system") return "System";
+  const agent = getAgentById(agentId);
+  return agent ? `${agent.name} (${agent.nameHe})` : agentId;
+}
+function escapeHtml(text2) {
+  return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "<br>");
+}
+
+// cli/commands/batch.ts
+import { Command as Command3 } from "commander";
+import * as path7 from "path";
+import * as fs5 from "fs/promises";
+import { glob } from "glob";
+import { v4 as uuid } from "uuid";
 
 // cli/adapters/CLIAgentRunner.ts
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic2 from "@anthropic-ai/sdk";
 var CLIAgentRunner = class {
   client;
   defaultModel;
   constructor(apiKey, defaultModel = "claude-sonnet-4-20250514") {
-    this.client = new Anthropic({
+    this.client = new Anthropic2({
       apiKey: apiKey || process.env.ANTHROPIC_API_KEY
     });
     this.defaultModel = defaultModel;
@@ -2639,8 +3565,8 @@ var CLIAgentRunner = class {
           }
         ]
       });
-      const text = response.content[0].type === "text" ? response.content[0].text : "{}";
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const text2 = response.content[0].type === "text" ? response.content[0].text : "{}";
+      const jsonMatch = text2.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         return {
           success: false,
@@ -2672,247 +3598,9 @@ var CLIAgentRunner = class {
   }
 };
 
-// cli/adapters/ClaudeCodeCLIRunner.ts
-import * as path from "path";
-import * as os from "os";
-import { query as claudeQuery } from "@anthropic-ai/claude-agent-sdk";
-var CLAUDE_CODE_PATH = path.join(os.homedir(), ".local", "bin", "claude");
-var ClaudeCodeCLIRunner = class {
-  defaultModel;
-  evalModel;
-  constructor(defaultModel = "claude-sonnet-4-20250514", evalModel = "claude-opus-4-6") {
-    this.defaultModel = defaultModel;
-    this.evalModel = evalModel;
-  }
-  async query(params) {
-    let content = "";
-    let sessionId;
-    let usage;
-    try {
-      const q = claudeQuery({
-        prompt: params.prompt,
-        options: {
-          systemPrompt: params.systemPrompt || void 0,
-          model: params.model || this.defaultModel,
-          permissionMode: "bypassPermissions",
-          maxTurns: 1,
-          pathToClaudeCodeExecutable: CLAUDE_CODE_PATH,
-          stderr: (data) => {
-            const text = typeof data === "string" ? data : String(data);
-            if (!text.trim()) return;
-            if (text.includes("[DEBUG]") || text.includes("INFO")) return;
-            console.error("[claude sdk]", text.trim());
-          }
-        }
-      });
-      for await (const message of q) {
-        if ("session_id" in message && typeof message.session_id === "string") {
-          sessionId = message.session_id;
-        }
-        if (message.type === "assistant" && "message" in message) {
-          const msg = message.message;
-          if (msg?.content && Array.isArray(msg.content)) {
-            for (const block of msg.content) {
-              const b = block;
-              if (b.type === "text" && b.text) {
-                content += b.text;
-              }
-            }
-          }
-        }
-        if (message.type === "result") {
-          const result = message;
-          if (result.usage) {
-            usage = {
-              inputTokens: result.usage.input_tokens || 0,
-              outputTokens: result.usage.output_tokens || 0,
-              costUsd: result.total_cost_usd || 0
-            };
-          }
-        }
-      }
-    } catch (error) {
-      if (content) {
-        return { success: true, content, sessionId, usage };
-      }
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
-    }
-    return { success: true, content, sessionId, usage };
-  }
-  async evaluate(params) {
-    const queryResult = await this.query({
-      prompt: params.evalPrompt,
-      systemPrompt: "You are evaluating whether to speak in a discussion. Respond only with JSON.",
-      model: this.evalModel
-    });
-    if (!queryResult.success || !queryResult.content) {
-      return {
-        success: false,
-        urgency: "pass",
-        reason: queryResult.error || "No response",
-        responseType: ""
-      };
-    }
-    const jsonMatch = queryResult.content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return { success: true, urgency: "pass", reason: "Listening", responseType: "" };
-    }
-    try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        success: true,
-        urgency: parsed.urgency || "pass",
-        reason: parsed.reason || "",
-        responseType: parsed.responseType || ""
-      };
-    } catch {
-      return { success: true, urgency: "pass", reason: "Parse error", responseType: "" };
-    }
-  }
-};
-
-// cli/adapters/FileSystemAdapter.ts
-import * as fs from "fs/promises";
-import * as path2 from "path";
-import { glob as globLib } from "glob";
-var FileSystemAdapter = class {
-  cwd;
-  constructor(cwd) {
-    this.cwd = cwd || process.cwd();
-  }
-  async readDir(dirPath) {
-    try {
-      const fullPath = path2.isAbsolute(dirPath) ? dirPath : path2.join(this.cwd, dirPath);
-      const entries = await fs.readdir(fullPath, { withFileTypes: true });
-      return entries.map((entry) => ({
-        name: entry.name,
-        isDirectory: entry.isDirectory(),
-        path: path2.join(fullPath, entry.name)
-      }));
-    } catch {
-      return [];
-    }
-  }
-  async readFile(filePath) {
-    try {
-      const fullPath = path2.isAbsolute(filePath) ? filePath : path2.join(this.cwd, filePath);
-      return await fs.readFile(fullPath, "utf-8");
-    } catch {
-      return null;
-    }
-  }
-  async writeFile(filePath, content) {
-    try {
-      const fullPath = path2.isAbsolute(filePath) ? filePath : path2.join(this.cwd, filePath);
-      await this.ensureDir(path2.dirname(fullPath));
-      await fs.writeFile(fullPath, content, "utf-8");
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  async glob(pattern, options) {
-    try {
-      const cwd = options?.cwd || this.cwd;
-      return await globLib(pattern, { cwd, absolute: true });
-    } catch {
-      return [];
-    }
-  }
-  async exists(filePath) {
-    try {
-      const fullPath = path2.isAbsolute(filePath) ? filePath : path2.join(this.cwd, filePath);
-      await fs.access(fullPath);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  async loadContext(contextDir) {
-    const fullPath = path2.isAbsolute(contextDir) ? contextDir : path2.join(this.cwd, contextDir);
-    const result = {
-      brand: null,
-      audience: null,
-      research: [],
-      examples: [],
-      competitors: []
-    };
-    const brandPath = path2.join(fullPath, "brand.md");
-    result.brand = await this.readFile(brandPath);
-    const audiencePath = path2.join(fullPath, "audience.md");
-    result.audience = await this.readFile(audiencePath);
-    const researchFiles = await this.glob("research/*.md", { cwd: fullPath });
-    for (const file of researchFiles) {
-      const content = await this.readFile(file);
-      if (content) {
-        result.research.push({ file: path2.basename(file), content });
-      }
-    }
-    const exampleFiles = await this.glob("examples/*.md", { cwd: fullPath });
-    for (const file of exampleFiles) {
-      const content = await this.readFile(file);
-      if (content) {
-        result.examples.push({ file: path2.basename(file), content });
-      }
-    }
-    const competitorFiles = await this.glob("competitors/*.md", { cwd: fullPath });
-    for (const file of competitorFiles) {
-      const content = await this.readFile(file);
-      if (content) {
-        result.competitors.push({ file: path2.basename(file), content });
-      }
-    }
-    return result;
-  }
-  async readBrief(briefName) {
-    const withExt = briefName.endsWith(".md") ? briefName : `${briefName}.md`;
-    const briefPath = path2.join(this.cwd, "briefs", withExt);
-    return this.readFile(briefPath);
-  }
-  async listBriefs() {
-    const briefsDir = path2.join(this.cwd, "briefs");
-    const files = await this.glob("*.md", { cwd: briefsDir });
-    return files.map((f) => path2.basename(f, ".md"));
-  }
-  async ensureDir(dirPath) {
-    try {
-      const fullPath = path2.isAbsolute(dirPath) ? dirPath : path2.join(this.cwd, dirPath);
-      await fs.mkdir(fullPath, { recursive: true });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  async appendFile(filePath, content) {
-    try {
-      const fullPath = path2.isAbsolute(filePath) ? filePath : path2.join(this.cwd, filePath);
-      await this.ensureDir(path2.dirname(fullPath));
-      await fs.appendFile(fullPath, content, "utf-8");
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  async listDir(dirPath) {
-    try {
-      const fullPath = path2.isAbsolute(dirPath) ? dirPath : path2.join(this.cwd, dirPath);
-      const entries = await fs.readdir(fullPath, { withFileTypes: true });
-      return entries.filter((e) => e.isDirectory()).map((e) => e.name);
-    } catch {
-      return [];
-    }
-  }
-  getCwd() {
-    return this.cwd;
-  }
-};
-
 // cli/adapters/SessionPersistence.ts
 init_personas();
-import * as path3 from "path";
+import * as path4 from "path";
 var DEFAULT_CONFIG = {
   outputDir: "output/sessions",
   autoSaveInterval: 5e3
@@ -2925,8 +3613,8 @@ var SessionPersistence = class {
   autoSaveTimer = null;
   lastSavedMessageCount = 0;
   session = null;
-  constructor(fs17, config = {}) {
-    this.fs = fs17;
+  constructor(fs18, config = {}) {
+    this.fs = fs18;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
   /**
@@ -2936,7 +3624,7 @@ var SessionPersistence = class {
     this.session = session;
     const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
     const sessionName = `${session.config.projectName.replace(/\s+/g, "-")}-${timestamp}`;
-    this.sessionDir = path3.join(this.config.outputDir, sessionName);
+    this.sessionDir = path4.join(this.config.outputDir, sessionName);
     await this.fs.ensureDir(this.sessionDir);
     const metadata = {
       id: session.id,
@@ -2946,7 +3634,7 @@ var SessionPersistence = class {
       startedAt: session.startedAt.toISOString()
     };
     await this.fs.writeFile(
-      path3.join(this.sessionDir, "session.json"),
+      path4.join(this.sessionDir, "session.json"),
       JSON.stringify(metadata, null, 2)
     );
     this.startAutoSave();
@@ -2971,7 +3659,7 @@ var SessionPersistence = class {
     const messages = this.session.messages;
     const newMessages = messages.slice(this.lastSavedMessageCount);
     if (newMessages.length === 0) return;
-    const jsonlPath = path3.join(this.sessionDir, "messages.jsonl");
+    const jsonlPath = path4.join(this.sessionDir, "messages.jsonl");
     const jsonlContent = newMessages.map((m) => JSON.stringify(m)).join("\n") + "\n";
     await this.fs.appendFile(jsonlPath, jsonlContent);
     this.lastSavedMessageCount = messages.length;
@@ -2997,7 +3685,7 @@ var SessionPersistence = class {
       currentPhase: this.session.currentPhase
     };
     await this.fs.writeFile(
-      path3.join(this.sessionDir, "session.json"),
+      path4.join(this.sessionDir, "session.json"),
       JSON.stringify(metadata, null, 2)
     );
   }
@@ -3029,7 +3717,7 @@ var SessionPersistence = class {
       lines.push("");
     }
     await this.fs.writeFile(
-      path3.join(this.sessionDir, "transcript.md"),
+      path4.join(this.sessionDir, "transcript.md"),
       lines.join("\n")
     );
   }
@@ -3066,7 +3754,7 @@ var SessionPersistence = class {
       }
     }
     await this.fs.writeFile(
-      path3.join(this.sessionDir, "draft.md"),
+      path4.join(this.sessionDir, "draft.md"),
       lines.join("\n")
     );
   }
@@ -3130,12 +3818,12 @@ var SessionPersistence = class {
       currentPhase: sessionWithMemory.currentPhase
     };
     await this.fs.writeFile(
-      path3.join(this.sessionDir, "session.json"),
+      path4.join(this.sessionDir, "session.json"),
       JSON.stringify(metadata, null, 2)
     );
     if (sessionWithMemory.memoryState) {
       await this.fs.writeFile(
-        path3.join(this.sessionDir, "memory.json"),
+        path4.join(this.sessionDir, "memory.json"),
         JSON.stringify(sessionWithMemory.memoryState, null, 2)
       );
     }
@@ -3277,8 +3965,8 @@ var ConversationMemory = class _ConversationMemory {
       this.decisions = this.decisions.slice(toRemove);
     }
     if (this.proposals.length > this.config.maxProposals * threshold) {
-      const active = this.proposals.filter((p2) => p2.status === "active");
-      const resolved = this.proposals.filter((p2) => p2.status !== "active");
+      const active = this.proposals.filter((p3) => p3.status === "active");
+      const resolved = this.proposals.filter((p3) => p3.status !== "active");
       const targetTotal = this.config.maxProposals;
       if (active.length >= targetTotal) {
         this.proposals = active.slice(-targetTotal);
@@ -3404,7 +4092,7 @@ var ConversationMemory = class _ConversationMemory {
     const state = this.agentStates.get(agentId);
     state.messageCount++;
     const content = message.content;
-    const isProposal = message.type === "proposal" || PROPOSAL_PATTERNS.some((p2) => p2.test(content));
+    const isProposal = message.type === "proposal" || PROPOSAL_PATTERNS.some((p3) => p3.test(content));
     if (isProposal) {
       this.proposals.push({
         id: generateMemoryId(),
@@ -3420,7 +4108,7 @@ var ConversationMemory = class _ConversationMemory {
       });
       state.keyPoints.push(this.extractFirstSentence(content));
     }
-    const isDecision = DECISION_PATTERNS.some((p2) => p2.test(content));
+    const isDecision = DECISION_PATTERNS.some((p3) => p3.test(content));
     if (isDecision) {
       this.decisions.push({
         id: generateMemoryId(),
@@ -3547,8 +4235,8 @@ ${keyPoints.join("\n")}`,
     }
     if (this.proposals.length > 0) {
       parts.push("\n## Active Proposals");
-      this.proposals.slice(-5).forEach((p2) => {
-        parts.push(`- [${p2.agentId}] ${p2.content}`);
+      this.proposals.slice(-5).forEach((p3) => {
+        parts.push(`- [${p3.agentId}] ${p3.content}`);
       });
     }
     if (forAgentId && this.agentStates.has(forAgentId)) {
@@ -3557,7 +4245,7 @@ ${keyPoints.join("\n")}`,
 ## Your Previous Contributions (${forAgentId})`);
       if (state.keyPoints.length > 0) {
         parts.push("Key points you made:");
-        state.keyPoints.slice(-3).forEach((p2) => parts.push(`- ${p2}`));
+        state.keyPoints.slice(-3).forEach((p3) => parts.push(`- ${p3}`));
       }
       if (state.agreements.length > 0) {
         parts.push("You agreed with:");
@@ -3672,7 +4360,7 @@ ${keyPoints.join("\n")}`,
    * @returns true if proposal was found and updated, false otherwise
    */
   updateProposalStatus(proposalId, status2) {
-    const proposal = this.proposals.find((p2) => p2.id === proposalId);
+    const proposal = this.proposals.find((p3) => p3.id === proposalId);
     if (proposal) {
       proposal.status = status2;
       return true;
@@ -3686,7 +4374,7 @@ ${keyPoints.join("\n")}`,
    * @returns true if proposal was found and reaction added, false otherwise
    */
   addProposalReaction(proposalId, reaction) {
-    const proposal = this.proposals.find((p2) => p2.id === proposalId);
+    const proposal = this.proposals.find((p3) => p3.id === proposalId);
     if (proposal) {
       if (!proposal.reactions) {
         proposal.reactions = [];
@@ -3707,14 +4395,14 @@ ${keyPoints.join("\n")}`,
    * @returns The proposal if found, undefined otherwise
    */
   getProposal(proposalId) {
-    return this.proposals.find((p2) => p2.id === proposalId);
+    return this.proposals.find((p3) => p3.id === proposalId);
   }
   /**
    * Get all active proposals
    * @returns Array of proposals with status 'active'
    */
   getActiveProposals() {
-    return this.proposals.filter((p2) => p2.status === "active");
+    return this.proposals.filter((p3) => p3.status === "active");
   }
   /**
    * Get the most recent proposal for reaction tracking
@@ -4194,7 +4882,7 @@ function generateAgentSystemPrompt(agent, config, context, skills) {
 - **Speaking Style**: ${agent.speakingStyle}
 
 ## Your Personality Traits
-${agent.personality.map((p2) => `- ${p2}`).join("\n")}
+${agent.personality.map((p3) => `- ${p3}`).join("\n")}
 
 ## Your Known Biases (be aware of these)
 ${agent.biases.map((b) => `- ${b}`).join("\n")}
@@ -4774,7 +5462,7 @@ init_personas();
 
 // src/lib/claude.ts
 init_personas();
-import Anthropic2 from "@anthropic-ai/sdk";
+import Anthropic3 from "@anthropic-ai/sdk";
 
 // src/methodologies/index.ts
 var VISUAL_DECISION_RULES = [
@@ -4952,7 +5640,7 @@ function getDefaultMethodology() {
 var client = null;
 function initializeClient(apiKey) {
   if (!client || apiKey) {
-    client = new Anthropic2({
+    client = new Anthropic3({
       apiKey: apiKey || "",
       // Will use Claude Code credentials via SDK
       dangerouslyAllowBrowser: true
@@ -5976,6 +6664,9 @@ var SESSION_MODES = {
 function getModeById(id) {
   return SESSION_MODES[id];
 }
+function getAllModes() {
+  return Object.values(SESSION_MODES);
+}
 function getDefaultMode() {
   return COPYWRITE_MODE;
 }
@@ -6278,13 +6969,13 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
    * Per MODE_SYSTEM.md: Enforces requiredBeforeSynthesis and phase exit criteria
    */
   checkPhaseTransition() {
-    const currentPhaseConfig = this.mode.phases.find((p2) => p2.id === this.progress.currentPhase);
+    const currentPhaseConfig = this.mode.phases.find((p3) => p3.id === this.progress.currentPhase);
     if (!currentPhaseConfig) return null;
     if (!currentPhaseConfig.autoTransition) return null;
     const maxMessagesReached = this.progress.messagesInPhase >= currentPhaseConfig.maxMessages;
     const exitCriteriaMet = this.checkExitCriteria(currentPhaseConfig.exitCriteria);
     if (maxMessagesReached || exitCriteriaMet.met) {
-      const nextPhase = this.mode.phases.find((p2) => p2.order === currentPhaseConfig.order + 1);
+      const nextPhase = this.mode.phases.find((p3) => p3.order === currentPhaseConfig.order + 1);
       if (nextPhase) {
         if (this.isSynthesisPhase(nextPhase.id)) {
           const researchCheck = this.checkRequiredResearch();
@@ -6399,7 +7090,7 @@ Previous phase complete. Carry forward what we learned, but shift focus.`
     const maxMessages = this.mode.successCriteria.maxMessages;
     const atLimit = this.progress.totalMessages >= maxMessages;
     const neverSynthesized = !this.mode.phases.some(
-      (p2) => p2.id === "synthesis" && this.progress.currentPhase === "synthesis"
+      (p3) => p3.id === "synthesis" && this.progress.currentPhase === "synthesis"
     );
     return atLimit && neverSynthesized;
   }
@@ -6486,7 +7177,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
    * Manually transition to a phase
    */
   transitionToPhase(phaseId) {
-    const phase = this.mode.phases.find((p2) => p2.id === phaseId);
+    const phase = this.mode.phases.find((p3) => p3.id === phaseId);
     if (phase) {
       this.progress.currentPhase = phaseId;
       this.progress.messagesInPhase = 0;
@@ -6498,7 +7189,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
    * Get current phase config
    */
   getCurrentPhase() {
-    return this.mode.phases.find((p2) => p2.id === this.progress.currentPhase);
+    return this.mode.phases.find((p3) => p3.id === this.progress.currentPhase);
   }
   /**
    * Get mode-specific agent instructions
@@ -6548,8 +7239,8 @@ The session can now be finalized. Review the outputs and confirm completion.`
 };
 
 // src/lib/research/ProjectIntrospector.ts
-import * as fs2 from "fs/promises";
-import * as path4 from "path";
+import * as fs4 from "fs/promises";
+import * as path5 from "path";
 var DEFAULT_SKIP_DIRS = /* @__PURE__ */ new Set([
   // Build / dep output
   "node_modules",
@@ -6654,7 +7345,7 @@ async function introspectProject(opts) {
     skipDirs = DEFAULT_SKIP_DIRS
   } = opts;
   try {
-    const stat3 = await fs2.stat(projectDir);
+    const stat3 = await fs4.stat(projectDir);
     if (!stat3.isDirectory()) {
       return {
         summary: `Project directory does not exist or is not a directory: ${projectDir}`,
@@ -6691,7 +7382,7 @@ async function introspectProject(opts) {
   }
   const scored = [];
   for (const file of allFiles) {
-    const rel = path4.relative(projectDir, file).toLowerCase();
+    const rel = path5.relative(projectDir, file).toLowerCase();
     let score = 0;
     for (const kw of keywords) {
       if (rel.includes(kw)) score += 10;
@@ -6703,9 +7394,9 @@ async function introspectProject(opts) {
     const rest = allFiles.filter((f) => !already.has(f)).slice(0, MAX_CONTENT_SCAN_CANDIDATES);
     for (const file of rest) {
       try {
-        const stat3 = await fs2.stat(file);
+        const stat3 = await fs4.stat(file);
         if (stat3.size > maxFileSize * 3) continue;
-        const content = (await fs2.readFile(file, "utf-8")).toLowerCase();
+        const content = (await fs4.readFile(file, "utf-8")).toLowerCase();
         let contentScore = 0;
         for (const kw of keywords) {
           let idx = 0;
@@ -6736,10 +7427,10 @@ async function introspectProject(opts) {
   const snippets = [];
   for (const { path: filePath } of topFiles) {
     try {
-      const raw = await fs2.readFile(filePath, "utf-8");
+      const raw = await fs4.readFile(filePath, "utf-8");
       const content = raw.length > maxFileSize ? raw.slice(0, maxFileSize) + "\n// \u2026truncated" : raw;
       snippets.push({
-        path: path4.relative(projectDir, filePath),
+        path: path5.relative(projectDir, filePath),
         content
       });
     } catch {
@@ -6814,7 +7505,7 @@ async function walkFiles(root, skipDirs, maxDepth) {
     if (results.length >= MAX_WALK_FILES) return;
     let real;
     try {
-      real = await fs2.realpath(dir);
+      real = await fs4.realpath(dir);
     } catch {
       return;
     }
@@ -6822,7 +7513,7 @@ async function walkFiles(root, skipDirs, maxDepth) {
     visited.add(real);
     let entries;
     try {
-      entries = await fs2.readdir(dir, { withFileTypes: true });
+      entries = await fs4.readdir(dir, { withFileTypes: true });
     } catch {
       return;
     }
@@ -6831,11 +7522,11 @@ async function walkFiles(root, skipDirs, maxDepth) {
       if (skipDirs.has(entry.name)) continue;
       if (entry.name.startsWith(".")) continue;
       if (entry.isSymbolicLink()) continue;
-      const full = path4.join(dir, entry.name);
+      const full = path5.join(dir, entry.name);
       if (entry.isDirectory()) {
         await visit(full, depth + 1);
       } else if (entry.isFile()) {
-        const ext = path4.extname(entry.name).toLowerCase();
+        const ext = path5.extname(entry.name).toLowerCase();
         if (TEXT_EXTENSIONS.has(ext)) results.push(full);
       }
     }
@@ -6845,7 +7536,7 @@ async function walkFiles(root, skipDirs, maxDepth) {
 }
 
 // src/lib/eda/WorkdirManager.ts
-import * as path5 from "path";
+import * as path6 from "path";
 var WorkdirManager = class {
   fs;
   sessionDir;
@@ -6853,17 +7544,17 @@ var WorkdirManager = class {
   consensusDir;
   skillsDir;
   initialized = false;
-  constructor(fs17, opts) {
-    this.fs = fs17;
+  constructor(fs18, opts) {
+    this.fs = fs18;
     this.sessionDir = opts.sessionDir;
-    this.consensusDir = path5.join(opts.sessionDir, "consensus");
-    this.skillsDir = path5.join(opts.sessionDir, "skills");
+    this.consensusDir = path6.join(opts.sessionDir, "consensus");
+    this.skillsDir = path6.join(opts.sessionDir, "skills");
     for (const id of opts.agentIds) {
-      const dir = path5.join(opts.sessionDir, "agents", id);
+      const dir = path6.join(opts.sessionDir, "agents", id);
       this.agentPaths.set(id, {
         dir,
-        messagesPath: path5.join(dir, "messages.jsonl"),
-        notesDir: path5.join(dir, "notes")
+        messagesPath: path6.join(dir, "messages.jsonl"),
+        notesDir: path6.join(dir, "notes")
       });
     }
   }
@@ -6886,8 +7577,8 @@ var WorkdirManager = class {
     await this.init();
     for (const [agentId, content] of perAgent) {
       if (!content.trim()) continue;
-      const p2 = path5.join(this.skillsDir, `${agentId}.md`);
-      await this.fs.writeFile(p2, content);
+      const p3 = path6.join(this.skillsDir, `${agentId}.md`);
+      await this.fs.writeFile(p3, content);
     }
   }
   getAgentPaths(agentId) {
@@ -6921,7 +7612,7 @@ var WorkdirManager = class {
     const ts = new Date(message.timestamp).toISOString().replace(/[:.]/g, "-");
     const safePhase = opts.phaseId.replace(/[^a-z0-9_-]+/gi, "_");
     const filename = `${safePhase}-${ts}-${message.agentId}.md`;
-    const p2 = path5.join(this.consensusDir, filename);
+    const p3 = path6.join(this.consensusDir, filename);
     const body = [
       `# ${opts.phaseId} \xB7 consensus \xB7 ${message.agentId}`,
       "",
@@ -6934,8 +7625,8 @@ var WorkdirManager = class {
       message.content,
       ""
     ].filter((l) => l !== null).join("\n");
-    await this.fs.writeFile(p2, body);
-    return p2;
+    await this.fs.writeFile(p3, body);
+    return p3;
   }
 };
 
@@ -7541,7 +8232,7 @@ Discussion continues without research results.`
     const fileList = result.filesRead.length > 0 ? `
 
 **\u{1F4C1} Files read (${result.filesRead.length}):**
-${result.filesRead.slice(0, 12).map((p2) => `- \`${p2}\``).join("\n")}${result.filesRead.length > 12 ? `
+${result.filesRead.slice(0, 12).map((p3) => `- \`${p3}\``).join("\n")}${result.filesRead.length > 12 ? `
 - \u2026and ${result.filesRead.length - 12} more` : ""}` : "";
     return [
       `**\u{1F50D} Local project introspection**`,
@@ -8469,593 +9160,7 @@ ${modeInstructions}`);
   }
 };
 
-// cli/index.ts
-init_personas();
-
-// cli/commands/personas.ts
-import { Command } from "commander";
-import * as path6 from "path";
-import * as fs3 from "fs/promises";
-import Anthropic3 from "@anthropic-ai/sdk";
-var PERSONA_GENERATION_PROMPT = `You are an expert at creating debate personas for multi-agent deliberation systems.
-
-Your task is to generate a set of personas that will engage in productive debate about a specific domain or project. Each persona should:
-
-1. **Represent a distinct stakeholder perspective** - Different roles, backgrounds, or viewpoints that naturally create productive tension
-2. **Have complementary blind spots** - What one misses, another catches
-3. **Bring unique expertise** - Each persona should have domain knowledge the others lack
-4. **Have realistic biases** - Based on their background and role
-5. **Create productive conflict** - Their perspectives should naturally clash in ways that lead to better outcomes
-
-## Output Format
-Return a JSON object with TWO fields:
-
-### 1. "expertise" field
-A markdown string containing domain-specific knowledge ALL personas should have. This should include:
-- Key terminology and concepts for the domain
-- Best practices and frameworks
-- Common pitfalls to avoid
-- Decision-making criteria relevant to the domain
-- Industry standards or regulations if applicable
-
-### 2. "personas" field
-An array of personas. Each persona must have:
-- id: lowercase, no spaces (e.g., "skeptical-engineer")
-- name: A realistic first name
-- nameHe: Hebrew version of the name (transliterate if needed)
-- role: Short role description (e.g., "The Risk-Averse Investor")
-- age: Realistic age for their role
-- background: 2-3 sentence background explaining their perspective
-- personality: Array of 4-5 personality traits relevant to debates
-- biases: Array of 3-4 biases they bring to discussions
-- strengths: Array of 3-4 debate/analysis strengths
-- weaknesses: Array of 2 potential blind spots
-- speakingStyle: How they communicate in debates
-- color: One of: pink, green, purple, orange, blue, cyan, yellow, red
-- expertise: Array of 3-5 specific areas THIS persona is expert in (unique to them)
-
-## Example Output Structure
-{
-  "expertise": "## Domain Expertise\\n\\n### Key Concepts\\n- Concept 1...\\n### Best Practices\\n- Practice 1...",
-  "personas": [
-    {
-      "id": "cautious-analyst",
-      "name": "Sarah",
-      ...
-      "expertise": ["risk assessment", "regulatory compliance", "data analysis"]
-    }
-  ]
-}
-
-## Important
-- Create 4-6 personas unless specified otherwise
-- Ensure diversity in age, background, and perspective
-- Make them feel like real people, not caricatures
-- Their conflicts should be productive, not personal
-- The shared expertise should be comprehensive enough to inform good debates
-- Each persona's individual expertise should be distinct`;
-function createPersonasCommand() {
-  const personas = new Command("personas").description("Manage debate personas");
-  personas.command("generate").description("Generate new personas for a domain").option("-d, --domain <domain>", "Domain or topic for the debate").option("-b, --brief <name>", "Generate from a brief file").option("-c, --count <n>", "Number of personas to generate", "5").option("-r, --roles <roles>", "Specific roles to include (comma-separated)").option("-n, --name <name>", "Name for the persona set", "custom").option("-o, --output <dir>", "Output directory", "personas").action(async (options) => {
-    const cwd = process.cwd();
-    let contextPrompt = "";
-    if (options.brief) {
-      const briefPath = path6.join(cwd, "briefs", `${options.brief}.md`);
-      try {
-        const briefContent = await fs3.readFile(briefPath, "utf-8");
-        contextPrompt = `## Project Brief
-${briefContent}
-
-Generate personas that would be valuable stakeholders in debating and creating content/strategy for this project.`;
-      } catch {
-        console.error(`Brief "${options.brief}" not found`);
-        process.exit(1);
-      }
-    } else if (options.domain) {
-      contextPrompt = `## Domain
-${options.domain}
-
-Generate personas that would be valuable stakeholders in debating decisions and strategy for this domain.`;
-    } else {
-      console.error("Please specify either --domain or --brief");
-      process.exit(1);
-    }
-    if (options.roles) {
-      contextPrompt += `
-
-## Required Roles
-Make sure to include personas for these roles: ${options.roles}`;
-    }
-    contextPrompt += `
-
-## Number of Personas
-Generate exactly ${options.count} personas.`;
-    console.log("\u{1F525} Generating personas...\n");
-    try {
-      const client2 = new Anthropic3();
-      const response = await client2.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
-        system: PERSONA_GENERATION_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: contextPrompt
-          }
-        ]
-      });
-      const text = response.content[0].type === "text" ? response.content[0].text : "";
-      const jsonMatch = text.match(/\{[\s\S]*\}/) || text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        console.error("Failed to parse personas from response");
-        console.log("Raw response:", text);
-        process.exit(1);
-      }
-      const parsed = JSON.parse(jsonMatch[0]);
-      let personas2;
-      let expertise = "";
-      if (Array.isArray(parsed)) {
-        personas2 = parsed;
-      } else {
-        personas2 = parsed.personas;
-        expertise = parsed.expertise || "";
-      }
-      for (const p2 of personas2) {
-        if (!p2.id || !p2.name || !p2.role) {
-          console.error("Invalid persona structure:", p2);
-          process.exit(1);
-        }
-      }
-      const outputDir = path6.join(cwd, options.output);
-      await fs3.mkdir(outputDir, { recursive: true });
-      const personasFile = path6.join(outputDir, `${options.name}.json`);
-      await fs3.writeFile(personasFile, JSON.stringify(personas2, null, 2));
-      if (expertise) {
-        const skillsFile = path6.join(outputDir, `${options.name}.skills.md`);
-        await fs3.writeFile(skillsFile, expertise);
-        console.log(`\u{1F4DA} Domain expertise saved to: ${skillsFile}`);
-      }
-      console.log(`\u2705 Generated ${personas2.length} personas:
-`);
-      for (const p2 of personas2) {
-        console.log(`  \u2022 ${p2.name} (${p2.nameHe}) - ${p2.role}`);
-        console.log(`    ${p2.background.slice(0, 80)}...`);
-        if (p2.expertise) {
-          console.log(`    Expertise: ${p2.expertise.slice(0, 3).join(", ")}`);
-        }
-        console.log("");
-      }
-      console.log(`\u{1F4C1} Personas saved to: ${personasFile}`);
-      console.log(`
-Use with: forge start --personas ${options.name}`);
-    } catch (error) {
-      console.error("Error generating personas:", error);
-      process.exit(1);
-    }
-  });
-  personas.command("list").description("List available persona sets").option("-d, --dir <dir>", "Personas directory", "personas").action(async (options) => {
-    const cwd = process.cwd();
-    const personasDir = path6.join(cwd, options.dir);
-    try {
-      const files = await fs3.readdir(personasDir);
-      const jsonFiles = files.filter((f) => f.endsWith(".json"));
-      if (jsonFiles.length === 0) {
-        console.log("No persona sets found.");
-        console.log('Generate some with: forge personas generate --domain "your domain"');
-        return;
-      }
-      console.log("Available persona sets:\n");
-      for (const file of jsonFiles) {
-        const name = path6.basename(file, ".json");
-        const content = await fs3.readFile(path6.join(personasDir, file), "utf-8");
-        const personas2 = JSON.parse(content);
-        console.log(`  \u2022 ${name} (${personas2.length} personas)`);
-        for (const p2 of personas2) {
-          console.log(`    - ${p2.name}: ${p2.role}`);
-        }
-        console.log("");
-      }
-    } catch {
-      console.log("No personas directory found.");
-      console.log('Generate some with: forge personas generate --domain "your domain"');
-    }
-  });
-  personas.command("show <name>").description("Show details of a persona set").option("-d, --dir <dir>", "Personas directory", "personas").action(async (name, options) => {
-    const cwd = process.cwd();
-    const filePath = path6.join(cwd, options.dir, `${name}.json`);
-    try {
-      const content = await fs3.readFile(filePath, "utf-8");
-      const personas2 = JSON.parse(content);
-      console.log(`
-\u{1F4CB} Persona Set: ${name}
-`);
-      console.log("\u2500".repeat(60));
-      for (const p2 of personas2) {
-        console.log(`
-### ${p2.name} (${p2.nameHe}) - ${p2.role}`);
-        console.log(`Age: ${p2.age} | Color: ${p2.color}`);
-        console.log(`
-Background:
-${p2.background}`);
-        console.log(`
-Personality:`);
-        p2.personality.forEach((t) => console.log(`  \u2022 ${t}`));
-        console.log(`
-Biases:`);
-        p2.biases.forEach((b) => console.log(`  \u2022 ${b}`));
-        console.log(`
-Strengths:`);
-        p2.strengths.forEach((s) => console.log(`  \u2022 ${s}`));
-        console.log(`
-Weaknesses:`);
-        p2.weaknesses.forEach((w) => console.log(`  \u2022 ${w}`));
-        console.log(`
-Speaking Style: ${p2.speakingStyle}`);
-        console.log("\n" + "\u2500".repeat(60));
-      }
-    } catch {
-      console.error(`Persona set "${name}" not found`);
-      process.exit(1);
-    }
-  });
-  return personas;
-}
-
-// cli/commands/export.ts
-init_personas();
-import { Command as Command2 } from "commander";
-import * as path7 from "path";
-import * as fs4 from "fs/promises";
-function createExportCommand() {
-  const exportCmd = new Command2("export").description("Export session data").option("-s, --session <dir>", "Session directory to export").option("-f, --format <fmt>", "Export format: md, json, html", "md").option("-t, --type <type>", "Export type: transcript, draft, summary, messages, all", "transcript").option("-o, --output <file>", "Output file path").option("-l, --latest", "Use the latest session", false).action(async (options) => {
-    const cwd = process.cwd();
-    let sessionDir = options.session;
-    if (!sessionDir || options.latest) {
-      const outputDir = path7.join(cwd, "output/sessions");
-      try {
-        const dirs = await fs4.readdir(outputDir, { withFileTypes: true });
-        const sessionDirs = dirs.filter((d) => d.isDirectory()).map((d) => d.name).sort().reverse();
-        if (sessionDirs.length === 0) {
-          console.error('No sessions found. Run "forge start" first.');
-          process.exit(1);
-        }
-        sessionDir = path7.join(outputDir, sessionDirs[0]);
-        console.log(`Using session: ${sessionDirs[0]}
-`);
-      } catch {
-        console.error("No sessions directory found.");
-        process.exit(1);
-      }
-    }
-    const metadataPath = path7.join(sessionDir, "session.json");
-    const messagesPath = path7.join(sessionDir, "messages.jsonl");
-    let metadata = null;
-    let messages = [];
-    try {
-      const metaContent = await fs4.readFile(metadataPath, "utf-8");
-      metadata = JSON.parse(metaContent);
-    } catch {
-      console.warn("Warning: Could not load session metadata");
-    }
-    try {
-      const msgContent = await fs4.readFile(messagesPath, "utf-8");
-      messages = msgContent.trim().split("\n").filter((line) => line.trim()).map((line) => JSON.parse(line));
-    } catch {
-      console.warn("Warning: Could not load messages");
-    }
-    let output = "";
-    let filename = "";
-    switch (options.type) {
-      case "transcript":
-        output = generateTranscript(metadata, messages, options.format);
-        filename = `transcript.${options.format}`;
-        break;
-      case "draft":
-        output = generateDraft(metadata, messages, options.format);
-        filename = `draft.${options.format}`;
-        break;
-      case "summary":
-        output = generateSummary(metadata, messages, options.format);
-        filename = `summary.${options.format}`;
-        break;
-      case "messages":
-        output = generateMessages(messages, options.format);
-        filename = `messages.${options.format}`;
-        break;
-      case "all":
-        const types = ["transcript", "draft", "summary", "messages"];
-        for (const t of types) {
-          const typeOutput = generateByType(t, metadata, messages, options.format);
-          const typeFile = options.output ? path7.join(path7.dirname(options.output), `${t}.${options.format}`) : path7.join(sessionDir, `export-${t}.${options.format}`);
-          await fs4.writeFile(typeFile, typeOutput);
-          console.log(`\u2705 Exported ${t} to ${typeFile}`);
-        }
-        return;
-      default:
-        console.error(`Unknown export type: ${options.type}`);
-        process.exit(1);
-    }
-    const outputPath = options.output || path7.join(sessionDir, `export-${filename}`);
-    await fs4.writeFile(outputPath, output);
-    console.log(`\u2705 Exported ${options.type} to ${outputPath}`);
-  });
-  return exportCmd;
-}
-function generateByType(type, metadata, messages, format) {
-  switch (type) {
-    case "transcript":
-      return generateTranscript(metadata, messages, format);
-    case "draft":
-      return generateDraft(metadata, messages, format);
-    case "summary":
-      return generateSummary(metadata, messages, format);
-    case "messages":
-      return generateMessages(messages, format);
-    default:
-      return "";
-  }
-}
-function generateTranscript(metadata, messages, format) {
-  if (format === "json") {
-    return JSON.stringify({ metadata, messages }, null, 2);
-  }
-  if (format === "html") {
-    return generateHTMLTranscript(metadata, messages);
-  }
-  const lines = [];
-  if (metadata) {
-    lines.push(`# ${metadata.projectName} - Debate Transcript`);
-    lines.push("");
-    lines.push(`**Goal:** ${metadata.goal}`);
-    lines.push(`**Started:** ${metadata.startedAt}`);
-    if (metadata.endedAt) lines.push(`**Ended:** ${metadata.endedAt}`);
-    lines.push(`**Agents:** ${metadata.enabledAgents.join(", ")}`);
-    lines.push("");
-    lines.push("---");
-    lines.push("");
-  }
-  for (const msg of messages) {
-    const sender = getSenderName(msg.agentId);
-    const time = new Date(msg.timestamp).toLocaleTimeString();
-    const typeTag = msg.type !== "system" ? `[${msg.type.toUpperCase()}]` : "";
-    lines.push(`### ${sender} ${typeTag}`);
-    lines.push(`*${time}*`);
-    lines.push("");
-    lines.push(msg.content);
-    lines.push("");
-    lines.push("---");
-    lines.push("");
-  }
-  return lines.join("\n");
-}
-function generateDraft(metadata, messages, format) {
-  const draftMessages = messages.filter(
-    (m) => m.type === "synthesis" || m.content.includes("## Hero") || m.content.includes("## Problem") || m.content.includes("## Solution") || m.content.includes("**Hero") || m.content.includes("**\u05DB\u05D5\u05EA\u05E8\u05EA")
-  );
-  const draftingContent = messages.filter(
-    (m) => m.agentId !== "system" && m.agentId !== "human" && (m.content.includes("[PROPOSAL]") || m.content.includes("[SYNTHESIS]"))
-  );
-  const allDrafts = [...draftMessages, ...draftingContent];
-  if (format === "json") {
-    return JSON.stringify({
-      metadata,
-      drafts: allDrafts.map((m) => ({
-        agentId: m.agentId,
-        content: m.content,
-        timestamp: m.timestamp
-      }))
-    }, null, 2);
-  }
-  if (format === "html") {
-    return generateHTMLDraft(metadata, allDrafts);
-  }
-  const lines = [];
-  if (metadata) {
-    lines.push(`# ${metadata.projectName} - Draft Copy`);
-    lines.push("");
-    lines.push(`**Goal:** ${metadata.goal}`);
-    lines.push(`**Generated:** ${(/* @__PURE__ */ new Date()).toISOString()}`);
-    lines.push("");
-    lines.push("---");
-    lines.push("");
-  }
-  if (allDrafts.length === 0) {
-    lines.push("*No draft content found. The debate may not have reached the drafting phase.*");
-  } else {
-    for (const msg of allDrafts) {
-      const sender = getSenderName(msg.agentId);
-      lines.push(`## From ${sender}`);
-      lines.push("");
-      lines.push(msg.content);
-      lines.push("");
-      lines.push("---");
-      lines.push("");
-    }
-  }
-  return lines.join("\n");
-}
-function generateSummary(metadata, messages, format) {
-  const agentCounts = /* @__PURE__ */ new Map();
-  const typeBreakdown = /* @__PURE__ */ new Map();
-  for (const msg of messages) {
-    if (msg.agentId !== "system") {
-      agentCounts.set(msg.agentId, (agentCounts.get(msg.agentId) || 0) + 1);
-    }
-    typeBreakdown.set(msg.type, (typeBreakdown.get(msg.type) || 0) + 1);
-  }
-  const syntheses = messages.filter((m) => m.type === "synthesis");
-  const agreements = messages.filter((m) => m.content.includes("[AGREEMENT]"));
-  const disagreements = messages.filter((m) => m.content.includes("[DISAGREEMENT]"));
-  const proposals = messages.filter((m) => m.content.includes("[PROPOSAL]"));
-  const summary = {
-    metadata,
-    stats: {
-      totalMessages: messages.length,
-      agentParticipation: Object.fromEntries(agentCounts),
-      messageTypes: Object.fromEntries(typeBreakdown),
-      syntheses: syntheses.length,
-      agreements: agreements.length,
-      disagreements: disagreements.length,
-      proposals: proposals.length
-    },
-    keyMoments: {
-      lastSynthesis: syntheses[syntheses.length - 1]?.content.slice(0, 500),
-      topProposals: proposals.slice(-3).map((m) => ({
-        from: getSenderName(m.agentId),
-        preview: m.content.slice(0, 200)
-      }))
-    }
-  };
-  if (format === "json") {
-    return JSON.stringify(summary, null, 2);
-  }
-  const lines = [];
-  if (metadata) {
-    lines.push(`# ${metadata.projectName} - Session Summary`);
-    lines.push("");
-    lines.push(`**Goal:** ${metadata.goal}`);
-    lines.push(`**Duration:** ${metadata.startedAt} - ${metadata.endedAt || "ongoing"}`);
-    lines.push("");
-  }
-  lines.push("## Statistics");
-  lines.push("");
-  lines.push(`- **Total Messages:** ${summary.stats.totalMessages}`);
-  lines.push(`- **Syntheses:** ${summary.stats.syntheses}`);
-  lines.push(`- **Agreements:** ${summary.stats.agreements}`);
-  lines.push(`- **Disagreements:** ${summary.stats.disagreements}`);
-  lines.push(`- **Proposals:** ${summary.stats.proposals}`);
-  lines.push("");
-  lines.push("## Agent Participation");
-  lines.push("");
-  for (const [agent, count] of agentCounts) {
-    lines.push(`- **${getSenderName(agent)}:** ${count} messages`);
-  }
-  lines.push("");
-  if (summary.keyMoments.lastSynthesis) {
-    lines.push("## Latest Synthesis");
-    lines.push("");
-    lines.push(summary.keyMoments.lastSynthesis + "...");
-    lines.push("");
-  }
-  if (summary.keyMoments.topProposals.length > 0) {
-    lines.push("## Recent Proposals");
-    lines.push("");
-    for (const p2 of summary.keyMoments.topProposals) {
-      lines.push(`### From ${p2.from}`);
-      lines.push(p2.preview + "...");
-      lines.push("");
-    }
-  }
-  return lines.join("\n");
-}
-function generateMessages(messages, format) {
-  if (format === "json") {
-    return JSON.stringify(messages, null, 2);
-  }
-  const lines = messages.map((m) => {
-    const sender = getSenderName(m.agentId);
-    const time = new Date(m.timestamp).toLocaleTimeString();
-    return `**${sender}** (${time}): ${m.content.slice(0, 100)}...`;
-  });
-  return lines.join("\n\n");
-}
-function generateHTMLTranscript(metadata, messages) {
-  const agentColors = {
-    ronit: "#9B59B6",
-    avi: "#3498DB",
-    dana: "#E74C3C",
-    yossi: "#2ECC71",
-    michal: "#F39C12",
-    noa: "#8E44AD",
-    system: "#95A5A6",
-    human: "#34495E"
-  };
-  let html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${metadata?.projectName || "Forge Debate"} - Transcript</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #1a1a2e; color: #eee; }
-    h1 { color: #00d9ff; }
-    .meta { color: #888; margin-bottom: 20px; }
-    .message { margin: 20px 0; padding: 15px; border-radius: 8px; background: #16213e; }
-    .sender { font-weight: bold; margin-bottom: 5px; }
-    .time { color: #666; font-size: 0.8em; }
-    .content { white-space: pre-wrap; line-height: 1.6; }
-    .type-tag { font-size: 0.8em; padding: 2px 6px; border-radius: 4px; background: #333; margin-left: 10px; }
-  </style>
-</head>
-<body>
-  <h1>\u{1F525} ${metadata?.projectName || "Forge Debate"}</h1>
-  <div class="meta">
-    <p><strong>Goal:</strong> ${metadata?.goal || "N/A"}</p>
-    <p><strong>Started:</strong> ${metadata?.startedAt || "N/A"}</p>
-  </div>
-`;
-  for (const msg of messages) {
-    const color = agentColors[msg.agentId] || "#888";
-    const sender = getSenderName(msg.agentId);
-    const time = new Date(msg.timestamp).toLocaleTimeString();
-    html += `
-  <div class="message">
-    <div class="sender" style="color: ${color}">
-      ${sender}
-      ${msg.type !== "system" ? `<span class="type-tag">${msg.type}</span>` : ""}
-      <span class="time">${time}</span>
-    </div>
-    <div class="content">${escapeHtml(msg.content)}</div>
-  </div>
-`;
-  }
-  html += `</body></html>`;
-  return html;
-}
-function generateHTMLDraft(metadata, drafts) {
-  let html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>${metadata?.projectName || "Forge"} - Draft</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    h1 { color: #333; }
-    .draft-section { margin: 30px 0; padding: 20px; border-left: 4px solid #00d9ff; background: #f9f9f9; }
-    .author { color: #666; font-size: 0.9em; margin-bottom: 10px; }
-    .content { white-space: pre-wrap; line-height: 1.8; }
-  </style>
-</head>
-<body>
-  <h1>${metadata?.projectName || "Draft"}</h1>
-  <p><em>Generated by Forge</em></p>
-`;
-  for (const draft of drafts) {
-    html += `
-  <div class="draft-section">
-    <div class="author">From: ${getSenderName(draft.agentId)}</div>
-    <div class="content">${escapeHtml(draft.content)}</div>
-  </div>
-`;
-  }
-  html += `</body></html>`;
-  return html;
-}
-function getSenderName(agentId) {
-  if (agentId === "human") return "Human";
-  if (agentId === "system") return "System";
-  const agent = getAgentById(agentId);
-  return agent ? `${agent.name} (${agent.nameHe})` : agentId;
-}
-function escapeHtml(text) {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "<br>");
-}
-
 // cli/commands/batch.ts
-import { Command as Command3 } from "commander";
-import * as path8 from "path";
-import * as fs5 from "fs/promises";
-import { glob } from "glob";
-import { v4 as uuid } from "uuid";
 init_personas();
 function createBatchCommand() {
   const batch = new Command3("batch").description("Process multiple briefs in batch mode").argument("<pattern>", 'Glob pattern for brief files (e.g., "./briefs/*.md")').option("-p, --parallel <count>", "Number of parallel sessions", "1").option("-o, --output <dir>", "Output directory", "output/batch").option("-a, --agents <ids>", "Comma-separated agent IDs").option("-l, --language <lang>", "Language: hebrew, english, mixed", "hebrew").option("--json", "Output results as JSON").option("--dry-run", "Show what would be processed without running").option("--resume", "Skip already processed briefs").option("--timeout <minutes>", "Timeout per brief in minutes", "30").action(async (pattern, options) => {
@@ -9067,7 +9172,7 @@ function createBatchCommand() {
 async function runBatch(pattern, options) {
   const cwd = process.cwd();
   const parallel = parseInt(options.parallel || "1", 10);
-  const outputDir = path8.resolve(cwd, options.output || "output/batch");
+  const outputDir = path7.resolve(cwd, options.output || "output/batch");
   const timeout = parseInt(options.timeout || "30", 10) * 60 * 1e3;
   const briefPaths = await glob(pattern, { cwd, absolute: true });
   if (briefPaths.length === 0) {
@@ -9088,8 +9193,8 @@ async function runBatch(pattern, options) {
     console.log("");
   }
   if (options.dryRun) {
-    const dryRunResults = briefPaths.map((p2) => ({
-      brief: path8.relative(cwd, p2),
+    const dryRunResults = briefPaths.map((p3) => ({
+      brief: path7.relative(cwd, p3),
       wouldProcess: true
     }));
     if (options.json) {
@@ -9104,7 +9209,7 @@ async function runBatch(pattern, options) {
   let toProcess = briefPaths;
   if (options.resume) {
     const processed = await getProcessedBriefs(outputDir);
-    toProcess = briefPaths.filter((p2) => !processed.has(path8.basename(p2, ".md")));
+    toProcess = briefPaths.filter((p3) => !processed.has(path7.basename(p3, ".md")));
     if (!options.json && toProcess.length < briefPaths.length) {
       console.log(`Skipping ${briefPaths.length - toProcess.length} already processed briefs.`);
     }
@@ -9171,7 +9276,7 @@ Processing batch ${Math.floor(i / parallel) + 1}/${Math.ceil(toProcess.length / 
   return failed > 0 ? 1 : 0;
 }
 async function processBrief(briefPath, opts) {
-  const briefName = path8.basename(briefPath, ".md");
+  const briefName = path7.basename(briefPath, ".md");
   const startTime = Date.now();
   if (!opts.json) {
     console.log(`  \u{1F4C4} ${briefName}...`);
@@ -9194,7 +9299,7 @@ async function processBrief(briefPath, opts) {
       // Shorter for batch
       consensusThreshold: 0.6,
       methodology: getDefaultMethodology(),
-      contextDir: path8.join(opts.cwd, "context"),
+      contextDir: path7.join(opts.cwd, "context"),
       outputDir: opts.outputDir,
       language: opts.language
     };
@@ -9210,7 +9315,7 @@ async function processBrief(briefPath, opts) {
       status: "running"
     };
     const persistence = new SessionPersistence(fsAdapter, {
-      outputDir: path8.join(opts.outputDir, briefName)
+      outputDir: path7.join(opts.outputDir, briefName)
     });
     await persistence.initSession(session);
     const orchestrator = new EDAOrchestrator(
@@ -9283,7 +9388,7 @@ async function getProcessedBriefs(outputDir) {
     for (const entry of entries) {
       if (entry.isDirectory() && !entry.name.startsWith(".")) {
         try {
-          await fs5.access(path8.join(outputDir, entry.name, "session.json"));
+          await fs5.access(path7.join(outputDir, entry.name, "session.json"));
           processed.add(entry.name);
         } catch {
         }
@@ -9296,7 +9401,7 @@ async function getProcessedBriefs(outputDir) {
 
 // cli/commands/sessions.ts
 import { Command as Command4 } from "commander";
-import * as path9 from "path";
+import * as path8 from "path";
 import * as fs6 from "fs/promises";
 import chalk from "chalk";
 function createSessionsCommand() {
@@ -9320,7 +9425,7 @@ function createSessionsCommand() {
 }
 async function listSessions(options) {
   const cwd = process.cwd();
-  const sessionsDir = path9.resolve(cwd, options.output || "output/sessions");
+  const sessionsDir = path8.resolve(cwd, options.output || "output/sessions");
   try {
     const entries = await fs6.readdir(sessionsDir, { withFileTypes: true });
     const sessionDirs = entries.filter((e) => e.isDirectory() && !e.name.startsWith("."));
@@ -9334,7 +9439,7 @@ async function listSessions(options) {
     }
     const sessions = [];
     for (const dir of sessionDirs) {
-      const meta = await loadSessionMeta(path9.join(sessionsDir, dir.name));
+      const meta = await loadSessionMeta(path8.join(sessionsDir, dir.name));
       if (meta) {
         sessions.push(meta);
       }
@@ -9368,7 +9473,7 @@ async function listSessions(options) {
 }
 async function showSession(name, options) {
   const cwd = process.cwd();
-  const sessionsDir = path9.resolve(cwd, options.output || "output/sessions");
+  const sessionsDir = path8.resolve(cwd, options.output || "output/sessions");
   const sessionDir = await findSession(sessionsDir, name);
   if (!sessionDir) {
     if (options.json) {
@@ -9379,11 +9484,11 @@ async function showSession(name, options) {
     process.exit(1);
   }
   try {
-    const sessionPath = path9.join(sessionDir, "session.json");
+    const sessionPath = path8.join(sessionDir, "session.json");
     const sessionData = JSON.parse(await fs6.readFile(sessionPath, "utf-8"));
     let messages = [];
     try {
-      const messagesPath = path9.join(sessionDir, "messages.jsonl");
+      const messagesPath = path8.join(sessionDir, "messages.jsonl");
       const content = await fs6.readFile(messagesPath, "utf-8");
       messages = content.trim().split("\n").filter((l) => l).map((l) => JSON.parse(l));
     } catch {
@@ -9428,7 +9533,7 @@ async function showSession(name, options) {
 }
 async function deleteSession(name, options) {
   const cwd = process.cwd();
-  const sessionsDir = path9.resolve(cwd, options.output || "output/sessions");
+  const sessionsDir = path8.resolve(cwd, options.output || "output/sessions");
   const sessionDir = await findSession(sessionsDir, name);
   if (!sessionDir) {
     console.error(`Session not found: ${name}`);
@@ -9441,7 +9546,7 @@ async function deleteSession(name, options) {
       output: process.stdout
     });
     const confirmed = await new Promise((resolve4) => {
-      rl.question(`Delete session "${path9.basename(sessionDir)}"? [y/N]: `, (answer) => {
+      rl.question(`Delete session "${path8.basename(sessionDir)}"? [y/N]: `, (answer) => {
         rl.close();
         resolve4(answer.toLowerCase() === "y");
       });
@@ -9453,7 +9558,7 @@ async function deleteSession(name, options) {
   }
   try {
     await fs6.rm(sessionDir, { recursive: true });
-    console.log(chalk.green(`Deleted: ${path9.basename(sessionDir)}`));
+    console.log(chalk.green(`Deleted: ${path8.basename(sessionDir)}`));
   } catch (error) {
     console.error(`Error deleting session: ${error.message}`);
     process.exit(1);
@@ -9461,7 +9566,7 @@ async function deleteSession(name, options) {
 }
 async function exportSession(name, options) {
   const cwd = process.cwd();
-  const sessionsDir = path9.resolve(cwd, options.output || "output/sessions");
+  const sessionsDir = path8.resolve(cwd, options.output || "output/sessions");
   const format = options.format || "md";
   const sessionDir = await findSession(sessionsDir, name);
   if (!sessionDir) {
@@ -9469,11 +9574,11 @@ async function exportSession(name, options) {
     process.exit(1);
   }
   try {
-    const sessionPath = path9.join(sessionDir, "session.json");
+    const sessionPath = path8.join(sessionDir, "session.json");
     const sessionData = JSON.parse(await fs6.readFile(sessionPath, "utf-8"));
     let messages = [];
     try {
-      const messagesPath = path9.join(sessionDir, "messages.jsonl");
+      const messagesPath = path8.join(sessionDir, "messages.jsonl");
       const content2 = await fs6.readFile(messagesPath, "utf-8");
       messages = content2.trim().split("\n").filter((l) => l).map((l) => JSON.parse(l));
     } catch {
@@ -9495,7 +9600,7 @@ async function exportSession(name, options) {
         ext = "md";
         break;
     }
-    const destPath = options.dest || path9.join(sessionDir, `export.${ext}`);
+    const destPath = options.dest || path8.join(sessionDir, `export.${ext}`);
     await fs6.writeFile(destPath, content);
     console.log(chalk.green(`Exported to: ${destPath}`));
   } catch (error) {
@@ -9505,7 +9610,7 @@ async function exportSession(name, options) {
 }
 async function cleanSessions(options) {
   const cwd = process.cwd();
-  const sessionsDir = path9.resolve(cwd, options.output || "output/sessions");
+  const sessionsDir = path8.resolve(cwd, options.output || "output/sessions");
   const days = parseInt(options.days || "30", 10);
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1e3;
   try {
@@ -9513,7 +9618,7 @@ async function cleanSessions(options) {
     const sessionDirs = entries.filter((e) => e.isDirectory() && !e.name.startsWith("."));
     const toDelete = [];
     for (const dir of sessionDirs) {
-      const dirPath = path9.join(sessionsDir, dir.name);
+      const dirPath = path8.join(sessionsDir, dir.name);
       const meta = await loadSessionMeta(dirPath);
       if (meta && new Date(meta.startedAt).getTime() < cutoff) {
         toDelete.push(dir.name);
@@ -9530,7 +9635,7 @@ async function cleanSessions(options) {
       return;
     }
     for (const name of toDelete) {
-      await fs6.rm(path9.join(sessionsDir, name), { recursive: true });
+      await fs6.rm(path8.join(sessionsDir, name), { recursive: true });
       console.log(chalk.green(`Deleted: ${name}`));
     }
     console.log(`
@@ -9542,18 +9647,18 @@ Deleted ${toDelete.length} sessions.`);
 }
 async function loadSessionMeta(sessionDir) {
   try {
-    const sessionPath = path9.join(sessionDir, "session.json");
+    const sessionPath = path8.join(sessionDir, "session.json");
     const data = JSON.parse(await fs6.readFile(sessionPath, "utf-8"));
     let messageCount = 0;
     try {
-      const messagesPath = path9.join(sessionDir, "messages.jsonl");
+      const messagesPath = path8.join(sessionDir, "messages.jsonl");
       const content = await fs6.readFile(messagesPath, "utf-8");
       messageCount = content.trim().split("\n").filter((l) => l).length;
     } catch {
     }
     return {
       id: data.id,
-      projectName: data.projectName || data.config?.projectName || path9.basename(sessionDir),
+      projectName: data.projectName || data.config?.projectName || path8.basename(sessionDir),
       goal: data.goal || data.config?.goal,
       startedAt: data.startedAt,
       status: data.status,
@@ -9571,11 +9676,11 @@ async function findSession(sessionsDir, nameOrIndex) {
     sessionDirs.sort().reverse();
     const index2 = parseInt(nameOrIndex, 10);
     if (!isNaN(index2) && index2 >= 1 && index2 <= sessionDirs.length) {
-      return path9.join(sessionsDir, sessionDirs[index2 - 1]);
+      return path8.join(sessionsDir, sessionDirs[index2 - 1]);
     }
     const match = sessionDirs.find((d) => d.includes(nameOrIndex));
     if (match) {
-      return path9.join(sessionsDir, match);
+      return path8.join(sessionsDir, match);
     }
     return null;
   } catch {
@@ -9648,13 +9753,13 @@ function generateHtmlExport(session, messages) {
 </html>`;
   return html;
 }
-function escapeHtml2(text) {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+function escapeHtml2(text2) {
+  return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 // cli/commands/watch.ts
 import { Command as Command5 } from "commander";
-import * as path10 from "path";
+import * as path9 from "path";
 import * as fs7 from "fs/promises";
 import { watch } from "fs";
 import chalk2 from "chalk";
@@ -9666,7 +9771,7 @@ function createWatchCommand() {
 }
 async function runWatch(options) {
   const cwd = process.cwd();
-  const contextDir = path10.resolve(cwd, options.context || "context");
+  const contextDir = path9.resolve(cwd, options.context || "context");
   const debounceMs = parseInt(options.debounce || "1000", 10);
   if (options.brief) {
     try {
@@ -9696,7 +9801,7 @@ async function runWatch(options) {
   }
   let pendingChanges = /* @__PURE__ */ new Map();
   const handleChange = (filePath, eventType) => {
-    const relativePath = path10.relative(cwd, filePath);
+    const relativePath = path9.relative(cwd, filePath);
     const existing = pendingChanges.get(filePath);
     if (existing) {
       clearTimeout(existing);
@@ -9723,7 +9828,7 @@ async function runWatch(options) {
   const watchRecursive = async (dir) => {
     const watcher = watch(dir, { recursive: true }, (eventType, filename) => {
       if (filename && !filename.startsWith(".")) {
-        handleChange(path10.join(dir, filename), eventType);
+        handleChange(path9.join(dir, filename), eventType);
       }
     });
     return watcher;
@@ -10073,7 +10178,7 @@ complete -c forge -n '__fish_seen_subcommand_from watch' -l json -d 'JSON output
 
 // cli/commands/config.ts
 import { Command as Command7 } from "commander";
-import * as path11 from "path";
+import * as path10 from "path";
 import * as fs8 from "fs/promises";
 import chalk4 from "chalk";
 var CONFIG_FILENAME = ".forgerc.json";
@@ -10115,10 +10220,10 @@ function createConfigCommand() {
 }
 function getGlobalConfigPath() {
   const home = process.env.HOME || process.env.USERPROFILE || "";
-  return path11.join(home, CONFIG_FILENAME);
+  return path10.join(home, CONFIG_FILENAME);
 }
 function getLocalConfigPath() {
-  return path11.join(process.cwd(), CONFIG_FILENAME);
+  return path10.join(process.cwd(), CONFIG_FILENAME);
 }
 async function loadConfig(configPath2) {
   try {
@@ -10310,7 +10415,7 @@ async function initConfig(options) {
 // cli/commands/skills.ts
 init_skills();
 import { Command as Command8 } from "commander";
-import * as path13 from "path";
+import * as path12 from "path";
 import * as fs10 from "fs/promises";
 
 // src/lib/render/theme.ts
@@ -10438,7 +10543,7 @@ var forgeTheme = {
     // grey
   }
 };
-var style = (theme, text) => `${theme}${text}${RESET}`;
+var style = (theme, text2) => `${theme}${text2}${RESET}`;
 
 // cli/commands/skills.ts
 var RESET2 = forgeTheme.reset;
@@ -10527,7 +10632,7 @@ async function findLatestSession(outputDir) {
     const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
     if (dirs.length === 0) return null;
     dirs.sort();
-    return path13.join(outputDir, dirs[dirs.length - 1]);
+    return path12.join(outputDir, dirs[dirs.length - 1]);
   } catch {
     return null;
   }
@@ -10541,13 +10646,13 @@ async function applyCmd(agentId, skillId, opts) {
     process.exit(1);
   }
   const outputDir = opts.output ?? "output/sessions";
-  const sessionDir = opts.session ? path13.isAbsolute(opts.session) ? opts.session : path13.join(outputDir, opts.session) : await findLatestSession(outputDir);
+  const sessionDir = opts.session ? path12.isAbsolute(opts.session) ? opts.session : path12.join(outputDir, opts.session) : await findLatestSession(outputDir);
   if (!sessionDir) {
     console.error(`${RED}No session found in ${outputDir}.${RESET2}`);
     console.error(`${DIM}Pass --session <name> or run a session first.${RESET2}`);
     process.exit(1);
   }
-  const configPath2 = path13.join(sessionDir, "agent-configs.json");
+  const configPath2 = path12.join(sessionDir, "agent-configs.json");
   let configs = {};
   try {
     const raw = await fs10.readFile(configPath2, "utf-8");
@@ -10598,201 +10703,236 @@ function createSkillsCommand() {
   return skills;
 }
 
-// cli/commands/init.ts
-import { Command as Command9 } from "commander";
-import * as p from "@clack/prompts";
-import chalk5 from "chalk";
+// cli/index.ts
+init_init();
 
-// src/lib/config/ForgeConfig.ts
+// cli/commands/menu.ts
+import * as p2 from "@clack/prompts";
+import chalk8 from "chalk";
+import * as path18 from "path";
+import * as fs15 from "fs/promises";
+
+// cli/prompts/banner.ts
+import chalk6 from "chalk";
+var PAINTING_LINES = [
+  "\x1B[0m\x1B[38;2;52;34;21;48;2;54;41;32m\u2584\x1B[38;2;47;27;16;48;2;76;64;55m\u2584\x1B[38;2;50;34;28;48;2;84;74;68m\u2584\x1B[38;2;69;56;47;48;2;88;77;70m\u2584\x1B[38;2;79;68;60;48;2;90;78;68m\u2584\x1B[38;2;84;74;65;48;2;90;78;70m\u258C\x1B[38;2;93;81;71;48;2;89;78;69m\u2584\x1B[38;2;92;81;73;48;2;80;69;61m\u2584\x1B[48;2;81;71;62m\u2584\x1B[38;2;96;86;81;48;2;86;76;68m\u2584\x1B[38;2;104;92;88;48;2;85;74;68m\u2584\x1B[38;2;101;90;83;48;2;90;79;71m\u2584\x1B[38;2;101;89;84;48;2;95;83;77m\u2584\x1B[38;2;102;89;82;48;2;100;87;81m\u258C\x1B[38;2;103;91;85;48;2;99;88;82m\u258C\x1B[38;2;102;90;84;48;2;99;88;84m\u2584\x1B[38;2;100;88;83;48;2;97;85;79m\u258C\x1B[38;2;91;80;76;48;2;91;79;72m\u2584\x1B[38;2;89;78;75;48;2;88;75;68m\u2584\x1B[38;2;87;76;70;48;2;81;68;60m\u2584\x1B[38;2;80;67;60;48;2;71;59;50m\u2584\x1B[38;2;77;65;58;48;2;67;55;46m\u2584\x1B[38;2;76;64;56;48;2;74;61;50m\u2584\x1B[38;2;79;66;57;48;2;82;71;62m\u258C\x1B[38;2;86;74;64;48;2;82;71;60m\u258C\x1B[38;2;84;73;65;48;2;94;81;70m\u2584\x1B[38;2;92;82;74;48;2;86;76;67m\u2584\x1B[38;2;88;78;69;48;2;91;80;70m\u258C\x1B[38;2;93;81;73;48;2;96;84;76m\u258C\x1B[38;2;100;89;81;48;2;98;87;78m\u2584\x1B[38;2;98;88;79;48;2;100;90;82m\u258C\x1B[38;2;104;94;85;48;2;112;99;90m\u2584\x1B[38;2;103;91;80;48;2;98;86;76m\u2584\x1B[38;2;106;95;83;48;2;104;92;82m\u258C\x1B[38;2;102;90;80;48;2;98;85;75m\u2584\x1B[38;2;99;86;75;48;2;97;84;73m\u258C\x1B[38;2;99;87;75;48;2;104;91;78m\u2584\x1B[38;2;94;82;71;48;2;92;79;67m\u258C\x1B[38;2;97;85;72;48;2;100;87;77m\u258C\x1B[38;2;102;91;80;48;2;98;87;76m\u258C\x1B[38;2;99;88;77;48;2;94;82;71m\u2584\x1B[38;2;102;90;80;48;2;97;86;75m\u2584\x1B[38;2;104;92;81;48;2;97;86;77m\u2584\x1B[38;2;108;97;85;48;2;97;87;78m\u2584\x1B[38;2;102;90;77;48;2;104;91;78m\u258C\x1B[38;2;105;91;78;48;2;101;89;77m\u2584\x1B[38;2;109;94;80;48;2;102;87;74m\u2584\x1B[38;2;110;96;82;48;2;102;87;73m\u2584\x1B[38;2;108;94;79;48;2;95;82;67m\u2584\x1B[38;2;110;95;79;48;2;111;96;81m\u2584\x1B[38;2;112;98;84;48;2;108;92;77m\u2584\x1B[38;2;110;96;83;48;2;118;104;90m\u258C\x1B[38;2;125;112;98;48;2;117;103;91m\u2584\x1B[38;2;128;115;101;48;2;134;120;106m\u258C\x1B[38;2;136;124;111;48;2;146;131;119m\u258C\x1B[38;2;147;130;113;48;2;142;126;113m\u2584\x1B[38;2;156;141;128;48;2;136;118;104m\u2584\x1B[38;2;163;148;134;48;2;146;128;114m\u2584\x1B[38;2;167;151;137;48;2;150;132;118m\u2584\x1B[38;2;162;145;129;48;2;150;132;116m\u2584\x1B[38;2;168;149;133;48;2;151;132;117m\u2584\x1B[38;2;162;145;129;48;2;150;131;115m\u2584\x1B[38;2;162;144;129;48;2;148;130;114m\u2584\x1B[38;2;162;146;130;48;2;146;128;113m\u2584\x1B[38;2;160;143;127;48;2;145;127;113m\u2584\x1B[38;2;159;141;125;48;2;145;127;111m\u2584\x1B[38;2;159;142;127;48;2;144;126;111m\u2584\x1B[38;2;155;137;122;48;2;138;121;108m\u2584\x1B[38;2;149;131;116;48;2;138;119;106m\u2584\x1B[38;2;148;130;116;48;2;139;121;106m\u2584\x1B[38;2;145;128;115;48;2;137;118;103m\u2584\x1B[38;2;119;101;84;48;2;134;116;100m\u2584\x1B[38;2;85;64;42;48;2;127;110;96m\u2584\x1B[38;2;77;54;31;48;2;104;89;75m\u2584\x1B[38;2;71;51;29;48;2;78;60;42m\u2584\x1B[38;2;77;56;32;48;2;89;64;39m\u258C\x1B[0m",
+  "\x1B[38;2;49;29;17;48;2;50;32;20m\u2584\x1B[38;2;47;27;16;48;2;44;25;15m\u258C\x1B[38;2;45;25;15;48;2;38;22;14m\u2584\x1B[38;2;42;23;15;48;2;40;22;14m\u258C\x1B[38;2;40;22;13;48;2;47;33;27m\u2584\x1B[38;2;47;29;18;48;2;77;65;56m\u2584\x1B[38;2;59;40;29;48;2;97;85;74m\u2584\x1B[38;2;79;66;56;48;2;103;91;82m\u2584\x1B[38;2;92;79;71;48;2;97;86;79m\u2584\x1B[38;2;98;85;77;48;2;98;88;82m\u2584\x1B[38;2;101;87;80;48;2;104;91;84m\u258C\x1B[38;2;107;94;88;48;2;104;92;84m\u258C\x1B[38;2;108;94;86;48;2;101;89;82m\u2584\x1B[38;2;104;91;83;48;2;104;91;85m\u2584\x1B[38;2;108;94;86;48;2;102;90;84m\u2584\x1B[38;2;96;83;74;48;2;100;88;83m\u2584\x1B[38;2;91;79;73;48;2;95;85;81m\u2584\x1B[38;2;92;81;75;48;2;94;84;82m\u2584\x1B[38;2;87;76;69;48;2;90;81;78m\u2584\x1B[38;2;87;76;70;48;2;87;78;75m\u2584\x1B[38;2;85;74;71;48;2;84;73;69m\u2584\x1B[38;2;79;68;62;48;2;85;72;67m\u2584\x1B[38;2;83;71;63;48;2;71;59;53m\u2584\x1B[38;2;73;64;56;48;2;73;62;54m\u2584\x1B[38;2;75;66;58;48;2;78;69;60m\u2584\x1B[38;2;74;64;56;48;2;82;71;63m\u2584\x1B[38;2;79;69;61;48;2;85;75;67m\u258C\x1B[38;2;92;81;71;48;2;89;79;69m\u2584\x1B[38;2;85;75;66;48;2;96;84;75m\u2584\x1B[38;2;92;83;74;48;2;99;88;78m\u2584\x1B[38;2;95;85;77;48;2;103;93;84m\u258C\x1B[38;2;107;96;85;48;2;104;93;83m\u2584\x1B[38;2;107;96;86;48;2;106;95;83m\u2584\x1B[38;2;103;92;80;48;2;94;84;74m\u258C\x1B[38;2;101;90;79m\u258C\x1B[38;2;93;80;70;48;2;101;89;79m\u2584\x1B[38;2;97;85;74;48;2;98;85;72m\u2584\x1B[38;2;94;82;70;48;2;101;86;72m\u2584\x1B[38;2;88;79;68;48;2;95;84;75m\u258C\x1B[38;2;96;83;72;48;2;104;90;78m\u2584\x1B[38;2;102;87;71;48;2;106;93;80m\u2584\x1B[38;2;105;91;78;48;2;101;88;75m\u258C\x1B[38;2;103;89;78;48;2;109;97;85m\u258C\x1B[38;2;100;86;74;48;2;104;90;78m\u2584\x1B[38;2;104;90;77;48;2;109;94;79m\u2584\x1B[38;2;97;82;69;48;2;106;91;76m\u2584\x1B[38;2;93;80;67;48;2;107;93;78m\u2584\x1B[38;2;101;86;72;48;2;107;92;78m\u258C\x1B[38;2;93;81;66;48;2;110;95;81m\u2584\x1B[38;2;96;82;69;48;2;100;88;76m\u258C\x1B[38;2;110;97;84;48;2;102;91;80m\u2584\x1B[38;2;110;97;83;48;2;116;102;87m\u258C\x1B[38;2;141;124;109;48;2;123;109;95m\u2584\x1B[38;2;148;130;114;48;2;155;138;122m\u258C\x1B[38;2;176;164;157;48;2;158;140;124m\u2584\x1B[38;2;175;164;155;48;2;172;160;151m\u258C\x1B[38;2;172;159;150;48;2;171;157;145m\u2584\x1B[38;2;176;164;152;48;2;180;166;159m\u258C\x1B[38;2;182;171;162;48;2;178;164;153m\u2584\x1B[38;2;185;174;164;48;2;174;158;141m\u2584\x1B[38;2;183;170;159;48;2;169;151;133m\u2584\x1B[38;2;185;173;165;48;2;172;158;144m\u2584\x1B[38;2;184;173;168;48;2;173;160;149m\u2584\x1B[38;2;182;172;167;48;2;175;162;154m\u2584\x1B[38;2;186;176;172;48;2;177;166;159m\u2584\x1B[38;2;183;172;165;48;2;172;159;147m\u2584\x1B[38;2;175;162;152;48;2;168;154;142m\u258C\x1B[38;2;132;117;102;48;2;163;149;137m\u2584\x1B[38;2;85;66;45;48;2;154;139;128m\u2584\x1B[38;2;78;56;32;48;2;114;99;83m\u2584\x1B[38;2;80;56;31;48;2;92;74;51m\u2584\x1B[38;2;76;51;24;48;2;85;64;37m\u2584\x1B[38;2;76;48;22;48;2;85;60;32m\u2584\x1B[38;2;72;48;22;48;2;83;57;31m\u2584\x1B[38;2;66;35;15;48;2;80;54;28m\u2584\x1B[38;2;68;46;21;48;2;91;70;42m\u2584\x1B[0m",
+  "\x1B[38;2;52;32;16;48;2;59;37;20m\u258C\x1B[38;2;57;38;22;48;2;45;27;15m\u258C\x1B[38;2;45;27;14;48;2;39;20;11m\u2584\x1B[38;2;42;23;13;48;2;41;20;12m\u2584\x1B[38;2;45;26;13;48;2;46;28;15m\u2584\x1B[38;2;48;27;14;48;2;50;23;12m\u258C\x1B[38;2;51;26;15;48;2;63;35;18m\u258C\x1B[38;2;64;41;24;48;2;66;43;28m\u258C\x1B[38;2;65;42;28;48;2;71;58;48m\u258C\x1B[38;2;89;75;65;48;2;93;78;69m\u2584\x1B[38;2;95;80;72;48;2;93;79;70m\u2584\x1B[38;2;90;77;69;48;2;101;88;79m\u2584\x1B[38;2;95;81;72;48;2;102;87;77m\u2584\x1B[38;2;96;82;71;48;2;102;87;75m\u258C\x1B[38;2;103;87;74;48;2;102;87;77m\u2584\x1B[38;2;98;83;70;48;2;96;82;72m\u2584\x1B[38;2;94;79;67;48;2;94;81;71m\u2584\x1B[38;2;88;73;60;48;2;88;75;64m\u2584\x1B[38;2;92;78;66;48;2;86;73;64m\u2584\x1B[38;2;92;77;65;48;2;85;72;63m\u2584\x1B[38;2;90;77;68;48;2;87;74;65m\u258C\x1B[38;2;84;72;65;48;2;75;63;57m\u258C\x1B[38;2;70;59;52;48;2;61;51;44m\u258C\x1B[38;2;59;48;40;48;2;67;56;49m\u2584\x1B[38;2;67;55;48;48;2;79;68;59m\u2584\x1B[38;2;70;58;49;48;2;88;76;66m\u2584\x1B[38;2;78;66;56;48;2;90;80;71m\u2584\x1B[38;2;86;74;64;48;2;92;81;70m\u2584\x1B[38;2;93;79;66;48;2;94;81;69m\u2584\x1B[38;2;86;72;62;48;2;92;81;72m\u2584\x1B[38;2;86;75;65;48;2;101;89;79m\u2584\x1B[38;2;94;82;72;48;2;99;89;79m\u2584\x1B[38;2;87;77;68;48;2;101;90;80m\u2584\x1B[38;2;96;85;75;48;2;100;89;79m\u2584\x1B[38;2;89;78;68;48;2;95;83;73m\u2584\x1B[38;2;89;77;68;48;2;92;79;70m\u2584\x1B[38;2;90;77;65;48;2;92;80;69m\u2584\x1B[38;2;93;81;70;48;2;90;79;70m\u258C\x1B[38;2;98;86;75;48;2;89;80;70m\u2584\x1B[38;2;92;80;70;48;2;90;78;67m\u258C\x1B[38;2;89;75;63;48;2;99;85;72m\u2584\x1B[38;2;87;74;63;48;2;101;88;74m\u2584\x1B[38;2;87;74;61;48;2;104;90;76m\u2584\x1B[38;2;86;74;62;48;2;103;87;73m\u2584\x1B[38;2;91;75;61;48;2;106;90;77m\u2584\x1B[38;2;90;74;61;48;2;106;90;75m\u2584\x1B[38;2;82;69;57;48;2;93;79;66m\u2584\x1B[38;2;86;71;56;48;2;98;84;69m\u2584\x1B[38;2;87;71;57;48;2;95;81;68m\u2584\x1B[38;2;92;77;63;48;2;103;90;76m\u2584\x1B[38;2;101;86;73;48;2;107;92;79m\u2584\x1B[38;2;109;93;78;48;2;121;106;94m\u2584\x1B[38;2;140;125;116;48;2;134;114;99m\u2584\x1B[38;2;161;146;135;48;2;170;159;152m\u258C\x1B[38;2;176;164;157;48;2;178;166;159m\u258C\x1B[38;2;181;167;155;48;2;174;163;154m\u2584\x1B[38;2;180;166;156;48;2;173;161;153m\u2584\x1B[38;2;182;167;153;48;2;182;171;164m\u2584\x1B[38;2;184;171;163;48;2;188;177;171m\u258C\x1B[38;2;189;179;173;48;2;188;177;168m\u258C\x1B[38;2;188;177;170;48;2;190;176;166m\u2584\x1B[38;2;188;179;174;48;2;185;176;170m\u258C\x1B[38;2;187;176;170;48;2;180;170;163m\u258C\x1B[38;2;143;129;114;48;2;185;176;171m\u2584\x1B[38;2;173;159;145;48;2;182;172;167m\u2584\x1B[38;2;179;164;150;48;2;181;169;160m\u2584\x1B[38;2;176;161;147;48;2;161;146;131m\u258C\x1B[38;2;74;51;27;48;2;88;68;44m\u2584\x1B[38;2;70;46;24;48;2;77;55;32m\u2584\x1B[38;2;73;51;28;48;2;79;53;30m\u258C\x1B[38;2;75;52;30;48;2;68;47;23m\u258C\x1B[38;2;64;45;25;48;2;65;42;19m\u2584\x1B[38;2;63;40;19;48;2;68;44;21m\u2584\x1B[38;2;62;39;18;48;2;69;48;24m\u2584\x1B[38;2;67;44;24;48;2;73;49;26m\u2584\x1B[38;2;71;48;23;48;2;74;50;26m\u2584\x1B[0m",
+  "\x1B[38;2;60;40;24;48;2;56;36;21m\u2584\x1B[38;2;61;41;23;48;2;58;38;22m\u258C\x1B[38;2;54;35;19;48;2;48;29;17m\u258C\x1B[38;2;48;33;22;48;2;48;29;15m\u2584\x1B[38;2;51;32;18;48;2;48;30;17m\u2584\x1B[38;2;59;38;21;48;2;56;32;18m\u2584\x1B[38;2;61;32;17;48;2;55;32;17m\u2584\x1B[38;2;67;43;24;48;2;62;35;20m\u258C\x1B[38;2;65;44;28;48;2;67;55;46m\u258C\x1B[38;2;92;79;70;48;2;87;73;64m\u2584\x1B[38;2;95;83;76;48;2;92;79;70m\u2584\x1B[38;2;96;83;75;48;2;73;59;49m\u258C\x1B[38;2;61;41;25;48;2;64;48;34m\u2584\x1B[38;2;65;45;29;48;2;80;67;58m\u2584\x1B[38;2;57;43;31;48;2;96;82;73m\u2584\x1B[38;2;76;62;50;48;2;100;86;75m\u2584\x1B[38;2;91;76;66;48;2;93;80;68m\u2584\x1B[48;2;90;76;65m\u258C\x1B[38;2;92;78;66;48;2;93;79;69m\u2584\x1B[38;2;91;77;65;48;2;88;74;63m\u258C\x1B[38;2;88;75;65;48;2;86;72;61m\u258C\x1B[38;2;85;72;61;48;2;79;67;58m\u258C\x1B[38;2;78;66;57;48;2;74;62;53m\u258C\x1B[38;2;66;55;47;48;2;60;49;42m\u258C\x1B[38;2;62;51;45;48;2;56;46;38m\u258C\x1B[38;2;46;37;31;48;2;54;44;38m\u258C\x1B[38;2;50;42;35;48;2;58;48;41m\u2584\x1B[38;2;58;48;42;48;2;65;53;45m\u2584\x1B[38;2;63;51;45;48;2;67;54;46m\u2584\x1B[38;2;60;49;41;48;2;64;53;45m\u2584\x1B[48;2;64;53;44m\u2584\x1B[38;2;59;48;39;48;2;63;51;42m\u2584\x1B[38;2;60;50;41;48;2;66;52;41m\u2584\x1B[38;2;58;49;41;48;2;68;54;43m\u2584\x1B[38;2;58;48;41;48;2;68;55;45m\u2584\x1B[38;2;61;50;43;48;2;67;55;46m\u2584\x1B[38;2;60;49;41;48;2;66;52;42m\u2584\x1B[38;2;61;52;43;48;2;69;55;46m\u2584\x1B[38;2;62;52;43;48;2;68;56;47m\u2584\x1B[38;2;55;46;39;48;2;68;57;47m\u2584\x1B[38;2;61;52;44;48;2;65;53;44m\u2584\x1B[38;2;64;54;46;48;2;69;57;47m\u2584\x1B[38;2;56;47;41;48;2;69;56;46m\u2584\x1B[38;2;58;49;43;48;2;70;57;46m\u2584\x1B[38;2;62;51;44;48;2;68;54;44m\u2584\x1B[38;2;59;49;42;48;2;62;50;40m\u2584\x1B[38;2;53;43;36;48;2;63;49;39m\u2584\x1B[38;2;55;44;36;48;2;65;51;39m\u2584\x1B[38;2;56;44;37;48;2;62;48;37m\u2584\x1B[38;2;60;48;39;48;2;66;52;40m\u2584\x1B[38;2;70;56;46;48;2;80;66;54m\u258C\x1B[38;2;109;94;80;48;2;118;103;89m\u258C\x1B[38;2;128;112;101;48;2;141;124;112m\u258C\x1B[38;2;152;138;128;48;2;163;149;141m\u258C\x1B[38;2;171;157;146;48;2;178;164;158m\u258C\x1B[38;2;176;162;151;48;2;180;167;157m\u2584\x1B[38;2;179;163;149;48;2;178;165;156m\u2584\x1B[38;2;181;165;146;48;2;184;169;157m\u258C\x1B[38;2;194;182;174;48;2;187;175;166m\u2584\x1B[38;2;162;145;130;48;2;191;181;175m\u2584\x1B[38;2;109;83;60;48;2;185;175;168m\u2584\x1B[38;2;104;76;48;48;2;145;130;116m\u2584\x1B[38;2;100;76;53;48;2;94;69;42m\u258C\x1B[38;2;102;75;46;48;2;102;80;51m\u258C\x1B[38;2;158;140;122;48;2;173;157;141m\u258C\x1B[38;2;174;159;144;48;2;172;155;137m\u258C\x1B[38;2;172;154;136;48;2;164;148;130m\u258C\x1B[38;2;84;66;40;48;2;77;57;32m\u258C\x1B[38;2;78;54;30;48;2;66;43;22m\u2584\x1B[38;2;81;59;34;48;2;71;49;27m\u2584\x1B[38;2;79;57;32;48;2;75;55;32m\u2584\x1B[38;2;71;49;26;48;2;63;43;21m\u258C\x1B[38;2;68;47;25m\u2584\x1B[38;2;72;49;26;48;2;67;43;21m\u2584\x1B[38;2;77;55;30;48;2;71;50;26m\u2584\x1B[38;2;80;58;31;48;2;76;54;29m\u2584\x1B[0m",
+  "\x1B[38;2;49;21;10;48;2;51;28;15m\u2584\x1B[38;2;53;21;11;48;2;51;28;16m\u2584\x1B[38;2;57;36;26;48;2;51;27;15m\u2584\x1B[38;2;58;35;24;48;2;52;31;17m\u258C\x1B[38;2;50;29;17;48;2;55;34;21m\u2584\x1B[38;2;61;40;24;48;2;54;31;18m\u2584\x1B[38;2;48;27;17;48;2;53;27;16m\u258C\x1B[38;2;58;34;21;48;2;61;39;24m\u2584\x1B[38;2;51;31;22;48;2;52;40;31m\u258C\x1B[38;2;95;81;72;48;2;90;77;67m\u2584\x1B[38;2;93;78;70;48;2;88;75;67m\u258C\x1B[38;2;91;78;69;48;2;72;58;46m\u258C\x1B[38;2;78;54;36;48;2;65;47;31m\u2584\x1B[38;2;71;52;36;48;2;67;46;29m\u258C\x1B[38;2;79;55;34;48;2;70;48;31m\u2584\x1B[38;2;83;57;38;48;2;73;53;36m\u258C\x1B[38;2;72;57;44;48;2;90;76;63m\u258C\x1B[38;2;87;74;63;48;2;88;74;61m\u2584\x1B[38;2;68;54;40;48;2;88;72;61m\u2584\x1B[38;2;62;49;38;48;2;88;74;61m\u2584\x1B[38;2;80;67;55;48;2;89;74;63m\u2584\x1B[38;2;87;73;63;48;2;80;66;57m\u258C\x1B[38;2;85;71;59;48;2;78;64;54m\u2584\x1B[38;2;75;62;52;48;2;69;56;48m\u2584\x1B[38;2;68;55;47;48;2;64;52;45m\u258C\x1B[38;2;59;48;41;48;2;49;39;33m\u2584\x1B[38;2;59;49;41;48;2;47;39;34m\u2584\x1B[38;2;59;49;42;48;2;56;46;41m\u2584\x1B[38;2;61;50;44;48;2;61;50;42m\u258C\x1B[38;2;64;52;44;48;2;61;50;41m\u2584\x1B[38;2;65;54;46;48;2;60;49;42m\u2584\x1B[38;2;61;50;43;48;2;56;47;40m\u2584\x1B[38;2;63;52;43;48;2;58;48;40m\u2584\x1B[38;2;61;51;41;48;2;58;48;41m\u258C\x1B[38;2;61;50;42;48;2;57;46;39m\u258C\x1B[38;2;59;49;40;48;2;57;46;38m\u258C\x1B[38;2;63;50;41;48;2;57;47;38m\u2584\x1B[38;2;58;48;41;48;2;61;51;44m\u258C\x1B[38;2;58;51;44;48;2;62;53;45m\u2584\x1B[38;2;55;47;41;48;2;60;50;43m\u2584\x1B[38;2;59;51;44;48;2;61;52;46m\u2584\x1B[38;2;63;54;46;48;2;62;52;45m\u258C\x1B[38;2;59;49;42;48;2;63;53;45m\u258C\x1B[38;2;60;50;42;48;2;66;55;47m\u2584\x1B[38;2;61;50;42;48;2;65;53;44m\u2584\x1B[38;2;61;51;44;48;2;60;49;43m\u2584\x1B[38;2;57;46;40;48;2;56;46;39m\u258C\x1B[38;2;56;47;40;48;2;57;47;38m\u2584\x1B[38;2;54;44;37;48;2;56;46;38m\u2584\x1B[38;2;57;46;38;48;2;53;44;37m\u2584\x1B[38;2;61;49;38;48;2;75;60;49m\u258C\x1B[38;2;114;97;81;48;2;125;107;91m\u258C\x1B[38;2;131;113;98;48;2;142;122;106m\u258C\x1B[38;2;154;138;126;48;2;169;157;151m\u258C\x1B[38;2;175;162;156;48;2;175;164;158m\u258C\x1B[38;2;147;132;116;48;2;176;164;156m\u2584\x1B[38;2;119;95;66;48;2;177;163;153m\u2584\x1B[38;2;139;120;96;48;2;188;172;159m\u258C\x1B[38;2;189;173;158;48;2;192;176;162m\u258C\x1B[38;2;172;155;136;48;2;91;66;42m\u258C\x1B[38;2;94;64;38;48;2;99;68;42m\u2584\x1B[38;2;95;64;38;48;2;102;76;47m\u2584\x1B[38;2;96;64;36;48;2;90;63;36m\u2584\x1B[38;2;94;65;36;48;2;97;75;44m\u258C\x1B[38;2;157;140;121;48;2;173;159;145m\u258C\x1B[38;2;179;163;147;48;2;169;153;138m\u2584\x1B[38;2;175;159;145;48;2;167;153;139m\u2584\x1B[38;2;91;73;51;48;2;79;60;37m\u258C\x1B[38;2;76;57;35;48;2;79;59;36m\u258C\x1B[38;2;78;58;33;48;2;84;64;39m\u2584\x1B[38;2;70;49;26;48;2;80;60;36m\u2584\x1B[38;2;76;56;32;48;2;74;50;27m\u258C\x1B[38;2;70;44;20;48;2;72;53;29m\u2584\x1B[38;2;71;48;24;48;2;75;53;29m\u258C\x1B[38;2;73;50;25;48;2;82;56;30m\u258C\x1B[38;2;83;62;33;48;2;89;67;41m\u2584\x1B[0m",
+  "\x1B[38;2;54;33;18;48;2;42;20;12m\u2584\x1B[38;2;58;34;19;48;2;52;22;12m\u2584\x1B[38;2;56;32;17;48;2;50;28;15m\u2584\x1B[38;2;54;27;17;48;2;59;32;17m\u2584\x1B[38;2;57;39;25;48;2;55;35;24m\u2584\x1B[38;2;57;36;22;48;2;50;26;16m\u2584\x1B[38;2;54;34;21;48;2;53;28;16m\u2584\x1B[38;2;46;18;12;48;2;54;23;12m\u2584\x1B[38;2;57;33;22;48;2;63;51;41m\u258C\x1B[38;2;98;80;64;48;2;97;84;73m\u2584\x1B[38;2;101;83;67;48;2;91;78;68m\u2584\x1B[38;2;98;85;72;48;2;70;55;44m\u258C\x1B[38;2;72;44;26;48;2;77;50;31m\u2584\x1B[38;2;76;48;29;48;2;77;51;33m\u258C\x1B[38;2;83;58;38;48;2;75;49;31m\u2584\x1B[38;2;71;49;32;48;2;64;46;31m\u258C\x1B[38;2;66;52;41;48;2;84;70;58m\u258C\x1B[38;2;81;68;56;48;2;81;68;58m\u258C\x1B[38;2;73;60;47;48;2;51;33;19m\u258C\x1B[38;2;47;30;18;48;2;52;31;16m\u2584\x1B[38;2;49;32;19;48;2;50;36;22m\u2584\x1B[38;2;61;47;33;48;2;78;65;55m\u258C\x1B[38;2;72;58;47;48;2;84;70;58m\u2584\x1B[38;2;66;51;37;48;2;72;59;50m\u2584\x1B[38;2;69;56;46;48;2;76;62;51m\u258C\x1B[38;2;54;43;36;48;2;57;46;39m\u2584\x1B[38;2;57;47;41;48;2;62;52;44m\u258C\x1B[38;2;66;53;44;48;2;59;48;40m\u2584\x1B[38;2;73;60;51;48;2;67;55;47m\u2584\x1B[38;2;67;55;47;48;2;71;59;50m\u258C\x1B[38;2;70;59;52;48;2;64;55;47m\u258C\x1B[38;2;66;55;49;48;2;62;53;45m\u2584\x1B[38;2;65;55;48;48;2;62;52;44m\u2584\x1B[38;2;68;59;53;48;2;63;53;45m\u2584\x1B[38;2;63;54;48;48;2;63;52;44m\u2584\x1B[38;2;58;49;44;48;2;59;50;43m\u2584\x1B[38;2;57;49;42;48;2;62;53;48m\u258C\x1B[38;2;70;60;53;48;2;61;51;45m\u2584\x1B[38;2;73;63;58;48;2;58;51;44m\u2584\x1B[38;2;73;64;59;48;2;58;51;45m\u2584\x1B[38;2;71;61;54;48;2;57;49;43m\u2584\x1B[38;2;68;56;48;48;2;61;51;44m\u2584\x1B[38;2;66;56;47;48;2;61;52;44m\u2584\x1B[38;2;69;59;51;48;2;61;52;45m\u2584\x1B[38;2;71;58;50;48;2;63;52;44m\u2584\x1B[38;2;67;56;48;48;2;59;50;43m\u2584\x1B[38;2;66;54;47m\u2584\x1B[38;2;65;53;45;48;2;59;48;41m\u2584\x1B[38;2;65;54;45;48;2;58;48;40m\u2584\x1B[38;2;69;56;47;48;2;63;51;41m\u2584\x1B[38;2;65;53;43;48;2;68;56;47m\u258C\x1B[38;2;98;82;65;48;2;119;102;88m\u2584\x1B[38;2;92;72;51;48;2;133;115;100m\u2584\x1B[38;2;134;115;96;48;2;163;144;127m\u258C\x1B[38;2;153;136;116;48;2;111;86;60m\u258C\x1B[38;2;104;76;48;48;2;107;80;52m\u2584\x1B[38;2;91;63;40;48;2;97;72;44m\u2584\x1B[38;2;107;85;59;48;2;187;169;152m\u258C\x1B[38;2;189;173;156;48;2;191;177;164m\u258C\x1B[38;2;181;168;152;48;2;95;70;43m\u258C\x1B[38;2;100;67;40;48;2;94;62;35m\u258C\x1B[38;2;94;61;34;48;2;86;54;27m\u258C\x1B[38;2;85;55;28;48;2;88;55;29m\u258C\x1B[38;2;91;61;34;48;2;93;66;38m\u258C\x1B[38;2;157;139;121;48;2;181;168;157m\u258C\x1B[38;2;183;171;160;48;2;184;173;163m\u258C\x1B[38;2;184;172;163;48;2;176;162;148m\u258C\x1B[38;2;83;67;47;48;2;77;55;32m\u258C\x1B[38;2;76;47;23;48;2;78;57;32m\u2584\x1B[38;2;79;58;34;48;2;81;54;28m\u258C\x1B[38;2;77;52;26;48;2;71;49;24m\u258C\x1B[38;2;76;52;25;48;2;70;47;23m\u2584\x1B[38;2;74;41;19;48;2;69;48;23m\u258C\x1B[38;2;71;46;22;48;2;68;46;21m\u2584\x1B[38;2;62;41;17;48;2;80;47;23m\u258C\x1B[38;2;83;58;29;48;2;87;65;35m\u258C\x1B[0m",
+  "\x1B[38;2;52;33;20;48;2;51;31;19m\u258C\x1B[38;2;46;26;15;48;2;51;30;17m\u258C\x1B[38;2;53;29;17;48;2;47;24;15m\u258C\x1B[38;2;46;28;18;48;2;54;33;22m\u2584\x1B[38;2;49;29;18;48;2;47;26;17m\u258C\x1B[38;2;54;35;21;48;2;60;38;24m\u2584\x1B[38;2;58;35;21;48;2;65;42;25m\u258C\x1B[38;2;61;37;25;48;2;54;32;20m\u258C\x1B[38;2;61;41;28;48;2;55;42;30m\u258C\x1B[38;2;104;82;61;48;2;119;94;68m\u258C\x1B[38;2;121;94;68;48;2;110;78;48m\u258C\x1B[38;2;100;74;49;48;2;88;71;52m\u258C\x1B[38;2;80;51;30;48;2;66;43;25m\u258C\x1B[38;2;63;39;23;48;2;76;47;28m\u2584\x1B[38;2;69;45;26;48;2;75;49;29m\u258C\x1B[38;2;70;47;29;48;2;74;46;25m\u2584\x1B[38;2;69;53;39;48;2;83;65;49m\u258C\x1B[38;2;101;76;50;48;2;80;65;51m\u2584\x1B[38;2;80;64;49;48;2;66;46;28m\u258C\x1B[38;2;67;45;25;48;2;57;39;21m\u2584\x1B[38;2;61;39;21;48;2;62;43;26m\u258C\x1B[38;2;62;46;30;48;2;81;67;57m\u258C\x1B[38;2;87;74;62;48;2;71;59;48m\u258C\x1B[38;2;62;46;33;48;2;58;44;30m\u258C\x1B[38;2;64;48;31;48;2;67;50;34m\u258C\x1B[38;2;57;46;40;48;2;50;41;35m\u258C\x1B[38;2;54;45;39;48;2;59;49;42m\u258C\x1B[38;2;65;52;43;48;2;68;56;47m\u258C\x1B[38;2;80;66;57;48;2;77;63;53m\u2584\x1B[38;2;80;64;54;48;2;74;62;52m\u2584\x1B[38;2;81;68;59;48;2;75;63;55m\u2584\x1B[38;2;73;61;52;48;2;69;58;50m\u2584\x1B[38;2;82;69;58;48;2;72;60;52m\u2584\x1B[38;2;80;67;58;48;2;73;61;53m\u2584\x1B[38;2;80;69;61;48;2;70;60;54m\u2584\x1B[38;2;86;76;71;48;2;76;66;60m\u2584\x1B[38;2;81;70;65;48;2;78;66;59m\u2584\x1B[38;2;83;71;63;48;2;79;66;58m\u2584\x1B[38;2;89;79;73;48;2;79;69;63m\u2584\x1B[38;2;92;82;78;48;2;81;71;67m\u2584\x1B[38;2;90;80;75;48;2;80;70;65m\u2584\x1B[38;2;89;77;70;48;2;78;67;60m\u2584\x1B[38;2;80;69;64;48;2;67;57;51m\u2584\x1B[38;2;71;61;54;48;2;73;62;55m\u258C\x1B[38;2;81;68;57;48;2;73;61;52m\u2584\x1B[38;2;73;61;52;48;2;70;58;49m\u258C\x1B[38;2;75;62;52;48;2;69;57;48m\u2584\x1B[38;2;77;62;52;48;2;71;58;49m\u2584\x1B[38;2;74;60;51;48;2;71;59;51m\u2584\x1B[38;2;76;63;53;48;2;70;57;49m\u2584\x1B[38;2;78;65;55;48;2;77;63;52m\u258C\x1B[38;2;82;62;43;48;2;85;60;40m\u258C\x1B[38;2;85;62;41;48;2;97;70;46m\u258C\x1B[38;2;123;101;78;48;2;164;144;125m\u258C\x1B[38;2;158;140;120;48;2;108;83;56m\u258C\x1B[38;2;106;80;50;48;2;99;72;45m\u258C\x1B[38;2;98;71;44;48;2;94;67;41m\u258C\x1B[38;2;100;78;53;48;2;178;158;139m\u258C\x1B[38;2;188;168;147;48;2;190;176;163m\u2584\x1B[38;2;182;164;146;48;2;97;72;45m\u258C\x1B[38;2;88;59;34;48;2;105;71;42m\u2584\x1B[38;2;87;58;33;48;2;96;65;39m\u2584\x1B[38;2;84;55;31;48;2;93;64;36m\u2584\x1B[38;2;85;53;27;48;2;90;64;37m\u2584\x1B[38;2;146;126;107;48;2;178;161;143m\u258C\x1B[38;2;179;162;144;48;2;182;166;149m\u2584\x1B[38;2;177;160;142;48;2;170;153;134m\u258C\x1B[38;2;89;74;54;48;2;85;62;37m\u258C\x1B[38;2;81;54;30;48;2;88;58;31m\u2584\x1B[38;2;85;57;31;48;2;88;59;32m\u258C\x1B[38;2;76;51;27;48;2;83;58;32m\u2584\x1B[38;2;78;50;25;48;2;80;49;23m\u2584\x1B[38;2;67;46;23;48;2;78;51;26m\u2584\x1B[38;2;70;42;19;48;2;79;55;30m\u2584\x1B[38;2;73;49;24;48;2;71;47;23m\u2584\x1B[38;2;77;53;25;48;2;87;62;33m\u258C\x1B[0m",
+  "\x1B[38;2;45;27;17;48;2;40;20;14m\u2584\x1B[38;2;40;20;12;48;2;41;22;14m\u2584\x1B[38;2;42;21;14;48;2;47;25;16m\u258C\x1B[38;2;50;28;17;48;2;43;22;13m\u2584\x1B[38;2;49;27;17;48;2;49;25;14m\u2584\x1B[38;2;55;30;18;48;2;59;35;19m\u258C\x1B[38;2;63;38;24;48;2;69;41;25m\u258C\x1B[38;2;65;40;26;48;2;65;40;23m\u2584\x1B[38;2;65;40;25;48;2;65;48;33m\u258C\x1B[38;2;99;77;54;48;2;101;72;43m\u258C\x1B[38;2;114;84;56;48;2;105;73;41m\u258C\x1B[38;2;101;74;47;48;2;87;68;47m\u258C\x1B[38;2;62;39;21;48;2;70;46;26m\u2584\x1B[38;2;69;43;24;48;2;72;46;27m\u2584\x1B[38;2;67;40;22;48;2;71;45;27m\u258C\x1B[38;2;66;45;27;48;2;60;38;23m\u258C\x1B[38;2;66;49;35;48;2;96;76;56m\u258C\x1B[38;2;113;87;59;48;2;107;82;55m\u2584\x1B[38;2;84;68;51;48;2;74;55;37m\u258C\x1B[38;2;74;55;36;48;2;79;59;39m\u258C\x1B[38;2;83;61;41;48;2;71;50;32m\u2584\x1B[38;2;79;60;43;48;2;97;80;63m\u258C\x1B[38;2;106;84;60;48;2;87;70;52m\u258C\x1B[38;2;72;54;40;48;2;68;51;37m\u258C\x1B[48;2;64;49;34m\u2584\x1B[38;2;72;59;48;48;2;62;50;41m\u2584\x1B[38;2;61;50;42;48;2;68;57;47m\u258C\x1B[38;2;76;62;51;48;2;70;58;48m\u2584\x1B[38;2;116;96;77;48;2;89;75;63m\u2584\x1B[38;2;147;141;139;48;2;98;85;75m\u2584\x1B[38;2;160;157;163;48;2;96;85;76m\u2584\x1B[38;2;158;156;160;48;2;94;84;77m\u2584\x1B[38;2;87;74;64;48;2;87;73;64m\u2584\x1B[38;2;89;75;63;48;2;82;68;58m\u2584\x1B[38;2;90;75;64;48;2;104;89;78m\u258C\x1B[38;2;140;131;129;48;2;102;90;82m\u2584\x1B[38;2;166;163;164;48;2;102;92;86m\u2584\x1B[38;2;165;165;172;48;2;110;98;91m\u2584\x1B[38;2;172;167;166m\u2584\x1B[38;2;171;166;163;48;2;113;101;93m\u2584\x1B[38;2;145;142;145;48;2;107;95;88m\u2584\x1B[38;2;103;89;77;48;2;92;81;72m\u258C\x1B[38;2;82;70;63;48;2;72;63;56m\u258C\x1B[38;2;65;56;49;48;2;71;63;56m\u2584\x1B[38;2;142;144;151;48;2;96;84;74m\u2584\x1B[38;2;158;162;173;48;2;99;87;76m\u2584\x1B[38;2;161;162;170;48;2;99;86;75m\u2584\x1B[38;2;113;90;67;48;2;91;75;61m\u2584\x1B[38;2;75;61;49;48;2;79;65;53m\u2584\x1B[38;2;76;59;44;48;2;83;68;57m\u2584\x1B[38;2;75;58;43;48;2;80;67;55m\u2584\x1B[38;2;80;61;39;48;2;88;65;43m\u2584\x1B[38;2;84;61;39;48;2;91;66;42m\u258C\x1B[38;2;118;97;73;48;2;169;147;122m\u258C\x1B[38;2;160;139;115;48;2;91;68;44m\u258C\x1B[38;2;101;75;48;48;2;96;70;44m\u258C\x1B[38;2;104;78;50;48;2;95;69;44m\u2584\x1B[38;2;106;83;56;48;2;173;154;134m\u258C\x1B[38;2;186;167;145;48;2;190;171;152m\u2584\x1B[38;2;189;171;147;48;2;78;58;32m\u258C\x1B[38;2;65;44;24;48;2;81;58;33m\u2584\x1B[38;2;66;47;25;48;2;84;59;33m\u2584\x1B[38;2;67;48;26;48;2;79;53;26m\u2584\x1B[38;2;67;46;23;48;2;78;53;27m\u2584\x1B[38;2;135;113;94;48;2;175;157;137m\u258C\x1B[38;2;173;155;137;48;2;179;161;141m\u2584\x1B[38;2;167;148;128;48;2;177;159;138m\u2584\x1B[38;2;89;70;49;48;2;75;49;26m\u258C\x1B[38;2;65;42;22;48;2;79;52;26m\u2584\x1B[38;2;64;44;22m\u2584\x1B[38;2;60;38;20;48;2;73;46;22m\u2584\x1B[38;2;57;33;16;48;2;72;47;22m\u2584\x1B[38;2;61;34;17;48;2;64;45;22m\u2584\x1B[38;2;62;38;17;48;2;72;45;21m\u2584\x1B[38;2;68;45;21;48;2;77;47;23m\u258C\x1B[38;2;79;52;25;48;2;86;58;32m\u258C\x1B[0m",
+  "\x1B[38;2;45;30;21;48;2;36;22;15m\u2584\x1B[38;2;44;15;10;48;2;27;14;11m\u258C\x1B[38;2;34;19;13;48;2;41;22;14m\u258C\x1B[38;2;44;26;16;48;2;41;17;10m\u258C\x1B[38;2;44;23;13;48;2;42;25;15m\u2584\x1B[38;2;45;24;16;48;2;57;32;19m\u2584\x1B[38;2;61;46;27;48;2;53;29;17m\u2584\x1B[38;2;45;26;16;48;2;55;28;16m\u2584\x1B[38;2;52;32;18;48;2;62;41;25m\u2584\x1B[38;2;73;42;23;48;2;89;65;44m\u2584\x1B[38;2;89;56;32;48;2;97;63;38m\u258C\x1B[38;2;107;75;52;48;2;81;58;40m\u258C\x1B[38;2;68;47;28;48;2;53;31;17m\u2584\x1B[38;2;115;81;50;48;2;60;36;20m\u2584\x1B[38;2;117;86;59;48;2;59;37;21m\u2584\x1B[38;2;112;85;62;48;2;59;36;21m\u2584\x1B[38;2;146;111;87;48;2;87;67;48m\u2584\x1B[38;2;117;88;63;48;2;112;86;59m\u2584\x1B[38;2;90;73;56;48;2;75;53;34m\u258C\x1B[38;2;77;55;35;48;2;75;52;32m\u258C\x1B[38;2;75;51;30;48;2;77;56;37m\u2584\x1B[38;2;82;63;43;48;2;108;83;58m\u258C\x1B[38;2;124;92;60;48;2;87;67;46m\u258C\x1B[38;2;70;52;37;48;2;66;48;33m\u258C\x1B[38;2;67;49;33;48;2;72;55;40m\u2584\x1B[38;2;76;63;51;48;2;66;56;46m\u258C\x1B[38;2;73;60;50;48;2;78;65;54m\u258C\x1B[38;2;84;69;58;48;2;89;75;63m\u258C\x1B[38;2;104;88;74;48;2;133;108;84m\u258C\x1B[38;2;163;156;155;48;2;195;197;206m\u258C\x1B[38;2;198;196;200;48;2;203;203;211m\u258C\x1B[38;2;203;205;216;48;2;186;184;190m\u258C\x1B[38;2;96;81;67;48;2;89;75;63m\u258C\x1B[38;2;88;74;61;48;2;92;78;65m\u2584\x1B[38;2;96;81;69;48;2;113;97;83m\u258C\x1B[38;2;132;112;99;48;2;197;198;209m\u258C\x1B[38;2;211;206;207;48;2;194;194;202m\u2584\x1B[38;2;186;172;166;48;2;200;204;220m\u2584\x1B[38;2;133;102;79;48;2;185;181;181m\u2584\x1B[38;2;146;120;102;48;2;188;185;190m\u2584\x1B[38;2;206;205;211;48;2;165;152;149m\u258C\x1B[38;2;111;97;85;48;2;100;87;77m\u258C\x1B[38;2;85;73;63;48;2;76;65;55m\u258C\x1B[38;2;85;72;61;48;2;76;64;55m\u2584\x1B[38;2;146;125;109;48;2;157;149;144m\u2584\x1B[38;2;128;97;70;48;2;151;136;125m\u2584\x1B[38;2;118;87;55;48;2;162;149;139m\u2584\x1B[38;2;123;92;60;48;2;111;83;53m\u258C\x1B[38;2;91;71;52;48;2;120;90;67m\u258C\x1B[38;2;138;102;79;48;2;112;80;53m\u2584\x1B[38;2;116;81;54;48;2;98;68;40m\u2584\x1B[38;2;109;79;53;48;2;74;52;30m\u2584\x1B[38;2;148;109;82;48;2;72;53;35m\u2584\x1B[38;2;126;98;74;48;2;155;125;99m\u258C\x1B[38;2;149;125;102;48;2;89;67;44m\u258C\x1B[38;2;86;62;39;48;2;91;66;40m\u2584\x1B[38;2;80;57;35;48;2;95;71;45m\u2584\x1B[38;2;89;67;42;48;2;150;128;106m\u258C\x1B[38;2;138;103;67;48;2;164;139;113m\u2584\x1B[38;2;163;140;112;48;2;67;48;27m\u258C\x1B[38;2;87;60;29;48;2;69;47;23m\u2584\x1B[38;2;89;54;22;48;2;86;52;19m\u258C\x1B[38;2;92;63;37;48;2;85;56;26m\u2584\x1B[38;2;60;44;25;48;2;65;46;26m\u2584\x1B[38;2;119;98;77;48;2;137;114;91m\u2584\x1B[38;2;108;87;65;48;2;118;89;61m\u2584\x1B[38;2;106;85;63;48;2;117;96;75m\u258C\x1B[38;2;92;70;50;48;2;64;45;28m\u258C\x1B[38;2;54;36;21;48;2;57;43;23m\u258C\x1B[38;2;93;69;43;48;2;53;38;20m\u2584\x1B[38;2;102;71;41;48;2;56;38;22m\u2584\x1B[38;2;54;32;16;48;2;41;27;15m\u2584\x1B[38;2;37;20;12;48;2;44;30;17m\u258C\x1B[38;2;46;32;16;48;2;44;27;13m\u258C\x1B[38;2;50;32;15;48;2;69;41;17m\u258C\x1B[38;2;75;53;25;48;2;79;56;28m\u258C\x1B[0m",
+  "\x1B[38;2;28;14;10;48;2;43;27;18m\u2584\x1B[38;2;29;14;10;48;2;35;13;9m\u2584\x1B[38;2;30;12;8;48;2;46;20;12m\u2584\x1B[38;2;39;17;11;48;2;49;23;12m\u2584\x1B[38;2;40;22;15;48;2;43;18;11m\u2584\x1B[38;2;80;77;75;48;2;48;30;18m\u2584\x1B[38;2;95;99;107;48;2;70;64;49m\u2584\x1B[38;2;63;58;40;48;2;70;56;37m\u258C\x1B[38;2;124;89;64;48;2;104;75;54m\u2584\x1B[38;2;129;90;63;48;2;115;79;56m\u2584\x1B[38;2;82;53;28;48;2;125;87;61m\u2584\x1B[38;2;99;64;39;48;2;85;58;37m\u258C\x1B[38;2;122;87;59;48;2;100;69;42m\u2584\x1B[38;2;119;84;56;48;2;118;82;50m\u2584\x1B[38;2;119;83;58;48;2;140;104;80m\u2584\x1B[38;2;81;61;45;48;2;117;89;69m\u2584\x1B[38;2;147;113;90;48;2;135;102;82m\u258C\x1B[38;2;134;104;82;48;2;114;87;65m\u258C\x1B[38;2;83;66;48;48;2;76;57;41m\u258C\x1B[38;2;118;88;66;48;2;68;44;25m\u2584\x1B[38;2;99;69;49;48;2;70;45;25m\u2584\x1B[38;2;74;55;39;48;2;101;79;59m\u258C\x1B[38;2;114;85;59;48;2;85;67;51m\u258C\x1B[38;2;86;66;51;48;2;66;50;35m\u2584\x1B[38;2;147;115;92;48;2;104;89;75m\u2584\x1B[38;2;132;104;84;48;2;108;81;62m\u258C\x1B[38;2;112;85;61;48;2;152;123;96m\u258C\x1B[38;2;156;126;101;48;2;119;89;59m\u2584\x1B[38;2;125;94;67;48;2;111;86;61m\u2584\x1B[38;2;131;117;107;48;2;141;138;139m\u258C\x1B[38;2;147;139;131;48;2;133;139;151m\u2584\x1B[38;2;148;139;130;48;2;146;148;159m\u2584\x1B[38;2;96;82;69;48;2;91;77;65m\u258C\x1B[38;2;86;73;61;48;2;89;75;63m\u258C\x1B[38;2;94;79;66;48;2;112;96;83m\u258C\x1B[38;2;125;104;88;48;2;142;141;144m\u258C\x1B[38;2;144;134;125;48;2;141;145;151m\u2584\x1B[38;2;108;84;66;48;2;128;110;97m\u2584\x1B[38;2;129;98;79;48;2;140;109;88m\u2584\x1B[38;2;118;90;75;48;2;105;82;66m\u258C\x1B[38;2;127;108;90;48;2;131;121;112m\u2584\x1B[38;2;109;92;80;48;2;102;88;77m\u258C\x1B[38;2;95;79;68;48;2;80;68;58m\u258C\x1B[38;2;137;108;90;48;2;99;81;67m\u2584\x1B[38;2;121;104;84;48;2;132;114;97m\u2584\x1B[38;2;117;93;70;48;2;137;101;72m\u2584\x1B[38;2;118;86;59;48;2;136;102;74m\u2584\x1B[38;2;127;90;61;48;2;114;81;48m\u258C\x1B[38;2;108;78;49;48;2;91;68;46m\u258C\x1B[38;2;142;111;91;48;2;97;67;46m\u2584\x1B[38;2;145;107;84;48;2;132;97;74m\u258C\x1B[38;2;148;113;90;48;2;160;124;99m\u258C\x1B[38;2;155;119;99;48;2;175;130;100m\u2584\x1B[38;2;157;109;82;48;2;165;123;93m\u2584\x1B[38;2;162;115;85;48;2;147;106;79m\u2584\x1B[38;2;119;86;60;48;2;91;68;46m\u258C\x1B[38;2;87;74;64;48;2;73;54;37m\u2584\x1B[38;2;111;114;120;48;2;102;83;65m\u2584\x1B[38;2;121;119;119;48;2;120;107;96m\u2584\x1B[38;2;129;117;104;48;2;137;112;92m\u258C\x1B[38;2;137;107;83;48;2;127;94;68m\u258C\x1B[38;2;86;67;51;48;2;125;91;62m\u2584\x1B[38;2;77;61;45;48;2;108;78;55m\u2584\x1B[38;2;124;84;40;48;2;72;50;28m\u2584\x1B[38;2;115;78;43;48;2;97;77;57m\u2584\x1B[38;2;111;86;63;48;2;100;76;52m\u258C\x1B[38;2;99;74;51;48;2;111;85;61m\u258C\x1B[38;2;96;72;52;48;2;69;51;35m\u258C\x1B[38;2;39;28;18;48;2;44;30;16m\u258C\x1B[38;2;60;39;22;48;2;96;67;39m\u258C\x1B[38;2;91;62;35;48;2;81;49;23m\u258C\x1B[38;2;94;60;33;48;2;59;36;17m\u2584\x1B[38;2;94;69;53;48;2;37;22;14m\u2584\x1B[38;2;74;52;35;48;2;47;31;15m\u2584\x1B[38;2;54;35;18;48;2;64;41;20m\u258C\x1B[38;2;71;49;23;48;2;79;54;27m\u258C\x1B[0m",
+  "\x1B[38;2;38;23;16;48;2;32;17;13m\u258C\x1B[38;2;23;11;8;48;2;31;15;10m\u2584\x1B[38;2;23;15;11;48;2;29;15;11m\u2584\x1B[38;2;25;16;11;48;2;33;17;12m\u2584\x1B[38;2;38;26;18;48;2;62;63;63m\u258C\x1B[38;2;75;72;73;48;2;78;80;85m\u2584\x1B[38;2;59;58;59;48;2;80;80;83m\u2584\x1B[38;2;54;50;47;48;2;44;38;20m\u258C\x1B[38;2;39;29;14;48;2;69;50;27m\u2584\x1B[38;2;25;18;9;48;2;75;53;31m\u2584\x1B[38;2;36;27;15;48;2;52;33;20m\u258C\x1B[38;2;136;88;65;48;2;149;101;79m\u258C\x1B[38;2;157;107;85;48;2;129;93;77m\u2584\x1B[38;2;137;94;72;48;2;116;88;71m\u2584\x1B[38;2;118;85;67;48;2;94;70;52m\u258C\x1B[38;2;74;58;38;48;2;139;98;67m\u258C\x1B[38;2;136;94;60;48;2;148;113;92m\u2584\x1B[38;2;119;87;63;48;2;91;74;58m\u258C\x1B[38;2;87;75;67;48;2;44;43;33m\u2584\x1B[38;2;87;98;120;48;2;99;90;89m\u2584\x1B[38;2;89;98;120;48;2;99;95;102m\u2584\x1B[38;2;97;101;112;48;2;89;87;91m\u258C\x1B[38;2;111;81;62;48;2;82;64;50m\u2584\x1B[38;2;102;64;34;48;2;91;58;36m\u2584\x1B[38;2;86;63;37;48;2;118;84;58m\u2584\x1B[38;2;117;90;66;48;2;118;89;69m\u2584\x1B[38;2;128;107;96;48;2;114;84;60m\u2584\x1B[38;2;118;107;106;48;2;150;116;90m\u2584\x1B[38;2;141;127;120;48;2;148;118;93m\u2584\x1B[38;2;157;131;124;48;2;149;117;97m\u2584\x1B[38;2;170;136;120;48;2;145;122;106m\u2584\x1B[38;2;130;110;99;48;2;144;130;116m\u2584\x1B[38;2;94;80;70;48;2;90;76;66m\u258C\x1B[38;2;86;72;61;48;2;93;79;69m\u2584\x1B[38;2;92;78;66;48;2;108;91;77m\u258C\x1B[38;2;118;94;77;48;2;147;112;94m\u258C\x1B[38;2;167;107;84;48;2;156;115;93m\u2584\x1B[38;2;161;105;80;48;2;119;85;67m\u2584\x1B[38;2;143;92;70;48;2;159;127;107m\u2584\x1B[38;2;139;105;86;48;2;113;101;94m\u258C\x1B[38;2;114;105;98;48;2;106;100;95m\u258C\x1B[38;2;103;96;91;48;2;99;88;79m\u258C\x1B[38;2;102;80;63;48;2;132;104;88m\u2584\x1B[38;2;137;116;83;48;2;116;93;76m\u2584\x1B[38;2;130;110;83;48;2;142;120;89m\u258C\x1B[38;2;155;130;97;48;2;136;111;82m\u2584\x1B[38;2;151;122;92;48;2;164;133;104m\u258C\x1B[38;2;157;128;98;48;2;146;110;83m\u2584\x1B[38;2;143;122;99;48;2;123;99;77m\u2584\x1B[38;2;137;120;110;48;2;117;107;98m\u258C\x1B[38;2;115;91;73;48;2;93;80;73m\u2584\x1B[38;2;125;87;65;48;2;133;103;84m\u258C\x1B[38;2;141;113;97;48;2;152;108;81m\u258C\x1B[38;2;112;100;95;48;2;163;110;84m\u2584\x1B[38;2;101;97;99;48;2;139;107;92m\u2584\x1B[38;2;97;90;88;48;2;115;106;104m\u2584\x1B[38;2;93;83;76;48;2;123;114;108m\u2584\x1B[38;2;84;75;70;48;2;100;99;102m\u2584\x1B[38;2;82;77;76;48;2;95;97;102m\u2584\x1B[38;2;109;98;88;48;2;92;88;84m\u258C\x1B[38;2;86;83;83;48;2;93;84;76m\u258C\x1B[38;2;84;80;73;48;2;78;75;68m\u258C\x1B[38;2;74;73;67;48;2;68;67;60m\u2584\x1B[38;2;93;71;42;48;2;112;81;48m\u258C\x1B[38;2;109;76;45;48;2;113;76;38m\u2584\x1B[38;2;97;68;41;48;2;103;70;40m\u2584\x1B[38;2;97;68;39;48;2;97;78;47m\u258C\x1B[38;2;98;77;52;48;2;89;70;43m\u258C\x1B[38;2;108;84;61;48;2;48;32;19m\u2584\x1B[38;2;124;102;80;48;2;116;92;68m\u2584\x1B[38;2;130;107;85;48;2;99;70;45m\u2584\x1B[38;2;113;84;65;48;2;123;99;85m\u258C\x1B[38;2;138;117;108;48;2;129;109;97m\u2584\x1B[38;2;135;112;97;48;2;108;82;64m\u258C\x1B[38;2;102;75;49;48;2;80;56;35m\u2584\x1B[38;2;70;50;26;48;2;82;57;30m\u258C\x1B[0m",
+  "\x1B[38;2;20;13;10;48;2;27;15;12m\u2584\x1B[38;2;19;9;6;48;2;16;8;6m\u258C\x1B[38;2;14;8;6;48;2;20;14;9m\u258C\x1B[38;2;46;38;24;48;2;34;27;15m\u2584\x1B[38;2;69;68;68;48;2;75;80;86m\u258C\x1B[38;2;39;40;42;48;2;77;77;78m\u2584\x1B[38;2;32;28;27;48;2;38;34;31m\u2584\x1B[38;2;39;33;28;48;2;33;29;25m\u2584\x1B[38;2;43;34;21;48;2;23;18;9m\u2584\x1B[38;2;54;45;28;48;2;19;15;10m\u2584\x1B[38;2;26;21;14;48;2;60;43;30m\u258C\x1B[38;2;131;87;67;48;2;153;105;85m\u258C\x1B[38;2;156;105;85;48;2;148;97;75m\u258C\x1B[38;2;105;75;48;48;2;116;81;61m\u2584\x1B[38;2;114;77;47;48;2;144;100;77m\u2584\x1B[38;2;100;71;47;48;2;139;94;54m\u258C\x1B[38;2;151;104;61;48;2;143;97;54m\u2584\x1B[38;2;113;84;52;48;2;127;91;62m\u2584\x1B[38;2;155;118;88;48;2;118;93;78m\u2584\x1B[38;2;109;100;96;48;2;82;85;94m\u258C\x1B[38;2;104;91;85;48;2;90;93;107m\u2584\x1B[38;2;118;131;143;48;2;111;116;123m\u2584\x1B[38;2;96;103;109;48;2;130;100;80m\u2584\x1B[38;2;95;87;85;48;2;116;77;51m\u2584\x1B[38;2;122;95;78;48;2;95;74;52m\u2584\x1B[38;2;94;79;53;48;2;82;69;47m\u258C\x1B[38;2;88;73;47;48;2;91;91;95m\u2584\x1B[38;2;97;88;78;48;2;110;116;131m\u2584\x1B[38;2;112;109;113;48;2;118;125;141m\u2584\x1B[38;2;161;143;140;48;2;196;166;151m\u258C\x1B[38;2;190;156;140;48;2;179;147;132m\u2584\x1B[38;2;193;160;144;48;2;167;133;118m\u2584\x1B[38;2;173;141;126;48;2;120;98;86m\u2584\x1B[38;2;104;85;75;48;2;86;72;63m\u2584\x1B[38;2;108;80;64;48;2;139;95;74m\u258C\x1B[38;2;150;92;70;48;2;153;94;73m\u258C\x1B[38;2;152;91;67;48;2;159;110;82m\u258C\x1B[38;2;148;106;83;48;2;162;111;82m\u2584\x1B[38;2;98;103;119;48;2;153;105;82m\u2584\x1B[38;2;85;89;99;48;2;100;101;107m\u2584\x1B[38;2;107;106;110;48;2;104;102;102m\u2584\x1B[38;2;108;110;118;48;2;102;102;105m\u2584\x1B[38;2;111;112;117;48;2;95;89;86m\u2584\x1B[38;2;99;94;90;48;2;102;85;66m\u2584\x1B[38;2;112;92;69;48;2;151;128;97m\u258C\x1B[38;2;157;133;100;48;2;167;141;112m\u2584\x1B[38;2;160;135;100;48;2;166;140;108m\u2584\x1B[38;2;165;138;108;48;2;164;137;106m\u258C\x1B[38;2;161;133;103;48;2;153;126;95m\u258C\x1B[38;2;144;118;89;48;2;135;111;79m\u258C\x1B[38;2;131;105;75;48;2;125;95;67m\u258C\x1B[38;2;128;95;70;48;2;136;92;60m\u2584\x1B[38;2;143;97;66;48;2;122;80;55m\u258C\x1B[38;2;115;73;49;48;2;120;77;52m\u258C\x1B[38;2;111;68;45;48;2;122;81;54m\u2584\x1B[38;2;111;69;48;48;2;119;79;56m\u2584\x1B[38;2;86;63;53;48;2;108;78;60m\u2584\x1B[38;2;85;88;90;48;2;110;92;79m\u2584\x1B[38;2;97;92;86;48;2;112;85;64m\u2584\x1B[38;2;94;82;70;48;2;95;91;86m\u258C\x1B[38;2;91;87;79;48;2;96;97;101m\u2584\x1B[38;2;90;87;82;48;2;93;93;93m\u258C\x1B[38;2;93;94;94;48;2;87;87;84m\u2584\x1B[38;2;84;83;80;48;2;96;83;64m\u258C\x1B[38;2;117;82;52;48;2;99;68;41m\u258C\x1B[38;2;91;59;33;48;2;103;71;43m\u258C\x1B[38;2;116;82;55;48;2;124;96;71m\u258C\x1B[38;2;104;90;78;48;2;105;76;55m\u2584\x1B[38;2;81;69;58;48;2;106;74;51m\u2584\x1B[38;2;82;59;39;48;2;109;90;72m\u258C\x1B[38;2;120;104;88;48;2;125;104;81m\u258C\x1B[38;2;127;107;83;48;2;118;94;71m\u2584\x1B[38;2;99;82;66;48;2;128;107;96m\u2584\x1B[38;2;100;71;56;48;2;119;94;78m\u2584\x1B[38;2;105;78;51;48;2;103;76;51m\u258C\x1B[38;2;91;64;40;48;2;80;56;34m\u258C\x1B[0m",
+  "\x1B[38;2;27;18;13;48;2;20;15;11m\u258C\x1B[38;2;36;28;18;48;2;21;13;9m\u2584\x1B[38;2;45;36;21;48;2;33;25;14m\u2584\x1B[38;2;45;35;21;48;2;48;40;23m\u258C\x1B[38;2;58;53;49;48;2;65;62;59m\u2584\x1B[38;2;53;50;45;48;2;40;34;23m\u258C\x1B[38;2;64;55;35;48;2;39;32;24m\u2584\x1B[38;2;89;81;54;48;2;54;47;33m\u2584\x1B[38;2;78;67;45;48;2;56;48;35m\u2584\x1B[38;2;77;65;45;48;2;59;50;30m\u2584\x1B[38;2;66;52;35;48;2;73;57;36m\u258C\x1B[38;2;92;69;44;48;2;110;77;58m\u258C\x1B[38;2;99;79;69;48;2;134;93;72m\u2584\x1B[38;2;76;66;55;48;2;87;67;43m\u2584\x1B[38;2;95;75;54;48;2;76;63;48m\u258C\x1B[38;2;93;79;64;48;2;84;65;41m\u2584\x1B[38;2;104;78;55;48;2;141;100;61m\u2584\x1B[38;2;111;82;58;48;2;125;95;67m\u2584\x1B[38;2;118;90;71;48;2;145;108;81m\u2584\x1B[38;2;126;95;76;48;2;111;85;70m\u258C\x1B[38;2;106;79;63;48;2;102;95;91m\u258C\x1B[38;2;106;117;127;48;2;111;125;138m\u2584\x1B[38;2;90;101;111;48;2;94;98;100m\u258C\x1B[38;2;110;103;98;48;2;94;91;88m\u2584\x1B[38;2;114;89;72;48;2;121;100;86m\u2584\x1B[38;2;109;94;74;48;2;86;74;56m\u258C\x1B[38;2;106;92;76;48;2;87;73;46m\u2584\x1B[38;2;130;111;97;48;2;100;84;58m\u2584\x1B[38;2;135;108;91;48;2;108;101;95m\u2584\x1B[38;2;129;99;83;48;2;158;135;121m\u2584\x1B[38;2;155;129;112;48;2;173;140;123m\u2584\x1B[38;2;165;136;117;48;2;135;114;101m\u258C\x1B[38;2;114;101;95;48;2;137;114;101m\u258C\x1B[38;2;132;102;87;48;2;136;93;74m\u2584\x1B[38;2;134;106;91;48;2;152;101;75m\u2584\x1B[38;2;141;116;103;48;2;142;98;75m\u2584\x1B[38;2;106;98;95;48;2;114;106;106m\u258C\x1B[38;2;118;110;110;48;2;94;96;106m\u2584\x1B[38;2;133;127;126;48;2;96;96;101m\u2584\x1B[38;2;126;120;119;48;2;100;99;102m\u2584\x1B[38;2;135;126;123;48;2;100;100;106m\u2584\x1B[38;2;129;109;97;48;2;97;100;108m\u2584\x1B[38;2;153;132;120;48;2;117;104;101m\u2584\x1B[38;2;157;122;104;48;2;133;116;107m\u2584\x1B[38;2;122;102;88;48;2;154;137;114m\u258C\x1B[38;2;165;146;133;48;2;143;123;92m\u2584\x1B[38;2;143;130;119;48;2;138;117;85m\u2584\x1B[38;2;155;138;122;48;2;150;125;93m\u2584\x1B[38;2;153;128;107;48;2;146;121;90m\u2584\x1B[38;2;136;121;110;48;2;129;107;79m\u2584\x1B[38;2;127;111;99;48;2;134;100;75m\u2584\x1B[38;2;150;124;105;48;2;122;85;59m\u2584\x1B[38;2;131;100;83;48;2;130;88;62m\u2584\x1B[38;2;132;108;91;48;2;119;75;51m\u2584\x1B[38;2;129;116;108;48;2;123;73;51m\u2584\x1B[38;2;110;91;74;48;2;120;77;54m\u2584\x1B[38;2;118;90;64;48;2;105;69;51m\u2584\x1B[38;2;120;94;70;48;2;90;84;80m\u2584\x1B[38;2;105;87;70;48;2;101;99;97m\u2584\x1B[38;2;98;89;82;48;2;106;101;95m\u2584\x1B[38;2;130;116;107;48;2;103;93;81m\u2584\x1B[38;2;129;114;105;48;2;96;91;88m\u2584\x1B[38;2;122;107;95;48;2;102;101;97m\u2584\x1B[38;2;122;98;83;48;2;95;83;68m\u2584\x1B[38;2;113;91;76;48;2;107;73;44m\u2584\x1B[38;2;110;83;60;48;2;114;77;39m\u2584\x1B[38;2;107;77;46;48;2;96;78;54m\u258C\x1B[38;2;111;95;80;48;2;101;81;62m\u2584\x1B[38;2;106;87;73;48;2;92;71;57m\u2584\x1B[38;2;105;86;71;48;2;82;72;63m\u2584\x1B[38;2;94;78;66;48;2;78;67;55m\u2584\x1B[38;2;90;78;67;48;2;89;74;60m\u2584\x1B[38;2;89;76;66;48;2;63;53;46m\u2584\x1B[38;2;103;74;48;48;2;92;61;50m\u2584\x1B[38;2;100;72;46;48;2;102;74;46m\u258C\x1B[38;2;110;79;51;48;2;104;73;46m\u2584\x1B[0m",
+  "\x1B[38;2;40;29;19;48;2;35;26;19m\u258C\x1B[38;2;45;35;23;48;2;57;45;29m\u258C\x1B[38;2;42;33;23;48;2;51;40;24m\u2584\x1B[38;2;50;41;26;48;2;34;30;19m\u2584\x1B[38;2;53;43;32;48;2;84;62;47m\u258C\x1B[38;2;96;72;58;48;2;85;62;41m\u2584\x1B[38;2;102;85;74;48;2;96;83;58m\u2584\x1B[38;2;107;90;72;48;2;94;85;72m\u258C\x1B[38;2;97;91;91;48;2;104;95;75m\u2584\x1B[38;2;108;100;98;48;2;97;82;65m\u2584\x1B[38;2;104;97;97;48;2;95;81;71m\u2584\x1B[38;2;107;103;104;48;2;97;84;77m\u2584\x1B[38;2;97;93;96;48;2;97;86;82m\u2584\x1B[38;2;105;99;101;48;2;107;96;91m\u2584\x1B[38;2;121;113;115;48;2;121;110;106m\u2584\x1B[38;2;128;116;113;48;2;137;105;83m\u2584\x1B[38;2;136;126;125;48;2;103;92;85m\u2584\x1B[38;2;147;137;133;48;2;93;82;74m\u2584\x1B[38;2;156;144;140;48;2;96;85;80m\u2584\x1B[38;2;159;148;144;48;2;110;101;95m\u2584\x1B[38;2;149;138;134;48;2;127;110;100m\u2584\x1B[38;2;165;155;151;48;2;110;108;109m\u2584\x1B[38;2;173;163;161;48;2;120;120;122m\u2584\x1B[38;2;179;171;169;48;2;143;136;133m\u2584\x1B[38;2;179;171;170;48;2;132;117;105m\u2584\x1B[38;2;177;170;169;48;2;122;109;104m\u2584\x1B[38;2;180;171;169;48;2;149;139;135m\u2584\x1B[38;2;177;167;164;48;2;161;143;134m\u2584\x1B[38;2;177;167;161;48;2;162;145;133m\u2584\x1B[38;2;179;165;157;48;2;155;132;115m\u2584\x1B[38;2;185;173;164;48;2;132;120;115m\u2584\x1B[38;2;192;180;175;48;2;145;125;114m\u2584\x1B[38;2;188;178;173;48;2;159;138;127m\u2584\x1B[38;2;185;174;170;48;2;182;165;152m\u2584\x1B[38;2;189;177;171;48;2;178;158;142m\u2584\x1B[38;2;190;178;173;48;2;170;141;121m\u2584\x1B[38;2;193;183;178;48;2;158;144;134m\u2584\x1B[38;2;193;180;171;48;2;164;153;147m\u2584\x1B[38;2;191;177;167;48;2;172;160;153m\u2584\x1B[38;2;192;179;169;48;2;169;155;146m\u2584\x1B[38;2;191;177;165;48;2;160;145;133m\u2584\x1B[38;2;188;172;160;48;2;177;150;134m\u2584\x1B[38;2;183;162;151;48;2;194;180;170m\u258C\x1B[38;2;196;183;175;48;2;190;175;167m\u258C\x1B[38;2;192;178;169;48;2;185;162;147m\u2584\x1B[38;2;189;174;163;48;2;181;156;139m\u2584\x1B[38;2;183;171;162;48;2;180;153;138m\u2584\x1B[38;2;189;175;166;48;2;187;173;164m\u258C\x1B[38;2;191;177;169;48;2;183;168;157m\u258C\x1B[38;2;182;168;157;48;2;190;176;164m\u2584\x1B[38;2;183;169;160;48;2;178;158;143m\u258C\x1B[38;2;173;159;148;48;2;160;128;101m\u2584\x1B[38;2;175;161;151;48;2;168;149;135m\u2584\x1B[38;2;174;163;154;48;2;181;168;158m\u2584\x1B[38;2;170;158;152;48;2;178;166;158m\u2584\x1B[38;2;170;158;149;48;2;160;144;131m\u258C\x1B[38;2;167;156;146;48;2;146;127;111m\u2584\x1B[38;2;165;154;144;48;2;149;136;124m\u2584\x1B[38;2;164;149;137;48;2;137;120;108m\u2584\x1B[38;2;158;143;131;48;2;126;98;76m\u2584\x1B[38;2;143;129;116;48;2;157;144;133m\u258C\x1B[38;2;159;145;135;48;2;161;148;138m\u2584\x1B[38;2;151;137;128;48;2;156;146;141m\u2584\x1B[38;2;134;126;119;48;2;138;130;126m\u2584\x1B[38;2;131;123;119;48;2;142;130;121m\u258C\x1B[38;2;138;125;116;48;2;136;116;99m\u258C\x1B[38;2;132;122;114;48;2;117;98;83m\u2584\x1B[38;2;136;128;123;48;2;117;104;96m\u2584\x1B[38;2;138;125;116;48;2;112;97;83m\u2584\x1B[38;2;136;124;116;48;2;130;113;99m\u2584\x1B[38;2;139;126;115;48;2;126;107;94m\u2584\x1B[38;2;133;118;107;48;2;132;113;100m\u2584\x1B[38;2;120;104;92;48;2;106;89;76m\u2584\x1B[38;2;91;69;49;48;2;102;72;48m\u258C\x1B[38;2;96;68;42;48;2;104;73;48m\u258C\x1B[38;2;112;80;51;48;2;116;84;55m\u258C\x1B[0m",
+  "\x1B[38;2;48;38;29;48;2;44;33;23m\u2584\x1B[38;2;59;39;19;48;2;66;45;23m\u2584\x1B[38;2;65;42;19;48;2;63;46;26m\u258C\x1B[38;2;62;51;36;48;2;55;45;31m\u2584\x1B[38;2;72;64;59;48;2;83;75;70m\u258C\x1B[38;2;96;89;86;48;2;91;82;78m\u2584\x1B[38;2;94;87;86;48;2;96;87;83m\u2584\x1B[38;2;94;87;85;48;2;95;88;86m\u2584\x1B[38;2;103;94;94;48;2;107;101;101m\u258C\x1B[38;2;111;105;104;48;2;106;101;100m\u258C\x1B[38;2;98;92;93;48;2;103;97;98m\u258C\x1B[38;2;110;105;106;48;2;103;98;98m\u2584\x1B[38;2;111;105;108;48;2;103;99;101m\u2584\x1B[38;2;117;110;112;48;2;106;102;106m\u2584\x1B[38;2;126;117;119;48;2;119;111;113m\u2584\x1B[38;2;131;124;124;48;2;136;127;127m\u258C\x1B[38;2;133;125;126;48;2;135;127;130m\u258C\x1B[38;2;139;132;132;48;2;142;134;136m\u258C\x1B[38;2;144;137;138;48;2;150;140;141m\u2584\x1B[38;2;148;140;139;48;2;153;144;142m\u2584\x1B[38;2;150;141;140;48;2;159;150;149m\u258C\x1B[38;2;167;159;157;48;2;167;156;154m\u2584\x1B[38;2;167;162;166;48;2;170;160;158m\u2584\x1B[38;2;171;164;165;48;2;172;164;163m\u2584\x1B[38;2;172;164;164;48;2;177;170;169m\u258C\x1B[38;2;175;167;166;48;2;178;170;170m\u2584\x1B[38;2;183;174;170;48;2;179;172;174m\u258C\x1B[38;2;178;172;175;48;2;178;170;170m\u2584\x1B[38;2;179;172;172;48;2;181;173;169m\u258C\x1B[38;2;185;176;174;48;2;187;180;179m\u258C\x1B[38;2;198;189;187;48;2;193;185;183m\u2584\x1B[38;2;207;197;193;48;2;191;185;184m\u2584\x1B[38;2;212;202;200;48;2;195;188;185m\u2584\x1B[38;2;211;203;200;48;2;197;189;186m\u2584\x1B[38;2;212;206;206;48;2;200;191;188m\u2584\x1B[38;2;216;210;211;48;2;202;195;194m\u2584\x1B[38;2;219;212;211;48;2;201;191;188m\u2584\x1B[38;2;222;213;213;48;2;204;192;187m\u2584\x1B[38;2;220;212;210;48;2;203;192;187m\u2584\x1B[38;2;215;203;198;48;2;198;186;180m\u2584\x1B[38;2;210;201;197;48;2;196;183;176m\u2584\x1B[38;2;209;200;196;48;2;191;179;172m\u2584\x1B[38;2;210;201;197;48;2;192;182;176m\u2584\x1B[38;2;211;202;201;48;2;196;185;180m\u2584\x1B[38;2;211;203;203;48;2;198;186;181m\u2584\x1B[38;2;211;205;205;48;2;194;183;175m\u2584\x1B[38;2;212;205;205;48;2;187;175;168m\u2584\x1B[38;2;203;195;193;48;2;187;174;166m\u2584\x1B[38;2;190;178;171;48;2;179;168;162m\u258C\x1B[38;2;180;171;166;48;2;179;168;163m\u2584\x1B[38;2;178;168;160;48;2;174;163;157m\u258C\x1B[38;2;171;162;156;48;2;172;163;158m\u2584\x1B[38;2;177;167;161;48;2;174;164;158m\u2584\x1B[38;2;175;166;163;48;2;175;165;161m\u258C\x1B[38;2;168;158;155;48;2;171;160;155m\u2584\x1B[38;2;162;153;146;48;2;164;151;143m\u258C\x1B[38;2;160;147;135;48;2;162;150;139m\u2584\x1B[38;2;162;150;137;48;2;166;153;143m\u258C\x1B[38;2;165;153;141;48;2;165;149;134m\u2584\x1B[38;2;163;150;139;48;2;157;143;132m\u258C\x1B[38;2;152;139;128;48;2;156;144;134m\u2584\x1B[38;2;151;140;131;48;2;154;143;135m\u2584\x1B[38;2;142;129;119;48;2;151;139;128m\u2584\x1B[38;2;136;126;117;48;2;148;134;122m\u258C\x1B[38;2;143;131;121;48;2;149;140;132m\u258C\x1B[38;2;134;125;118;48;2;129;119;110m\u258C\x1B[38;2;133;123;113;48;2;140;132;124m\u258C\x1B[38;2;136;128;124;48;2;145;135;128m\u258C\x1B[38;2;134;123;113;48;2;137;128;119m\u258C\x1B[38;2;131;122;116;48;2;135;124;116m\u258C\x1B[38;2;137;124;114;48;2;138;124;115m\u2584\x1B[38;2;136;123;113;48;2;130;116;104m\u2584\x1B[38;2;132;116;102;48;2;124;109;97m\u2584\x1B[38;2;104;88;76;48;2;97;69;46m\u258C\x1B[38;2;115;86;62;48;2;104;74;49m\u2584\x1B[38;2;122;92;68;48;2;114;84;56m\u2584\x1B[0m",
+  "\x1B[38;2;65;52;38;48;2;55;43;30m\u2584\x1B[38;2;63;47;27;48;2;65;44;21m\u258C\x1B[38;2;59;42;24;48;2;60;47;33m\u258C\x1B[38;2;63;56;41;48;2;73;66;56m\u258C\x1B[38;2;77;69;66;48;2;84;76;72m\u2584\x1B[38;2;78;72;68;48;2;93;85;80m\u2584\x1B[38;2;84;77;74;48;2;90;82;80m\u2584\x1B[38;2;89;82;78;48;2;95;88;87m\u2584\x1B[38;2;95;89;88;48;2;108;101;101m\u2584\x1B[38;2;101;94;91;48;2;109;103;102m\u2584\x1B[38;2;99;90;88;48;2;104;98;99m\u2584\x1B[38;2;106;94;90;48;2;112;106;105m\u2584\x1B[38;2;100;90;87;48;2;114;109;110m\u2584\x1B[38;2;111;100;99;48;2;122;114;116m\u2584\x1B[38;2;109;101;98;48;2;131;122;123m\u2584\x1B[38;2;110;101;99;48;2;134;126;127m\u2584\x1B[38;2;111;103;102;48;2;133;127;130m\u2584\x1B[38;2;121;110;109;48;2;139;130;131m\u2584\x1B[38;2;132;119;116;48;2;144;138;139m\u2584\x1B[38;2;131;120;117;48;2;147;140;141m\u2584\x1B[38;2;129;121;118;48;2;154;146;145m\u2584\x1B[38;2;135;128;124;48;2;163;153;151m\u2584\x1B[38;2;144;135;131;48;2;171;162;161m\u2584\x1B[38;2;146;137;132;48;2;174;163;162m\u2584\x1B[38;2;142;135;133;48;2;171;163;162m\u2584\x1B[38;2;143;135;132;48;2;178;169;167m\u2584\x1B[38;2;158;147;141;48;2;181;171;169m\u2584\x1B[38;2;169;157;150m\u2584\x1B[38;2;183;173;168;48;2;196;188;183m\u258C\x1B[38;2;205;190;178;48;2;205;197;195m\u2584\x1B[38;2;173;156;138;48;2;210;202;200m\u2584\x1B[38;2;149;132;115;48;2;193;184;179m\u2584\x1B[38;2;157;140;122;48;2;174;163;155m\u2584\x1B[38;2;162;145;127;48;2;160;149;140m\u2584\x1B[38;2;162;144;126;48;2;158;146;137m\u2584\x1B[38;2;162;145;127;48;2;156;141;128m\u2584\x1B[48;2;153;137;123m\u2584\x1B[48;2;151;135;122m\u2584\x1B[38;2;161;144;126;48;2;153;137;123m\u2584\x1B[48;2;151;135;120m\u2584\x1B[48;2;153;138;125m\u2584\x1B[48;2;154;140;127m\u2584\x1B[48;2;157;144;132m\u2584\x1B[38;2;162;145;126;48;2;161;148;140m\u2584\x1B[38;2;162;145;127;48;2;169;157;151m\u2584\x1B[38;2;161;144;126;48;2;180;170;166m\u2584\x1B[38;2;170;151;132;48;2;187;179;177m\u2584\x1B[38;2;192;172;153;48;2;201;194;192m\u2584\x1B[38;2;190;178;166;48;2;199;190;185m\u2584\x1B[38;2;158;147;138;48;2;187;177;171m\u2584\x1B[38;2;146;134;125;48;2;180;172;166m\u2584\x1B[38;2;142;128;117;48;2;179;170;163m\u2584\x1B[38;2;140;126;114;48;2;177;165;155m\u2584\x1B[38;2;130;117;107;48;2;174;162;152m\u2584\x1B[38;2;121;108;98;48;2;168;158;155m\u2584\x1B[38;2;129;108;95;48;2;164;153;146m\u2584\x1B[38;2;132;111;97;48;2;163;149;139m\u2584\x1B[38;2;128;110;96;48;2;165;150;136m\u2584\x1B[38;2;120;107;95;48;2;163;153;147m\u2584\x1B[38;2;114;104;94;48;2;162;151;143m\u2584\x1B[38;2;117;104;92;48;2;162;150;142m\u2584\x1B[38;2;116;102;88;48;2;158;144;132m\u2584\x1B[38;2;115;98;81;48;2;144;131;119m\u2584\x1B[38;2;99;86;76;48;2;132;126;121m\u2584\x1B[38;2;107;93;82;48;2;142;134;128m\u2584\x1B[38;2;97;83;71;48;2;115;115;114m\u2584\x1B[38;2;89;75;60;48;2;137;129;121m\u2584\x1B[38;2;98;82;69;48;2;139;131;124m\u2584\x1B[38;2;90;76;63;48;2;131;123;117m\u2584\x1B[38;2;91;75;61;48;2;133;125;119m\u2584\x1B[38;2;87;75;64;48;2;135;122;112m\u2584\x1B[38;2;92;78;66;48;2;136;123;113m\u2584\x1B[38;2;102;87;73;48;2;126;111;97m\u2584\x1B[38;2;104;93;83;48;2;78;55;40m\u258C\x1B[38;2;71;43;29;48;2;91;64;46m\u2584\x1B[38;2;95;68;47;48;2;109;77;57m\u2584\x1B[0m",
+  "\x1B[38;2;72;57;42;48;2;63;46;28m\u258C\x1B[38;2;60;44;28;48;2;53;35;19m\u2584\x1B[38;2;57;45;32;48;2;60;47;34m\u258C\x1B[38;2;63;52;38;48;2;68;58;51m\u258C\x1B[38;2;67;58;52;48;2;65;50;35m\u258C\x1B[38;2;71;49;27;48;2;53;44;34m\u2584\x1B[38;2;55;38;22;48;2;45;36;25m\u2584\x1B[38;2;56;33;18;48;2;54;39;22m\u2584\x1B[38;2;57;31;18;48;2;61;46;30m\u2584\x1B[38;2;63;40;23;48;2;58;47;37m\u2584\x1B[38;2;60;40;23;48;2;57;40;26m\u2584\x1B[38;2;63;39;21;48;2;72;48;30m\u2584\x1B[38;2;73;45;25;48;2;62;41;24m\u258C\x1B[38;2;58;41;29;48;2;63;43;27m\u258C\x1B[38;2;68;48;30;48;2;57;42;29m\u258C\x1B[38;2;53;34;22;48;2;52;42;34m\u2584\x1B[38;2;63;45;35;48;2;54;45;37m\u2584\x1B[38;2;69;50;35;48;2;78;54;38m\u258C\x1B[38;2;89;65;45;48;2;74;55;43m\u2584\x1B[38;2;83;65;50;48;2;74;62;52m\u2584\x1B[38;2;85;66;53;48;2;76;62;50m\u2584\x1B[38;2;87;67;53;48;2;76;59;46m\u2584\x1B[38;2;81;64;50;48;2;74;60;49m\u2584\x1B[38;2;86;68;51;48;2;79;64;52m\u2584\x1B[38;2;88;71;56;48;2;77;66;55m\u2584\x1B[38;2;104;91;81;48;2;80;68;57m\u2584\x1B[38;2;98;82;70;48;2;102;86;71m\u258C\x1B[38;2;113;95;81;48;2;109;91;76m\u2584\x1B[38;2;138;120;104;48;2;188;171;155m\u258C\x1B[38;2;205;187;166;48;2;209;190;173m\u2584\x1B[38;2;205;186;164;48;2;182;165;145m\u258C\x1B[38;2;162;145;126;48;2;162;145;127m\u258C\x1B[38;2;161;144;126;48;2;162;145;126m\u258C\x1B[38;2;162;145;127;48;2;161;144;126m\u258C\x1B[38;2;161;144;126;48;2;162;144;126m\u258C\x1B[38;2;162;144;126;48;2;162;145;127m\u258C\x1B[38;2;161;144;126m\u2584\u2584\x1B[38;2;162;145;127;48;2;161;144;126m\u2584\x1B[38;2;161;144;126;48;2;162;144;126m\u2584\x1B[38;2;162;145;127;48;2;162;145;126m\u2584\x1B[38;2;162;145;126;48;2;161;144;126m\u2584\x1B[38;2;161;144;126;48;2;162;145;127m\u258C\x1B[38;2;162;144;126;48;2;161;144;126m\u258C\x1B[38;2;162;145;127;48;2;162;144;126m\u258C\x1B[38;2;161;144;126m\u2584\x1B[48;2;185;168;148m\u258C\x1B[38;2;212;193;175;48;2;209;188;168m\u2584\x1B[38;2;202;184;167;48;2;183;168;158m\u258C\x1B[38;2;150;133;122;48;2;136;119;107m\u258C\x1B[38;2;141;123;109;48;2;121;104;91m\u2584\x1B[38;2;126;106;90;48;2;110;92;75m\u2584\x1B[38;2;116;91;72;48;2;102;84;68m\u2584\x1B[38;2;113;93;72;48;2;93;76;61m\u2584\x1B[38;2;118;97;75;48;2;83;70;57m\u2584\x1B[38;2;109;90;68;48;2;88;69;53m\u2584\x1B[38;2;107;88;67;48;2;105;76;53m\u2584\x1B[38;2;99;82;62;48;2;90;67;47m\u2584\x1B[38;2;96;78;56;48;2;77;59;40m\u2584\x1B[38;2;89;67;45;48;2;74;58;42m\u2584\x1B[38;2;84;62;42;48;2;83;69;52m\u2584\x1B[38;2;80;62;45;48;2;103;74;45m\u258C\x1B[38;2;99;68;35;48;2;86;61;36m\u258C\x1B[38;2;80;57;36;48;2;81;59;34m\u2584\x1B[38;2;85;60;37;48;2;87;59;32m\u2584\x1B[38;2;92;65;38;48;2;84;58;32m\u258C\x1B[38;2;84;54;27;48;2;73;47;25m\u2584\x1B[38;2;66;42;24;48;2;70;45;26m\u258C\x1B[38;2;69;44;26;48;2;72;52;31m\u258C\x1B[38;2;67;53;38;48;2;71;53;38m\u2584\x1B[38;2;66;52;36;48;2;71;54;34m\u258C\x1B[38;2;74;53;30;48;2;82;61;38m\u258C\x1B[38;2;85;64;41;48;2;90;72;51m\u258C\x1B[38;2;98;83;67;48;2;67;50;33m\u258C\x1B[38;2;82;61;40;48;2;76;50;36m\u2584\x1B[38;2;97;72;50;48;2;104;78;55m\u258C\x1B[0m",
+  "\x1B[38;2;82;61;39;48;2;74;53;31m\u258C\x1B[38;2;72;55;41;48;2;68;52;33m\u2584\x1B[38;2;78;62;51;48;2;68;53;40m\u2584\x1B[38;2;72;57;45;48;2;73;60;49m\u2584\x1B[38;2;72;56;42;48;2;65;48;35m\u2584\x1B[38;2;72;53;39;48;2;78;49;26m\u2584\x1B[38;2;67;43;27;48;2;56;38;25m\u258C\x1B[38;2;63;45;33;48;2;77;57;42m\u258C\x1B[38;2;86;62;43;48;2;76;55;41m\u2584\x1B[38;2;64;39;18;48;2;64;41;23m\u2584\x1B[38;2;87;66;44;48;2;69;48;32m\u2584\x1B[38;2;96;74;48;48;2;70;50;34m\u2584\x1B[38;2;102;79;54;48;2;74;52;32m\u2584\x1B[38;2;114;90;66;48;2;83;63;44m\u2584\x1B[38;2;88;63;42;48;2;77;53;34m\u258C\x1B[38;2;84;64;46;48;2;64;46;31m\u2584\x1B[38;2;109;86;64;48;2;88;66;47m\u2584\x1B[38;2;118;95;73;48;2;94;72;51m\u2584\x1B[38;2;113;89;68;48;2;102;80;60m\u2584\x1B[38;2;118;94;71;48;2;103;83;65m\u2584\x1B[38;2;128;107;88;48;2;113;94;78m\u2584\x1B[38;2;125;102;80;48;2;109;90;72m\u2584\x1B[38;2;129;103;78;48;2;115;92;69m\u2584\x1B[38;2;131;106;81;48;2;118;95;72m\u2584\x1B[38;2;131;106;85;48;2;117;97;77m\u2584\x1B[38;2;125;107;93;48;2;124;99;85m\u2584\x1B[38;2;138;117;99;48;2;131;109;94m\u2584\x1B[38;2;139;118;98;48;2;137;116;99m\u2584\x1B[38;2;150;129;110;48;2;191;172;153m\u258C\x1B[38;2;199;178;155;48;2;204;187;167m\u258C\x1B[38;2;205;187;169;48;2;183;165;146m\u258C\x1B[38;2;162;144;127;48;2;161;144;126m\u258C\x1B[38;2;161;144;126;48;2;162;145;127m\u258C\x1B[38;2;162;145;127;48;2;161;144;126m\u2584\x1B[48;2;162;144;126m\u2584\x1B[48;2;161;144;126m\u258C\u2584\x1B[38;2;162;144;126m\u258C\x1B[38;2;162;145;127;48;2;162;144;126m\u258C\x1B[38;2;161;144;126m\u2584\x1B[48;2;161;144;126m\u2584\x1B[48;2;162;144;126m\u2584\x1B[38;2;162;144;126;48;2;161;144;126m\u258C\x1B[38;2;162;145;126;48;2;162;145;126m\u2584\x1B[48;2;162;145;127m\u258C\x1B[38;2;162;145;127;48;2;161;144;126m\u2584\x1B[38;2;162;144;126;48;2;182;165;147m\u258C\x1B[38;2;212;196;183;48;2;212;194;178m\u2584\x1B[38;2;207;191;175;48;2;195;180;168m\u258C\x1B[38;2;161;142;131;48;2;141;121;106m\u258C\x1B[38;2;136;111;93;48;2;138;117;101m\u2584\x1B[38;2;136;110;91;48;2;122;101;84m\u2584\x1B[38;2;141;114;92;48;2;116;92;73m\u2584\x1B[38;2;147;122;99;48;2;131;108;82m\u2584\x1B[38;2;144;120;96;48;2;126;105;86m\u2584\x1B[38;2;133;111;94;48;2;118;98;76m\u2584\x1B[38;2;130;107;87;48;2;120;100;77m\u2584\x1B[38;2;134;110;86;48;2;119;100;78m\u2584\x1B[38;2;135;110;91;48;2;123;102;80m\u2584\x1B[38;2;130;107;86;48;2;108;86;64m\u2584\x1B[38;2;125;101;78;48;2;107;85;61m\u2584\x1B[38;2;120;88;59;48;2;117;82;48m\u258C\x1B[38;2;100;74;46;48;2;92;73;50m\u258C\x1B[38;2;98;76;54;48;2;87;61;38m\u2584\x1B[38;2;97;74;54;48;2;89;63;41m\u2584\x1B[38;2;104;82;57;48;2;90;68;46m\u2584\x1B[38;2;106;74;45;48;2;98;67;38m\u2584\x1B[38;2;90;65;43;48;2;79;58;39m\u2584\x1B[38;2;94;73;49;48;2;73;53;34m\u2584\x1B[38;2;102;83;60;48;2;83;65;43m\u2584\x1B[38;2;106;86;62;48;2;89;67;44m\u2584\x1B[38;2;107;88;65;48;2;86;64;39m\u2584\x1B[38;2;110;89;65;48;2;101;80;53m\u2584\x1B[38;2;111;91;69;48;2;108;86;59m\u2584\x1B[38;2;116;96;76;48;2;110;88;62m\u2584\x1B[38;2;120;97;76;48;2;104;80;55m\u2584\x1B[0m",
+  "\x1B[38;2;89;71;56;48;2;82;64;49m\u2584\x1B[38;2;81;64;50;48;2;84;67;53m\u258C\x1B[38;2;86;67;49;48;2;79;61;48m\u2584\x1B[38;2;91;72;54;48;2;83;66;52m\u2584\x1B[38;2;97;75;54;48;2;84;66;49m\u2584\x1B[38;2;101;79;58;48;2;84;66;48m\u2584\x1B[38;2;112;87;63;48;2;90;69;49m\u2584\x1B[38;2;98;75;55;48;2;104;82;59m\u258C\x1B[38;2;106;82;58;48;2;97;74;51m\u2584\x1B[38;2;115;90;64;48;2;92;69;44m\u2584\x1B[38;2;116;90;64;48;2;106;82;55m\u2584\x1B[38;2;129;102;75;48;2;119;94;68m\u2584\x1B[38;2;126;100;74;48;2;132;106;80m\u258C\x1B[38;2;137;110;83;48;2;132;105;77m\u2584\x1B[38;2;136;109;81;48;2;120;94;69m\u2584\x1B[38;2;142;115;90;48;2;125;101;78m\u2584\x1B[38;2;142;116;91;48;2;135;111;87m\u2584\x1B[38;2;142;117;93;48;2;131;107;84m\u2584\x1B[38;2;140;114;90;48;2;124;99;76m\u2584\x1B[38;2;136;108;81;48;2;128;103;80m\u2584\x1B[38;2;132;107;80;48;2;135;108;83m\u258C\x1B[38;2;139;113;89;48;2;134;109;83m\u2584\x1B[38;2;136;110;85;48;2;129;103;78m\u2584\x1B[38;2;142;117;92;48;2;130;106;81m\u2584\x1B[38;2;142;116;95;48;2;131;107;84m\u2584\x1B[38;2;140;118;102;48;2;145;124;109m\u258C\x1B[38;2;155;134;119;48;2;140;119;102m\u2584\x1B[38;2;154;132;117;48;2;137;115;98m\u2584\x1B[38;2;157;137;120;48;2;194;175;154m\u258C\x1B[38;2;200;181;161;48;2;202;185;164m\u258C\x1B[38;2;201;182;161;48;2;182;164;144m\u258C\x1B[38;2;162;144;126;48;2;161;144;126m\u2584\x1B[48;2;162;145;126m\u2584\x1B[48;2;161;144;126m\u2584\x1B[38;2;162;145;127m\u258C\x1B[38;2;161;144;126;48;2;162;144;126m\u2584\x1B[38;2;162;144;126;48;2;161;144;126m\u258C\x1B[48;2;162;145;127m\u258C\u2584\x1B[48;2;161;144;126m\u2584\x1B[38;2;161;144;126;48;2;162;144;126m\u258C\x1B[38;2;162;145;127;48;2;161;144;126m\u2584\x1B[38;2;161;144;126;48;2;162;145;126m\u2584\x1B[38;2;162;144;126m\u258C\x1B[38;2;162;145;126;48;2;162;144;126m\u2584\x1B[38;2;161;144;126;48;2;162;145;126m\u2584\x1B[48;2;180;164;148m\u258C\x1B[38;2;207;194;182;48;2;210;196;185m\u2584\x1B[38;2;209;194;180;48;2;193;177;163m\u258C\x1B[38;2;171;148;132;48;2;152;127;107m\u258C\x1B[38;2;162;136;116;48;2;152;126;109m\u2584\x1B[38;2;156;130;112;48;2;152;124;110m\u2584\x1B[38;2;155;128;112;48;2;153;124;106m\u258C\x1B[38;2;151;123;105;48;2;153;127;111m\u2584\x1B[38;2;157;132;116;48;2;152;126;106m\u2584\x1B[38;2;154;128;106;48;2;152;125;104m\u258C\x1B[38;2;150;121;96;48;2;149;122;106m\u2584\x1B[38;2;147;121;100;48;2;146;121;105m\u2584\x1B[38;2;148;125;107;48;2;146;121;104m\u2584\x1B[38;2;146;122;102;48;2;146;123;107m\u258C\x1B[38;2;146;123;107;48;2;141;120;107m\u2584\x1B[38;2;145;121;106;48;2;134;110;96m\u2584\x1B[38;2;147;123;105;48;2;126;104;86m\u2584\x1B[38;2;135;112;91;48;2;124;101;81m\u2584\x1B[38;2;139;117;97;48;2;126;103;83m\u2584\x1B[38;2;135;112;89;48;2;126;103;79m\u2584\x1B[38;2;127;103;80;48;2;126;98;74m\u2584\x1B[38;2;126;101;77;48;2;124;97;71m\u2584\x1B[38;2;124;98;70;48;2;127;103;82m\u2584\x1B[38;2;130;107;85;48;2;124;103;81m\u2584\x1B[38;2;127;107;87;48;2;123;102;82m\u2584\x1B[38;2;126;106;87;48;2;117;98;79m\u2584\x1B[38;2;121;99;79;48;2;113;92;73m\u2584\x1B[38;2;126;105;86;48;2;119;100;84m\u2584\x1B[38;2;116;95;76;48;2;126;103;82m\u258C\x1B[38;2;137;113;88;48;2;127;105;83m\u2584\x1B[0m"
+];
+var gold = chalk6.hex("#D4A017");
+var darkGold = chalk6.hex("#B8860B");
+var amber = chalk6.hex("#FFBF00");
+var warmWhite = chalk6.hex("#F5E6C8");
+var brown = chalk6.hex("#8B4513");
+function showBanner(savedCount) {
+  console.log("");
+  console.log(gold("  \u2554" + "\u2550".repeat(76) + "\u2557"));
+  for (const line of PAINTING_LINES) {
+    console.log(gold("  \u2551") + line + gold("\u2551"));
+  }
+  console.log(gold("  \u255A" + "\u2550".repeat(76) + "\u255D"));
+  console.log("");
+  console.log(
+    amber("         \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557")
+  );
+  console.log(
+    amber("         \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D\u2588\u2588\u2554\u2550\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D")
+  );
+  console.log(
+    gold("         \u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2551  \u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2557  ")
+  );
+  console.log(
+    darkGold("         \u2588\u2588\u2554\u2550\u2550\u255D  \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u255D  ")
+  );
+  console.log(
+    brown("         \u2588\u2588\u2551     \u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2551  \u2588\u2588\u2551\u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557")
+  );
+  console.log(
+    brown("         \u255A\u2550\u255D      \u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u255D  \u255A\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D")
+  );
+  console.log("");
+  console.log(
+    warmWhite("              The Digital Renaissance of Ideas")
+  );
+  console.log(
+    chalk6.dim('           "Where great minds converge, renaissance begins"')
+  );
+  console.log("");
+  if (savedCount && savedCount > 0) {
+    console.log(chalk6.dim(`              ${savedCount} saved session(s) available`));
+    console.log("");
+  }
+}
+
+// cli/lib/session-launcher.ts
+import React4 from "react";
+import { v4 as uuid2 } from "uuid";
+import * as path17 from "path";
+import * as fs14 from "fs/promises";
+import chalk7 from "chalk";
+
+// cli/adapters/ClaudeCodeCLIRunner.ts
 import * as path14 from "path";
 import * as os3 from "os";
-import * as fs11 from "fs/promises";
-var EMPTY = { providers: {} };
-function configDir() {
-  const xdg = process.env.XDG_CONFIG_HOME;
-  return path14.join(xdg ?? path14.join(os3.homedir(), ".config"), "forge");
-}
-function configPath() {
-  return path14.join(configDir(), "config.json");
-}
-async function loadConfig2() {
-  try {
-    const raw = await fs11.readFile(configPath(), "utf-8");
-    const parsed = JSON.parse(raw);
-    if (!parsed.providers || typeof parsed.providers !== "object") {
-      parsed.providers = {};
-    }
-    return parsed;
-  } catch {
-    return { ...EMPTY };
+import { query as claudeQuery } from "@anthropic-ai/claude-agent-sdk";
+var CLAUDE_CODE_PATH = path14.join(os3.homedir(), ".local", "bin", "claude");
+var ClaudeCodeCLIRunner = class {
+  defaultModel;
+  evalModel;
+  constructor(defaultModel = "claude-sonnet-4-20250514", evalModel = "claude-opus-4-6") {
+    this.defaultModel = defaultModel;
+    this.evalModel = evalModel;
   }
-}
-async function saveConfig2(settings) {
-  await fs11.mkdir(configDir(), { recursive: true });
-  await fs11.writeFile(configPath(), JSON.stringify(settings, null, 2) + "\n", "utf-8");
-}
-function resolveProviderKey(settings, provider, envName) {
-  const envKey = envName ? process.env[envName] : void 0;
-  if (envKey) return envKey;
-  const cfg = settings.providers[provider];
-  if (!cfg || cfg.enabled === false) return void 0;
-  return cfg.apiKey;
-}
-
-// cli/commands/init.ts
-init_OllamaProvider();
-async function probeOllama() {
-  const provider = new OllamaProvider();
-  const up = await provider.probe();
-  if (!up) return { up: false, models: [] };
-  return {
-    up: true,
-    models: provider.listModels().map((m) => m.id)
-  };
-}
-async function runInit(opts) {
-  p.intro(chalk5.bold("\u2692  forge init"));
-  const existing = await loadConfig2();
-  const hasExisting = Object.keys(existing.providers ?? {}).length > 0;
-  if (hasExisting && !opts.force) {
-    const keep = await p.confirm({
-      message: `Existing config at ${configPath()}. Edit it?`,
-      initialValue: true
-    });
-    if (p.isCancel(keep) || !keep) {
-      p.cancel("No changes.");
-      return;
-    }
-  }
-  const next = {
-    ...existing,
-    providers: { ...existing.providers }
-  };
-  const anthropic = await p.confirm({
-    message: "Enable Anthropic (Claude)? Uses your local `claude` CLI auth \u2014 no key needed.",
-    initialValue: next.providers.anthropic?.enabled ?? true
-  });
-  if (p.isCancel(anthropic)) return abortAndReturn();
-  next.providers.anthropic = {
-    enabled: !!anthropic,
-    defaultModel: next.providers.anthropic?.defaultModel ?? "claude-sonnet-4-20250514"
-  };
-  const gemini = await p.confirm({
-    message: "Enable Gemini (Google)?",
-    initialValue: next.providers.gemini?.enabled ?? false
-  });
-  if (p.isCancel(gemini)) return abortAndReturn();
-  if (gemini) {
-    const key = await p.password({
-      message: "Paste GEMINI_API_KEY (enter to skip \u2014 env var still works):",
-      mask: "\u2022"
-    });
-    if (p.isCancel(key)) return abortAndReturn();
-    next.providers.gemini = {
-      enabled: true,
-      apiKey: key ? String(key).trim() : next.providers.gemini?.apiKey,
-      defaultModel: next.providers.gemini?.defaultModel ?? "gemini-2.5-flash"
-    };
-  } else {
-    next.providers.gemini = { enabled: false };
-  }
-  const openai = await p.confirm({
-    message: "Enable OpenAI (GPT)?",
-    initialValue: next.providers.openai?.enabled ?? false
-  });
-  if (p.isCancel(openai)) return abortAndReturn();
-  if (openai) {
-    const key = await p.password({
-      message: "Paste OPENAI_API_KEY (enter to skip \u2014 env var still works):",
-      mask: "\u2022"
-    });
-    if (p.isCancel(key)) return abortAndReturn();
-    next.providers.openai = {
-      enabled: true,
-      apiKey: key ? String(key).trim() : next.providers.openai?.apiKey,
-      defaultModel: next.providers.openai?.defaultModel ?? "gpt-4o"
-    };
-  } else {
-    next.providers.openai = { enabled: false };
-  }
-  const spin = p.spinner();
-  spin.start("Probing Ollama at http://localhost:11434");
-  const ollama = await probeOllama();
-  spin.stop(
-    ollama.up ? `Ollama daemon up \xB7 ${ollama.models.length} model${ollama.models.length === 1 ? "" : "s"} installed` : "No Ollama daemon (install from ollama.com if you want local models like Gemma)"
-  );
-  if (ollama.up) {
-    const pick = await p.confirm({
-      message: "Enable Ollama for local models (Gemma, Llama, Qwen, Mistral, DeepSeek)?",
-      initialValue: next.providers.ollama?.enabled ?? true
-    });
-    if (p.isCancel(pick)) return abortAndReturn();
-    let defaultModel = next.providers.ollama?.defaultModel;
-    if (pick && ollama.models.length > 0 && !defaultModel) {
-      const m = await p.select({
-        message: "Default local model to seed new agents with:",
-        options: ollama.models.map((id) => ({ value: id, label: id })),
-        initialValue: ollama.models[0]
-      });
-      if (p.isCancel(m)) return abortAndReturn();
-      defaultModel = String(m);
-    }
-    next.providers.ollama = {
-      enabled: !!pick,
-      baseUrl: next.providers.ollama?.baseUrl ?? "http://localhost:11434",
-      defaultModel
-    };
-  } else {
-    next.providers.ollama = { enabled: false };
-  }
-  const mode = await p.select({
-    message: "Default mode when `forge start` is called without -m:",
-    options: [
-      { value: "will-it-work", label: "will-it-work \u2014 force a YES/NO/MAYBE-IF verdict" },
-      { value: "idea-validation", label: "idea-validation \u2014 GO/NO-GO/PIVOT" },
-      { value: "tech-review", label: "tech-review \u2014 specialist repo audit" },
-      { value: "red-team", label: "red-team \u2014 adversarial review" },
-      { value: "vc-pitch", label: "vc-pitch \u2014 simulated partner meeting" },
-      { value: "copywrite", label: "copywrite \u2014 section-by-section drafting" },
-      { value: "custom", label: "custom \u2014 your phases" }
-    ],
-    initialValue: next.defaults?.mode ?? "will-it-work"
-  });
-  if (p.isCancel(mode)) return abortAndReturn();
-  next.defaults = { ...next.defaults, mode: String(mode) };
-  await saveConfig2(next);
-  const enabled = Object.entries(next.providers).filter(([, cfg]) => cfg?.enabled).map(([id]) => id);
-  p.note(
-    [
-      `Config saved \u2192 ${configPath()}`,
-      "",
-      `Providers enabled: ${enabled.length > 0 ? enabled.join(", ") : "(none)"}`,
-      `Default mode:      ${next.defaults.mode}`,
-      "",
-      chalk5.dim("Re-run `forge init` any time to edit."),
-      chalk5.dim("Env vars (GEMINI_API_KEY, OPENAI_API_KEY) always override the saved config.")
-    ].join("\n"),
-    "Done"
-  );
-  p.outro(chalk5.green("Ready. Try `forge start -m " + next.defaults.mode + "` to run your first deliberation."));
-}
-function abortAndReturn() {
-  p.cancel("Cancelled \u2014 nothing saved.");
-}
-function createInitCommand() {
-  return new Command9("init").description("Interactive setup: enable providers, paste API keys, pick defaults").option("-f, --force", 'Skip the "edit existing?" prompt and rewrite directly').action(async (opts) => {
+  async query(params) {
+    let content = "";
+    let sessionId;
+    let usage;
     try {
-      await runInit(opts);
-    } catch (err2) {
-      console.error(chalk5.red("forge init failed:"), err2 instanceof Error ? err2.message : err2);
-      process.exit(1);
+      const q = claudeQuery({
+        prompt: params.prompt,
+        options: {
+          systemPrompt: params.systemPrompt || void 0,
+          model: params.model || this.defaultModel,
+          permissionMode: "bypassPermissions",
+          maxTurns: 1,
+          pathToClaudeCodeExecutable: CLAUDE_CODE_PATH,
+          stderr: (data) => {
+            const text2 = typeof data === "string" ? data : String(data);
+            if (!text2.trim()) return;
+            if (text2.includes("[DEBUG]") || text2.includes("INFO")) return;
+            console.error("[claude sdk]", text2.trim());
+          }
+        }
+      });
+      for await (const message of q) {
+        if ("session_id" in message && typeof message.session_id === "string") {
+          sessionId = message.session_id;
+        }
+        if (message.type === "assistant" && "message" in message) {
+          const msg = message.message;
+          if (msg?.content && Array.isArray(msg.content)) {
+            for (const block of msg.content) {
+              const b = block;
+              if (b.type === "text" && b.text) {
+                content += b.text;
+              }
+            }
+          }
+        }
+        if (message.type === "result") {
+          const result = message;
+          if (result.usage) {
+            usage = {
+              inputTokens: result.usage.input_tokens || 0,
+              outputTokens: result.usage.output_tokens || 0,
+              costUsd: result.total_cost_usd || 0
+            };
+          }
+        }
+      }
+    } catch (error) {
+      if (content) {
+        return { success: true, content, sessionId, usage };
+      }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
     }
-  });
-}
+    return { success: true, content, sessionId, usage };
+  }
+  async evaluate(params) {
+    const queryResult = await this.query({
+      prompt: params.evalPrompt,
+      systemPrompt: "You are evaluating whether to speak in a discussion. Respond only with JSON.",
+      model: this.evalModel
+    });
+    if (!queryResult.success || !queryResult.content) {
+      return {
+        success: false,
+        urgency: "pass",
+        reason: queryResult.error || "No response",
+        responseType: ""
+      };
+    }
+    const jsonMatch = queryResult.content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { success: true, urgency: "pass", reason: "Listening", responseType: "" };
+    }
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        success: true,
+        urgency: parsed.urgency || "pass",
+        reason: parsed.reason || "",
+        responseType: parsed.responseType || ""
+      };
+    } catch {
+      return { success: true, urgency: "pass", reason: "Parse error", responseType: "" };
+    }
+  }
+};
 
-// cli/commands/login.ts
-import { Command as Command10 } from "commander";
-import * as readline from "readline";
+// cli/lib/session-launcher.ts
+init_personas();
+
+// cli/adapters/auth-bridge.ts
+import * as fs12 from "fs/promises";
+import * as path15 from "path";
+import * as os4 from "os";
+var FORGE_DIR = path15.join(os4.homedir(), ".forge");
+var AUTH_FILE = path15.join(FORGE_DIR, "auth.json");
+var ensureDir = async () => {
+  await fs12.mkdir(FORGE_DIR, { recursive: true });
+};
+var createFileAuthBridge = () => ({
+  save: async (payload) => {
+    try {
+      await ensureDir();
+      await fs12.writeFile(AUTH_FILE, JSON.stringify(payload, null, 2), {
+        encoding: "utf-8",
+        mode: 384
+      });
+      return true;
+    } catch (err2) {
+      console.error("[auth] save failed:", err2);
+      return false;
+    }
+  },
+  load: async () => {
+    try {
+      const data = await fs12.readFile(AUTH_FILE, "utf-8");
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  },
+  clear: async () => {
+    try {
+      await fs12.unlink(AUTH_FILE);
+      return true;
+    } catch {
+      return true;
+    }
+  }
+});
+var forgeDataDir = FORGE_DIR;
 
 // src/lib/core/result.ts
 import {
@@ -11265,47 +11405,424 @@ var createSessionRepository = (bridgeResolver = getElectronBridge) => {
 };
 var sessionRepo = createSessionRepository();
 
-// cli/adapters/auth-bridge.ts
-import * as fs12 from "fs/promises";
-import * as path15 from "path";
-import * as os4 from "os";
-var FORGE_DIR = path15.join(os4.homedir(), ".forge");
-var AUTH_FILE = path15.join(FORGE_DIR, "auth.json");
-var ensureDir = async () => {
-  await fs12.mkdir(FORGE_DIR, { recursive: true });
+// cli/lib/session-launcher.ts
+init_ForgeConfig();
+async function launchSession(req) {
+  const cwd = process.cwd();
+  const fsAdapter = new FileSystemAdapter(cwd);
+  const agentRunner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner() : new ClaudeCodeCLIRunner();
+  const { ProviderRegistry: ProviderRegistry2, AnthropicProvider: AnthropicProvider2, GeminiProvider: GeminiProvider2, OpenAIProvider: OpenAIProvider2, OllamaProvider: OllamaProvider2 } = await Promise.resolve().then(() => (init_providers(), providers_exports));
+  const forgeSettings = await loadConfig2();
+  const providers = new ProviderRegistry2();
+  providers.register(new AnthropicProvider2(agentRunner, true), { asDefault: true });
+  const geminiKey = resolveProviderKey(forgeSettings, "gemini", "GEMINI_API_KEY") ?? resolveProviderKey(forgeSettings, "gemini", "GOOGLE_API_KEY");
+  const gemini = new GeminiProvider2(geminiKey);
+  if (gemini.isAvailable()) providers.register(gemini);
+  const openaiKey = resolveProviderKey(forgeSettings, "openai", "OPENAI_API_KEY");
+  const openai = new OpenAIProvider2(openaiKey);
+  if (openai.isAvailable()) providers.register(openai);
+  const ollamaCfg = forgeSettings.providers.ollama;
+  if (ollamaCfg?.enabled !== false) {
+    const ollama = new OllamaProvider2({ baseUrl: ollamaCfg?.baseUrl });
+    if (await ollama.probe()) providers.register(ollama);
+  }
+  let availablePersonas = AGENT_PERSONAS;
+  let domainSkills;
+  if (req.personaSet) {
+    const personasPath = path17.join(cwd, "personas", `${req.personaSet}.json`);
+    try {
+      const content = await fs14.readFile(personasPath, "utf-8");
+      availablePersonas = JSON.parse(content);
+    } catch {
+      return {
+        success: false,
+        error: `Persona set "${req.personaSet}" not found in personas/`
+      };
+    }
+    const skillsPath = path17.join(cwd, "personas", `${req.personaSet}.skills.md`);
+    try {
+      domainSkills = await fs14.readFile(skillsPath, "utf-8");
+    } catch {
+    }
+    registerCustomPersonas(availablePersonas);
+  } else {
+    clearCustomPersonas();
+  }
+  const validAgents = req.agents.filter(
+    (id) => availablePersonas.some((a) => a.id === id)
+  );
+  if (validAgents.length === 0) {
+    return {
+      success: false,
+      error: `None of the requested agents match the active persona set.`
+    };
+  }
+  const config = {
+    id: uuid2(),
+    projectName: req.projectName,
+    goal: req.goal,
+    enabledAgents: validAgents,
+    humanParticipation: req.humanParticipation,
+    maxRounds: 10,
+    consensusThreshold: 0.6,
+    methodology: getDefaultMethodology(),
+    contextDir: path17.join(cwd, "context"),
+    outputDir: req.outputDir,
+    language: req.language,
+    mode: req.mode
+  };
+  const session = {
+    id: config.id,
+    config,
+    messages: [],
+    currentPhase: "initialization",
+    currentRound: 0,
+    decisions: [],
+    drafts: [],
+    startedAt: /* @__PURE__ */ new Date(),
+    status: "running"
+  };
+  const persistence = new SessionPersistence(fsAdapter, {
+    outputDir: req.outputDir
+  });
+  await persistence.initSession(session);
+  const { loadSkills: loadSkills2, discoverSkills: discoverSkills2 } = await Promise.resolve().then(() => (init_skills(), skills_exports));
+  const resolvedSkills = await loadSkills2({
+    cwd,
+    modeId: req.mode,
+    enabledAgents: validAgents,
+    sessionWorkdir: persistence.getSessionDir(),
+    goal: req.goal
+  });
+  const skillCatalog = await discoverSkills2({ cwd });
+  const orchestrator = new EDAOrchestrator(session, void 0, domainSkills, {
+    agentRunner,
+    fileSystem: fsAdapter,
+    autoRunPhaseMachine: !req.humanParticipation,
+    providers,
+    sessionWorkdir: persistence.getSessionDir(),
+    perAgentSkills: resolvedSkills.perAgent,
+    skillCatalog
+  });
+  orchestrator.on((event) => {
+    if (event.type === "agent_message") {
+      persistence.updateSession(orchestrator.getSession());
+    }
+  });
+  let configFlushPending = false;
+  orchestrator.on(async (event) => {
+    if (event.type !== "agent_config_change") return;
+    if (configFlushPending) return;
+    configFlushPending = true;
+    queueMicrotask(async () => {
+      configFlushPending = false;
+      try {
+        const snapshot = Object.fromEntries(orchestrator.getAllAgentConfigs());
+        await fsAdapter.writeFile(
+          path17.join(persistence.getSessionDir(), "agent-configs.json"),
+          JSON.stringify(snapshot, null, 2)
+        );
+      } catch (err2) {
+        console.error("[agent-configs] persist failed:", err2);
+      }
+    });
+  });
+  const authRepo = createSessionRepository(
+    () => ResultAsync.fromSafePromise(Promise.resolve(createFileAuthBridge()))
+  );
+  const authResult = await authRepo.restoreSession();
+  authResult.match(
+    () => void 0,
+    async () => {
+      await authRepo.createIdentity();
+    }
+  );
+  const { captureConsoleToFile: captureConsoleToFile2 } = await Promise.resolve().then(() => (init_console_capture(), console_capture_exports));
+  const captured = captureConsoleToFile2(persistence.getSessionDir());
+  const { createCliRenderer } = await import("@opentui/core");
+  const { createRoot } = await import("@opentui/react");
+  const { OpenTuiApp: OpenTuiApp2 } = await Promise.resolve().then(() => (init_App(), App_exports));
+  const renderer = await createCliRenderer({ exitOnCtrlC: true });
+  const root = createRoot(renderer);
+  const done = new Promise((resolve4) => {
+    renderer.on("destroy", () => resolve4());
+  });
+  root.render(
+    React4.createElement(OpenTuiApp2, {
+      orchestrator,
+      persistence,
+      session,
+      onExit: () => {
+        renderer.destroy();
+      }
+    })
+  );
+  await done;
+  captured.restore();
+  await persistence.saveFull();
+  clearCustomPersonas();
+  console.log("");
+  console.log(chalk7.green(`Session saved to ${persistence.getSessionDir()}`));
+  console.log(chalk7.dim(`  debug log: ${captured.logPath}`));
+  return { success: true, sessionDir: persistence.getSessionDir() };
+}
+
+// cli/commands/menu.ts
+init_personas();
+init_ForgeConfig();
+var DEFAULT_AGENTS_FOR_MODE = {
+  "vc-pitch": ["vc-partner", "vc-associate", "lp-skeptic", "founder-voice"],
+  "tech-review": ["architect", "perf-engineer", "security-reviewer", "test-engineer"],
+  "red-team": ["attack-planner", "social-engineer", "blue-team-lead"]
 };
-var createFileAuthBridge = () => ({
-  save: async (payload) => {
-    try {
-      await ensureDir();
-      await fs12.writeFile(AUTH_FILE, JSON.stringify(payload, null, 2), {
-        encoding: "utf-8",
-        mode: 384
+var GENERIC = ["skeptic", "pragmatist", "analyst", "advocate", "contrarian"];
+function defaultAgents(mode) {
+  return DEFAULT_AGENTS_FOR_MODE[mode] ?? GENERIC;
+}
+async function listSessions2(outputDir) {
+  try {
+    const entries = await fs15.readdir(outputDir, { withFileTypes: true });
+    const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+    const metas = [];
+    for (const name of dirs) {
+      const dir = path18.join(outputDir, name);
+      const metaPath = path18.join(dir, "session.json");
+      try {
+        const raw = await fs15.readFile(metaPath, "utf-8");
+        const parsed = JSON.parse(raw);
+        metas.push({
+          dir,
+          name,
+          project: parsed.projectName ?? name,
+          goal: parsed.goal,
+          startedAt: parsed.startedAt,
+          messageCount: parsed.messageCount
+        });
+      } catch {
+        metas.push({ dir, name, project: name });
+      }
+    }
+    metas.sort((a, b) => b.name.localeCompare(a.name));
+    return metas;
+  } catch {
+    return [];
+  }
+}
+function formatSessionChoice(s) {
+  const bits = [s.project];
+  if (s.goal) bits.push(chalk8.dim(`\xB7 ${s.goal.slice(0, 60)}`));
+  if (typeof s.messageCount === "number") bits.push(chalk8.dim(`\xB7 ${s.messageCount} msgs`));
+  return bits.join(" ");
+}
+async function newSessionWizard(defaults) {
+  const modes = getAllModes();
+  const modeChoice = await p2.select({
+    message: "Pick a deliberation mode:",
+    options: modes.map((m) => ({
+      value: m.id,
+      label: `${m.name}`,
+      hint: m.description
+    })),
+    initialValue: defaults.defaultMode ?? "will-it-work"
+  });
+  if (p2.isCancel(modeChoice)) return null;
+  const modeId = String(modeChoice);
+  const mode = getModeById(modeId);
+  const projectName = await p2.text({
+    message: "Project name:",
+    placeholder: "e.g. Q2 Migration, CivicVote pilot, Checkout v2",
+    validate: (v) => v && v.trim().length > 0 ? void 0 : "Required"
+  });
+  if (p2.isCancel(projectName)) return null;
+  const goalHint = mode?.id === "will-it-work" ? "The yes/no/maybe-if question to decide" : mode?.id === "vc-pitch" ? "The pitch: company, stage, traction, ask" : mode?.id === "tech-review" ? "The repo + what to focus on (arch / perf / security / tests)" : mode?.id === "red-team" ? "The target and the adversary set you want modeled" : "What you want the team to decide or produce";
+  const goal = await p2.text({
+    message: "Goal:",
+    placeholder: goalHint,
+    validate: (v) => v && v.trim().length > 4 ? void 0 : "Give at least a sentence"
+  });
+  if (p2.isCancel(goal)) return null;
+  const recommended = defaultAgents(modeId);
+  const agentChoice = await p2.multiselect({
+    message: "Which agents join the room? (space to toggle)",
+    options: AGENT_PERSONAS.map((a) => ({
+      value: a.id,
+      label: `${a.name}`,
+      hint: a.role
+    })),
+    initialValues: recommended.filter((id) => AGENT_PERSONAS.some((a) => a.id === id)),
+    required: true
+  });
+  if (p2.isCancel(agentChoice)) return null;
+  const language = await p2.select({
+    message: "Language:",
+    options: [
+      { value: "english", label: "English" },
+      { value: "hebrew", label: "Hebrew (\u05E2\u05D1\u05E8\u05D9\u05EA)" },
+      { value: "mixed", label: "Mixed (primarily Hebrew with English terms)" }
+    ],
+    initialValue: "english"
+  });
+  if (p2.isCancel(language)) return null;
+  const human = await p2.confirm({
+    message: "Human participation? (you can interject between turns)",
+    initialValue: false
+  });
+  if (p2.isCancel(human)) return null;
+  p2.note(
+    [
+      `${chalk8.bold("Mode:")}     ${mode?.name} (${modeId})`,
+      `${chalk8.bold("Project:")}  ${String(projectName)}`,
+      `${chalk8.bold("Goal:")}     ${String(goal).slice(0, 80)}${String(goal).length > 80 ? "\u2026" : ""}`,
+      `${chalk8.bold("Agents:")}   ${agentChoice.join(", ")}`,
+      `${chalk8.bold("Language:")} ${String(language)}`,
+      `${chalk8.bold("Human:")}    ${human ? "yes" : "no (autonomous)"}`
+    ].join("\n"),
+    "Ready to run"
+  );
+  const confirm3 = await p2.confirm({
+    message: "Start the deliberation?",
+    initialValue: true
+  });
+  if (p2.isCancel(confirm3) || !confirm3) return null;
+  return {
+    projectName: String(projectName).trim(),
+    goal: String(goal).trim(),
+    mode: modeId,
+    agents: agentChoice,
+    language,
+    humanParticipation: !!human,
+    outputDir: defaults.outputDir
+  };
+}
+async function viewSession(meta) {
+  const transcriptPath = path18.join(meta.dir, "transcript.md");
+  try {
+    const text2 = await fs15.readFile(transcriptPath, "utf-8");
+    console.log("");
+    console.log(chalk8.bold(`\u2500\u2500\u2500 ${meta.project} \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500`));
+    console.log(chalk8.dim(meta.dir));
+    console.log("");
+    console.log(text2);
+    console.log("");
+    await p2.text({
+      message: "Press enter to return to the menu",
+      placeholder: ""
+    });
+  } catch (err2) {
+    p2.note(`Couldn't read transcript: ${err2 instanceof Error ? err2.message : err2}`, "Error");
+  }
+}
+async function runMenu() {
+  const outputDir = "output/sessions";
+  const settings = await loadConfig2();
+  const defaultMode = settings.defaults?.mode;
+  const providersConfigured = Object.values(settings.providers ?? {}).some(
+    (p3) => p3?.enabled
+  );
+  let keepGoing = true;
+  let firstRender = true;
+  while (keepGoing) {
+    if (firstRender) {
+      const sessions2 = await listSessions2(outputDir);
+      showBanner(sessions2.length);
+      if (!providersConfigured) {
+        p2.note(
+          `No providers configured yet. Run ${chalk8.bold("Configure providers")} from the menu below
+or press Ctrl+C and run ${chalk8.bold("forge init")} directly.`,
+          "First run"
+        );
+      }
+      firstRender = false;
+    }
+    const sessions = await listSessions2(outputDir);
+    const action = await p2.select({
+      message: "What now?",
+      options: [
+        { value: "new", label: "New deliberation", hint: "wizard \u2192 configure \u2192 run" },
+        { value: "resume", label: `View past sessions`, hint: `${sessions.length} saved` },
+        { value: "configure", label: "Configure providers", hint: "API keys, default mode, Ollama" },
+        { value: "help", label: "What does forge do?", hint: "One-paragraph summary" },
+        { value: "exit", label: "Exit", hint: "" }
+      ],
+      initialValue: "new"
+    });
+    if (p2.isCancel(action) || action === "exit") {
+      keepGoing = false;
+      break;
+    }
+    if (action === "new") {
+      const req = await newSessionWizard({ outputDir, defaultMode });
+      if (!req) {
+        p2.cancel("Cancelled \xB7 no session created.");
+        continue;
+      }
+      const result = await launchSession(req);
+      if (!result.success) {
+        p2.note(result.error || "Unknown error", "Session did not start");
+      }
+      continue;
+    }
+    if (action === "resume") {
+      if (sessions.length === 0) {
+        p2.note("No saved sessions yet. Try a new deliberation first.", "Empty");
+        continue;
+      }
+      const pick = await p2.select({
+        message: "Pick a session:",
+        options: sessions.slice(0, 20).map((s) => ({
+          value: s.name,
+          label: formatSessionChoice(s)
+        }))
       });
-      return true;
-    } catch (err2) {
-      console.error("[auth] save failed:", err2);
-      return false;
+      if (p2.isCancel(pick)) continue;
+      const chosen = sessions.find((s) => s.name === pick);
+      if (chosen) await viewSession(chosen);
+      continue;
     }
-  },
-  load: async () => {
-    try {
-      const data = await fs12.readFile(AUTH_FILE, "utf-8");
-      return JSON.parse(data);
-    } catch {
-      return null;
+    if (action === "configure") {
+      const { createInitCommand: createInitCommand2 } = await Promise.resolve().then(() => (init_init(), init_exports));
+      const init = createInitCommand2();
+      await init.parseAsync(["node", "forge", "--force"]);
+      continue;
     }
-  },
-  clear: async () => {
-    try {
-      await fs12.unlink(AUTH_FILE);
-      return true;
-    } catch {
-      return true;
+    if (action === "help") {
+      p2.note(
+        [
+          "Forge is a multi-agent deliberation engine.",
+          "",
+          "You pick a mode (will-it-work, vc-pitch, tech-review, red-team, \u2026),",
+          "define a goal, and a panel of agents debate the question through a",
+          "deterministic phase machine until they produce the concrete artifact",
+          "the mode asks for \u2014 a verdict, a memo, a review report.",
+          "",
+          "Each agent can run on a different model (Claude, Gemini, OpenAI, Ollama).",
+          "You can swap models, toggle skills, pause, or force-speak any agent",
+          "live from the Agent Control panel (press `a` inside the session)."
+        ].join("\n"),
+        "About Forge"
+      );
+      continue;
     }
   }
-});
-var forgeDataDir = FORGE_DIR;
+  p2.outro(chalk8.green("See you next deliberation."));
+}
+function createMenuCommand() {
+  return async () => {
+    try {
+      await runMenu();
+    } catch (err2) {
+      if (err2 instanceof Error && /force closed/i.test(err2.message)) {
+        return;
+      }
+      console.error(chalk8.red("Menu error:"), err2 instanceof Error ? err2.message : err2);
+      process.exitCode = 1;
+    }
+  };
+}
+
+// cli/commands/login.ts
+import { Command as Command10 } from "commander";
+import * as readline from "readline";
 
 // src/lib/render/progress.ts
 var attestationDots = (count, max = 5) => {
@@ -11372,9 +11889,9 @@ var createLoginCommand = () => {
     if (wantAttestation && wantAttestation !== "skip" && wantAttestation !== "n") {
       const platforms = ["mastodon", "github", "bluesky"];
       let platform = null;
-      for (const p2 of platforms) {
-        if (wantAttestation.toLowerCase().includes(p2)) {
-          platform = p2;
+      for (const p3 of platforms) {
+        if (wantAttestation.toLowerCase().includes(p3)) {
+          platform = p3;
           break;
         }
       }
@@ -11516,7 +12033,7 @@ var fetchAll = () => ResultAsync.fromPromise(
 });
 
 // cli/adapters/services.ts
-import * as path19 from "path";
+import * as path22 from "path";
 
 // src/lib/connections/errors.ts
 var bridgeUnavailable3 = makeError("BridgeUnavailable");
@@ -11547,7 +12064,7 @@ var started = false;
 async function ensureServices() {
   if (started) return;
   started = true;
-  const p2pDataDir = path19.join(forgeDataDir, "p2p");
+  const p2pDataDir = path22.join(forgeDataDir, "p2p");
   try {
     const { peerId } = await startP2P(p2pDataDir);
     console.log(`\x1B[2m[p2p] peer: ${peerId.slice(0, 12)}\u2026\x1B[0m`);
@@ -11588,13 +12105,13 @@ var repo2 = createSessionRepository(
 );
 var isContribution = (payload) => {
   if (!payload || typeof payload !== "object") return false;
-  const p2 = payload;
-  return typeof p2.kind === "string" && typeof p2.v === "number" && typeof p2.title === "string" && ["persona", "insight", "template", "prompt"].includes(p2.kind) && typeof p2.content === "object";
+  const p3 = payload;
+  return typeof p3.kind === "string" && typeof p3.v === "number" && typeof p3.title === "string" && ["persona", "insight", "template", "prompt"].includes(p3.kind) && typeof p3.content === "object";
 };
 var isReaction = (payload) => {
   if (!payload || typeof payload !== "object") return false;
-  const p2 = payload;
-  return p2.kind === "reaction" && typeof p2.targetId === "string";
+  const p3 = payload;
+  return p3.kind === "reaction" && typeof p3.targetId === "string";
 };
 var shortenDid = (did) => did.length > 24 ? `${did.slice(0, 12)}\u2026${did.slice(-8)}` : did;
 var ask2 = (question) => {
@@ -11765,218 +12282,23 @@ var RED2 = forgeTheme.status.error;
 var MAGENTA = forgeTheme.text.emphasis;
 var program = new Command12();
 program.name("forge").description("Multi-agent deliberation engine - reach consensus through structured debate").version("1.0.0");
-program.command("start").description("Start a new debate session").option("-b, --brief <name>", "Brief name to load (from briefs/ directory)").option("-p, --project <name>", "Project name", "New Project").option("-g, --goal <goal>", "Project goal").option("-a, --agents <ids>", "Comma-separated agent IDs (from default or custom personas)").option("-m, --mode <mode>", "Deliberation mode: copywrite, idea-validation, ideation, will-it-work, site-survey, business-plan, gtm-strategy, custom", "copywrite").option("--personas <name>", "Use custom persona set (from personas/ directory)").option("-l, --language <lang>", "Language: hebrew, english, mixed", "hebrew").option("--human", "Enable human participation", true).option("--no-human", "Disable human participation").option("-o, --output <dir>", "Output directory for sessions", "output/sessions").action(async (options) => {
-  const cwd = process.cwd();
-  const fsAdapter = new FileSystemAdapter(cwd);
-  const agentRunner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner() : new ClaudeCodeCLIRunner();
-  const { ProviderRegistry: ProviderRegistry2, AnthropicProvider: AnthropicProvider2, GeminiProvider: GeminiProvider2, OpenAIProvider: OpenAIProvider2, OllamaProvider: OllamaProvider2 } = await Promise.resolve().then(() => (init_providers(), providers_exports));
-  const forgeSettings = await loadConfig2();
-  const providers = new ProviderRegistry2();
-  providers.register(new AnthropicProvider2(agentRunner, true), { asDefault: true });
-  const geminiKey = resolveProviderKey(forgeSettings, "gemini", "GEMINI_API_KEY") ?? resolveProviderKey(forgeSettings, "gemini", "GOOGLE_API_KEY");
-  const gemini = new GeminiProvider2(geminiKey);
-  if (gemini.isAvailable()) providers.register(gemini);
-  const openaiKey = resolveProviderKey(forgeSettings, "openai", "OPENAI_API_KEY");
-  const openai = new OpenAIProvider2(openaiKey);
-  if (openai.isAvailable()) providers.register(openai);
-  const ollamaCfg = forgeSettings.providers.ollama;
-  if (ollamaCfg?.enabled !== false) {
-    const ollama = new OllamaProvider2({ baseUrl: ollamaCfg?.baseUrl });
-    if (await ollama.probe()) providers.register(ollama);
-  }
-  let briefContent = "";
-  let projectName = options.project;
-  let goal = options.goal || "";
-  if (options.brief) {
-    const brief = await fsAdapter.readBrief(options.brief);
-    if (brief) {
-      briefContent = brief;
-      const titleMatch = brief.match(/^#\s+(.+)$/m);
-      if (titleMatch && projectName === "New Project") {
-        projectName = titleMatch[1];
-      }
-      if (!goal) {
-        goal = `Create website copy for ${projectName}`;
-      }
-    } else {
-      console.error(`Brief "${options.brief}" not found in briefs/ directory`);
-      process.exit(1);
-    }
-  }
-  if (!goal) {
-    goal = `Debate and reach consensus on: ${projectName}`;
-  }
-  let availablePersonas = AGENT_PERSONAS;
-  let domainSkills;
-  let personaSetName = options.personas || null;
-  if (personaSetName && availablePersonas === AGENT_PERSONAS) {
-    const personasPath = path21.join(cwd, "personas", `${personaSetName}.json`);
-    try {
-      const content = await fs16.readFile(personasPath, "utf-8");
-      availablePersonas = JSON.parse(content);
-    } catch {
-      console.error(`Persona set "${personaSetName}" not found in personas/ directory`);
-      process.exit(1);
-    }
-  }
-  if (personaSetName) {
-    const skillsPath = path21.join(cwd, "personas", `${personaSetName}.skills.md`);
-    try {
-      domainSkills = await fs16.readFile(skillsPath, "utf-8");
-      console.log(`\u{1F4DA} Loaded domain expertise: ${personaSetName}.skills.md`);
-    } catch {
-    }
-  }
-  let validAgents = [];
-  if (options.agents) {
-    const enabledAgents = options.agents.split(",").map((id) => id.trim());
-    validAgents = enabledAgents.filter(
-      (id) => availablePersonas.some((a) => a.id === id)
-    );
-    if (validAgents.length === 0) {
-      console.error("No valid agents specified. Available agents:");
-      availablePersonas.forEach((a) => console.error(`  - ${a.id}: ${a.name} (${a.role})`));
-      process.exit(1);
-    }
-  } else {
-    validAgents = availablePersonas.map((a) => a.id);
-  }
-  if (personaSetName) {
-    registerCustomPersonas(availablePersonas);
-  } else {
-    clearCustomPersonas();
-  }
-  const config = {
-    id: uuid2(),
-    projectName,
-    goal,
-    enabledAgents: validAgents,
-    humanParticipation: options.human,
-    maxRounds: 10,
-    consensusThreshold: 0.6,
-    methodology: getDefaultMethodology(),
-    contextDir: path21.join(cwd, "context"),
-    outputDir: options.output,
-    language: options.language,
-    mode: options.mode
-  };
-  const session = {
-    id: config.id,
-    config,
-    messages: [],
-    currentPhase: "initialization",
-    currentRound: 0,
-    decisions: [],
-    drafts: [],
-    startedAt: /* @__PURE__ */ new Date(),
-    status: "running"
-  };
-  const persistence = new SessionPersistence(fsAdapter, {
-    outputDir: options.output
+program.command("start", { hidden: true }).description("[power-user] Launch a session directly from flags (regular use: run `forge` for the menu)").option("-b, --brief <name>", "Brief name to load (from briefs/ directory)").option("-p, --project <name>", "Project name", "New Project").option("-g, --goal <goal>", "Project goal").option("-a, --agents <ids>", "Comma-separated agent IDs (from default or custom personas)").option("-m, --mode <mode>", "Deliberation mode (see `forge --help`)", "will-it-work").option("--personas <name>", "Use custom persona set (from personas/ directory)").option("-l, --language <lang>", "Language: hebrew, english, mixed", "english").option("--human", "Enable human participation", true).option("--no-human", "Disable human participation").option("-o, --output <dir>", "Output directory for sessions", "output/sessions").action(async (options) => {
+  const agents = options.agents ? String(options.agents).split(",").map((s) => s.trim()).filter(Boolean) : ["skeptic", "pragmatist", "analyst"];
+  const result = await launchSession({
+    projectName: options.project ?? "New Project",
+    goal: options.goal ?? `Debate and reach consensus on: ${options.project ?? "New Project"}`,
+    mode: options.mode ?? "will-it-work",
+    agents,
+    language: options.language ?? "english",
+    humanParticipation: options.human !== false,
+    outputDir: options.output ?? "output/sessions",
+    personaSet: options.personas ?? null,
+    brief: options.brief
   });
-  await persistence.initSession(session);
-  const { loadSkills: loadSkills2, discoverSkills: discoverSkills2 } = await Promise.resolve().then(() => (init_skills(), skills_exports));
-  const resolvedSkills = await loadSkills2({
-    cwd,
-    modeId: options.mode || "copywrite",
-    enabledAgents: validAgents,
-    sessionWorkdir: persistence.getSessionDir(),
-    goal
-  });
-  for (const [agentId, used] of resolvedSkills.sources) {
-    if (used.length > 0) {
-      console.log(`${GREEN2}  \u2714 Skills for ${agentId}: ${used.join(", ")}${RESET3}`);
-    }
+  if (!result.success) {
+    console.error(`${RED2}${result.error ?? "Session did not start"}${RESET3}`);
+    process.exit(1);
   }
-  const skillCatalog = await discoverSkills2({ cwd });
-  if (skillCatalog.entries.length > 0) {
-    console.log(
-      `${DIM2}  \xB7 skill catalog: ${skillCatalog.entries.length} discovered \u2014 press 'k' in the agent panel to browse${RESET3}`
-    );
-  }
-  const orchestrator = new EDAOrchestrator(
-    session,
-    void 0,
-    // context
-    domainSkills,
-    // domain-specific skills (or undefined for default copywriting)
-    {
-      agentRunner,
-      fileSystem: fsAdapter,
-      autoRunPhaseMachine: !options.human,
-      providers,
-      sessionWorkdir: persistence.getSessionDir(),
-      perAgentSkills: resolvedSkills.perAgent,
-      skillCatalog
-    }
-  );
-  orchestrator.on((event) => {
-    if (event.type === "agent_message") {
-      persistence.updateSession(orchestrator.getSession());
-    }
-  });
-  let configFlushPending = false;
-  orchestrator.on(async (event) => {
-    if (event.type !== "agent_config_change") return;
-    if (configFlushPending) return;
-    configFlushPending = true;
-    queueMicrotask(async () => {
-      configFlushPending = false;
-      try {
-        const snapshot = Object.fromEntries(orchestrator.getAllAgentConfigs());
-        await fsAdapter.writeFile(
-          path21.join(persistence.getSessionDir(), "agent-configs.json"),
-          JSON.stringify(snapshot, null, 2)
-        );
-      } catch (err2) {
-        console.error("[agent-configs] persist failed:", err2);
-      }
-    });
-  });
-  const authRepo = createSessionRepository(
-    () => ResultAsync.fromSafePromise(Promise.resolve(createFileAuthBridge()))
-  );
-  const authResult = await authRepo.restoreSession();
-  const authState = authResult.match((s) => s, () => null);
-  if (!authState) {
-    console.log(`${CYAN2}  Creating Forge identity (did:key)\u2026${RESET3}`);
-    const createResult = await authRepo.createIdentity();
-    createResult.match(
-      (s) => console.log(`${GREEN2}  \u2714 Identity: ${s.did.slice(0, 24)}\u2026${RESET3}`),
-      (err2) => console.log(`${YELLOW2}  \u26A0 Identity creation failed: ${err2.message}${RESET3}`)
-    );
-  } else {
-    console.log(`${GREEN2}  \u2714 Identity: ${authState.did.slice(0, 24)}\u2026${RESET3}`);
-  }
-  const { captureConsoleToFile: captureConsoleToFile2 } = await Promise.resolve().then(() => (init_console_capture(), console_capture_exports));
-  const captured = captureConsoleToFile2(persistence.getSessionDir());
-  const { createCliRenderer } = await import("@opentui/core");
-  const { createRoot } = await import("@opentui/react");
-  const { OpenTuiApp: OpenTuiApp2 } = await Promise.resolve().then(() => (init_App(), App_exports));
-  const renderer = await createCliRenderer({
-    exitOnCtrlC: true
-  });
-  const root = createRoot(renderer);
-  const done = new Promise((resolve4) => {
-    renderer.on("destroy", () => resolve4());
-  });
-  root.render(
-    React4.createElement(OpenTuiApp2, {
-      orchestrator,
-      persistence,
-      session,
-      onExit: () => {
-        renderer.destroy();
-      }
-    })
-  );
-  await done;
-  captured.restore();
-  await persistence.saveFull();
-  clearCustomPersonas();
-  console.log(`
-\u2705 Session saved to ${persistence.getSessionDir()}`);
-  console.log(`   Debug log: ${captured.logPath}`);
 });
 program.command("briefs").description("List available briefs").action(async () => {
   const cwd = process.cwd();
@@ -12017,27 +12339,7 @@ program.addCommand(createSkillsCommand());
 program.addCommand(createInitCommand());
 program.addCommand(createLoginCommand());
 program.addCommand(createCommunityCommand());
-program.action(async () => {
-  const banner = [
-    "",
-    "  \u2692  FORGE \u2014 multi-agent deliberation engine",
-    "",
-    "  Start a deliberation:",
-    '    forge start -m <mode> -g "<goal>"',
-    "",
-    "  Available modes:",
-    "    copywrite \xB7 idea-validation \xB7 ideation \xB7 will-it-work",
-    "    site-survey \xB7 business-plan \xB7 gtm-strategy",
-    "    vc-pitch \xB7 tech-review \xB7 red-team \xB7 custom",
-    "",
-    "  Example:",
-    '    forge start -m will-it-work -g "Ship Q2 migration?"',
-    "",
-    "  Full help:  forge --help",
-    ""
-  ];
-  console.log(banner.join("\n"));
-});
+program.action(createMenuCommand());
 var shutdown = async () => {
   await shutdownServices();
   process.exit(0);
