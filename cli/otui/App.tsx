@@ -125,6 +125,16 @@ function cleanMessageBody(raw: string): string {
     .replace(/`([^`\n]+?)`/g, ' $1 ')
     // Bullet/list markers at line start
     .replace(/(^|\n)[-*]\s+/g, '$1')
+    // Numbered list markers at line start ("1. foo" → "foo")
+    .replace(/(^|\n)\s{0,3}\d+\.\s+/g, '$1')
+    // Blockquote markers
+    .replace(/(^|\n)\s{0,3}>\s?/g, '$1')
+    // Strikethrough ~~text~~ → text (space-padded)
+    .replace(/~~([\s\S]+?)~~/g, ' $1 ')
+    // Markdown links [text](url) → text  (drop the URL target)
+    .replace(/\[([^\]\n]+)\]\([^)\n]*\)/g, ' $1 ')
+    // HTML tags — keep content, drop the tag
+    .replace(/<\/?[a-zA-Z][^>]*>/g, ' ')
     // Strip the noisy TUI emojis agents inherit from system-prompt examples
     .replace(/[🎙️📢📍🎯✍️🔎🧭🔍💡⚠️📋📊🔥⚒]/gu, '')
     // Non-standard whitespace that the \s class sometimes misses on
