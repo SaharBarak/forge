@@ -397,9 +397,10 @@ kbd {
    Variance 8: fractional grid 1fr 3fr, not 1fr 1fr 1fr.
    ══════════════════════════════════════════════════════════════════════ */
 .section {
-  /* Generous vertical breathing room · the page reads as a dossier,
-     not a feature dump. Previous 110px felt cramped between sections. */
-  padding: 160px 0;
+  /* 96px keeps the editorial rhythm without creating cavernous
+     160+160 = 320px gaps between consecutive sections (which read as
+     empty dark bands on scroll). */
+  padding: 96px 0;
   position: relative;
 }
 .section-grid {
