@@ -1101,10 +1101,10 @@ kbd {
       Forge
     </a>
     <div class="nav-links hide-mobile">
+      <a href="#debate">Debate</a>
       <a href="#casestudy">Case study</a>
       <a href="#modes">Modes</a>
       <a href="#operator">Operator</a>
-      <a href="#method">Method</a>
       <a href="#install">Install</a>
     </div>
     <a href="https://github.com/SaharBarak/forge" class="nav-cta">GitHub &nearr;</a>
@@ -1131,20 +1131,22 @@ kbd {
       </h1>
       <p class="hero-sub rise" style="--i:2">
         Three hours re-prompting a single model ends with a longer document, not a closer verdict.
-        Forge runs <strong>five reasoning archetypes</strong> through a deterministic phase machine ·
-        evidence, debate, forced closure · so deliberation <strong>converges</strong> instead of sprawling.
+        Forge puts agents from <strong>six different providers</strong> — Claude, Gemini, OpenAI,
+        OpenRouter, Perplexity, Ollama — into a deterministic phase machine, with debate roles
+        (skeptic / pragmatist / analyst / advocate / contrarian) <strong>rotating between them</strong>
+        each phase.
       </p>
     </div>
     <aside class="hero-aside rise" style="--i:3">
       <blockquote class="hero-quote">
-        Skeptic wants a citation. Pragmatist wants an exit.
-        Contrarian refuses the framing. <em>The verdict is the product.</em>
+        Claude starts as the Skeptic. Phase two, Gemini takes the seat.
+        Phase three, GPT. <em>Every perspective, a different model.</em>
       </blockquote>
       <div class="hero-meta">
+        <span><i></i>6 providers</span>
         <span><i></i>11 modes</span>
-        <span><i></i>5 archetypes</span>
-        <span><i></i>Claude / Gemini / OpenAI</span>
-        <span><i></i>Local &amp; forkable</span>
+        <span><i></i>28 personas</span>
+        <span><i></i>MCP server</span>
       </div>
     </aside>
     <div class="hero-ctas rise" style="--i:4">
@@ -1152,8 +1154,62 @@ kbd {
         <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .2a8 8 0 00-2.53 15.59c.4.08.55-.17.55-.38v-1.33c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.81.06 1.23.83 1.23.83.72 1.23 1.88.88 2.34.67.07-.52.28-.88.5-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.81a7.63 7.63 0 014 0C11.95 3.83 12.62 4 12.62 4c.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49v2.21c0 .21.15.47.55.38A8 8 0 008 .2z"/></svg>
         Star on GitHub
       </a>
-      <a href="#casestudy" class="btn btn-ghost">Read the case study &rarr;</a>
-      <span class="hero-tag">Nine decisions. One product. One engine.</span>
+      <a href="#debate" class="btn btn-ghost">Watch the debate &rarr;</a>
+      <span class="hero-tag">Cross-provider · rotating roles · one verdict.</span>
+    </div>
+  </div>
+</section>
+
+<div class="rule wide"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     §02 · DEBATE DEMO · the signature feature, up front
+     ══════════════════════════════════════════════════════════════════════ -->
+<section id="debate" class="section frame">
+  <div class="section-grid">
+    <div class="section-head">
+      <span class="section-num">§ 02</span>
+      <span class="section-kicker">forge debate</span>
+      <h2 class="section-title">
+        Cross-provider.<br>
+        <em>Rotating roles.</em>
+      </h2>
+    </div>
+
+    <div class="section-body">
+      <p class="prose" style="margin-bottom: 28px;">
+        One command. Pick 2–5 providers with configured keys. Each becomes a participant named after
+        the model it's running. The five debate roles (skeptic · pragmatist · analyst · advocate ·
+        contrarian) rotate between them at every phase — so the <em>same question</em> gets interrogated
+        from five perspectives, each one coming from a different model every round.
+      </p>
+
+      <figure class="debate-figure">
+        <img src="demo/debate.gif"
+             alt="forge debate · cross-provider agents with rotating roles"
+             loading="lazy"
+             style="display:block; width:100%; border-radius:10px; border:1px solid var(--line); box-shadow: 0 30px 60px -30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.02);">
+      </figure>
+
+      <pre class="prose-code" style="margin-top: 22px; padding: 14px 18px; background: var(--ink-2); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; line-height: 1.55; color: var(--fg);"><code>forge debate "Should the municipality run the budget vote on-chain or on paper ballots?"</code></pre>
+
+      <div class="debate-facts" style="margin-top: 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+        <div class="debate-fact">
+          <span class="num">01</span>
+          <h4>Agents = providers</h4>
+          <p>Claude · Sonnet 4.5, Gemini · 2.5 Pro, GPT · 4o, DeepSeek V3, Ollama · Gemma 3 — each slot is a model, not a persona.</p>
+        </div>
+        <div class="debate-fact">
+          <span class="num">02</span>
+          <h4>Roles rotate per phase</h4>
+          <p>At each phase transition the RoleRotator shifts every role by one slot. Claude plays Skeptic in phase 1, Pragmatist in phase 2, Analyst in phase 3.</p>
+        </div>
+        <div class="debate-fact">
+          <span class="num">03</span>
+          <h4>Fresh directive on change</h4>
+          <p>When an agent's role flips, a <code>systemSuffix</code> is injected with the new stance. The next response adopts the new perspective fully, no bleed-through.</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -1166,7 +1222,7 @@ kbd {
 <section id="casestudy" class="section frame">
   <div class="section-grid">
     <div class="section-head">
-      <span class="section-num">§ 02</span>
+      <span class="section-num">§ 03</span>
       <span class="section-kicker">Case study</span>
       <h2 class="section-title">
         One product.<br>
@@ -1258,7 +1314,7 @@ kbd {
 <section id="modes" class="section frame">
   <div class="section-grid">
     <div class="section-head">
-      <span class="section-num">§ 03</span>
+      <span class="section-num">§ 04</span>
       <span class="section-kicker">See it run</span>
       <h2 class="section-title">
         Real terminal sessions. <em>Pick a mode.</em>
@@ -1348,7 +1404,7 @@ kbd {
 <section id="operator" class="section frame">
   <div class="section-grid">
     <div class="section-head">
-      <span class="section-num">§ 04</span>
+      <span class="section-num">§ 05</span>
       <span class="section-kicker">Operator control</span>
       <h2 class="section-title">
         Every agent,<br><em>your hand on the dial.</em>
@@ -1357,9 +1413,18 @@ kbd {
 
     <div class="section-body">
       <p class="prose">
-        Press <kbd>a</kbd> in any running session. Swap each agent's model · Claude, Gemini, OpenAI ·
-        cycle providers, pause a loud voice, or force a specific perspective to speak next. Changes
-        apply to the next turn without restarting the session.
+        Press <kbd>a</kbd> in any running session. Swap each agent's model — Claude, Gemini, OpenAI,
+        OpenRouter, Perplexity, Ollama — cycle providers, pause a loud voice, or force a specific
+        perspective to speak next. Changes apply to the next turn without restarting the session.
+      </p>
+
+      <p class="prose" style="margin-top: 18px;">
+        Beyond the live panel, every flow has a CLI entry point:
+        <code>forge auto "<em>&lt;request&gt;</em>"</code> routes natural-language to the right mode;
+        <code>forge pipeline "<em>&lt;spec&gt;</em>"</code> chains modes with each phase's consensus
+        feeding the next; <code>forge parallel</code> splits into N sub-deliberations; <code>forge
+        compress</code> distills transcripts into handoff briefs; <code>forge mcp</code> runs
+        Forge as an MCP server for Cursor or Claude Code.
       </p>
 
       <div class="operator">
@@ -1422,7 +1487,7 @@ kbd {
 <section id="method" class="section frame">
   <div class="section-grid">
     <div class="section-head">
-      <span class="section-num">§ 05</span>
+      <span class="section-num">§ 06</span>
       <span class="section-kicker">Method</span>
       <h2 class="section-title">
         Five roles.<br><em>Not personalities.</em>
@@ -1476,7 +1541,7 @@ kbd {
 <section id="install" class="section frame">
   <div class="section-grid">
     <div class="section-head">
-      <span class="section-num">§ 06</span>
+      <span class="section-num">§ 07</span>
       <span class="section-kicker">Install</span>
       <h2 class="section-title">
         Clone.<br>Link.<br><em>Ship a decision.</em>

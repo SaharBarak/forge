@@ -11,35 +11,56 @@
 
 ### *The Digital Renaissance of Ideas*
 
-**You don't need a smarter AI. You need five that disagree.**
+**You don't need a smarter AI. You need five of them disagreeing — across six providers.**
 
-Three hours re-prompting one model gets you a longer draft, not a decision. Forge runs five reasoning archetypes through a deterministic phase machine · `discovery → research → synthesis → drafting → verdict` · until they actually converge on something you can ship.
+Three hours re-prompting one model gets you a longer draft, not a decision. Forge puts multiple agents — each running on a **different provider** (Claude · Gemini · OpenAI · OpenRouter · Perplexity · Ollama) — into a deterministic phase machine. Debate roles (skeptic / pragmatist / analyst / advocate / contrarian) rotate between the agents each phase, so every perspective comes from a different model every round.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-a78bfa.svg?style=flat-square)](#license)
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-3178c6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/tests-898%20passing-4ade80.svg?style=flat-square)](#build--test)
+[![Tests](https://img.shields.io/badge/tests-924%20passing-4ade80.svg?style=flat-square)](#build--test)
 [![CLI](https://img.shields.io/badge/CLI-first-fbbf24.svg?style=flat-square&logo=gnubash&logoColor=white)](#install)
-[![Powered by Claude](https://img.shields.io/badge/powered%20by-Claude%20Code-d97757.svg?style=flat-square)](https://github.com/anthropics/claude-code)
+[![Providers: 6](https://img.shields.io/badge/providers-6-e879f9.svg?style=flat-square)](#providers)
+[![MCP](https://img.shields.io/badge/MCP-server-00b894.svg?style=flat-square)](#mcp-server)
 
 [**Landing page**](https://saharbarak.github.io/forge/) ·
+[**Debate**](#signature-demo-forge-debate) ·
 [**Modes**](#the-eleven-modes) ·
 [**Agent Control**](#agent-control) ·
+[**Pipelines**](#pipelines-and-parallel-runs) ·
 [**Skills**](#skills-system) ·
-[**Install**](#install) ·
-[**Architecture**](#architecture) ·
-[**FAQ**](#scope--non-goals)
+[**MCP**](#mcp-server) ·
+[**Install**](#install)
 
 <br>
 
-![Forge CLI](docs/demo/quick-start.gif)
+![forge debate · cross-provider agents with rotating roles](docs/demo/debate.gif)
+
+<br>
+
+`forge debate "<question>"` · each agent is named by its provider+model, and the five debate roles rotate between them each phase. Watch Claude start as the Skeptic in phase 1, hand the role to Gemini in phase 2, then GPT takes it in phase 3 — every perspective comes from a different model every round.
 
 </div>
 
 ---
 
-Forge ships eleven deliberation modes · copywriting, idea validation, feasibility, ideation, business planning, go-to-market, site surveys, VC pitch meetings, technical repo review, red-team adversarial review, plus fully custom. Every agent can run on a different model · **Claude, Gemini, and OpenAI** are all live · and you can swap models or load project-specific skills live from the TUI without restarting the session. CLI-first, open source, no API key lock-in.
+Forge ships **eleven deliberation modes**, **six pluggable providers** (Anthropic · Gemini · OpenAI · OpenRouter · Perplexity · Ollama), **28 personas**, a deterministic phase state machine, and an **MCP server** so Cursor or Claude Code can drive it. CLI-first, open source, no API key lock-in.
 
 ---
+
+## Signature demo · `forge debate`
+
+The GIF above is literally this command: the fastest way to see Forge do its thing.
+
+```bash
+forge debate "Should the municipality run the budget vote on-chain or on paper ballots?"
+```
+
+- Pick 2–5 providers from the ones you've configured. Each provider+model becomes one participant, named after the model (`Claude · Sonnet 4.5`, `Gemini · 2.5 Pro`, …).
+- The session runs the `will-it-work` phase machine (4 phases → forced verdict).
+- At every phase transition, the **RoleRotator** shifts the debate roles (skeptic · pragmatist · analyst · advocate · contrarian) by one slot and announces the change on the bus: *"Claude · Sonnet 4.5 is now the Pragmatist. (was Skeptic)"*
+- Each agent receives a fresh stance directive when its role changes, so the next response fully adopts the new perspective.
+
+If you only have one provider configured, Forge falls back to putting multiple **models** from that provider in the ring — the role rotation still produces five genuinely different perspectives.
 
 ## What it does
 
@@ -164,12 +185,74 @@ Live operator surface over the deliberation. Press **`a`** in the running TUI to
 | `k` | Open the Skill Picker (see [Skills System](#skills-system)) |
 | `esc / a` | Close back to the deliberation view |
 
-Provider support today:
-- **Anthropic** · Sonnet 4 / Opus 4.7 / Opus 4.6 / Haiku 4.5. Always available (routes through the existing Claude Code auth).
-- **Gemini** · 2.5 Flash / 2.5 Pro / 2.0 Flash. Activates when `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is set.
-- **OpenAI** · GPT-4o / GPT-4o mini / o1 mini / GPT-4 Turbo. Activates when `OPENAI_API_KEY` is set.
-
 Config mutations emit `agent_config_change`; listeners resolve the agent's live config on every query, so changes apply to the very next response. Full contract in [`specs/features/AGENT_CONTROL.md`](specs/features/AGENT_CONTROL.md) and [`specs/architecture/PROVIDERS.md`](specs/architecture/PROVIDERS.md).
+
+## Providers
+
+Six providers ship. Each activates on its own credential — set the env var or run `forge init` to paste keys into `~/.config/forge/config.json`. Env vars always win over saved config.
+
+| Provider | Activation | Models |
+|---|---|---|
+| **Anthropic** · Claude | always (inherits `claude` CLI auth — no key needed) | Sonnet 4 · Opus 4.7 · Opus 4.6 · Haiku 4.5 |
+| **Google** · Gemini | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | 2.5 Flash · 2.5 Pro · 2.0 Flash |
+| **OpenAI** · GPT | `OPENAI_API_KEY` | GPT-4o · GPT-4o mini · o1 mini · GPT-4 Turbo |
+| **OpenRouter** · 100+ models via one API | `OPENROUTER_API_KEY` | Claude · GPT · Gemini · DeepSeek · Grok · Llama · Mistral · Qwen |
+| **Perplexity** · live web-search | `PERPLEXITY_API_KEY` | Sonar · Sonar Pro · Sonar Reasoning · Sonar Deep Research |
+| **Ollama** · local models | auto-detect (`localhost:11434`) | Gemma · Llama · Qwen · Mistral · DeepSeek · anything you've pulled |
+
+## Commands
+
+```bash
+forge                          # bare forge → interactive menu + banner
+forge init                     # first-run wizard: pick providers, paste keys, set defaults
+forge debate "<question>"      # cross-provider debate with rotating roles (the GIF above)
+forge auto "<request>"         # smart router: natural language → mode + agents + goal → run
+forge start --mode <m> --goal "<g>"   # power-user direct flag path (hidden from `--help`)
+forge pipeline "<spec>" -c startup    # chain modes: ideation → validation → plan → gtm → vc-pitch
+forge parallel "<spec>" -n 4          # split into 4 sub-deliberations, run, aggregate
+forge compress transcript.md          # transcript → compact handoff brief
+forge mcp                             # run as MCP server on stdio (for Cursor / Claude Code)
+forge skills list                     # browse the skill catalog (shared by all modes)
+forge sessions ls                     # list past sessions
+forge agents                          # list the 28 personas
+```
+
+## Pipelines and parallel runs
+
+```bash
+# Pipeline · each phase's consensus feeds the next phase's goal
+forge pipeline "CivicVote · decentralized municipal voting" -c startup
+#   ideation → idea-validation → business-plan → gtm-strategy → vc-pitch
+
+# Parallel · split into N independent sub-deliberations
+forge parallel "Audit the checkout service — perf, security, observability" -n 3
+#   → 3 sub-sessions run sequentially, each in its own workdir
+#   → output/sessions/parallel-<ts>/AGGREGATE.md stitches the consensus artifacts
+```
+
+Presets: `startup` (ideation→validation→plan→GTM→VC), `launch` (red-team→tech-review→copywrite), `decide` (idea-validation→will-it-work). Or `--custom ideation,business-plan,vc-pitch` for an arbitrary chain.
+
+## MCP server
+
+Forge ships an MCP server so any MCP host (Cursor, Claude Code, Zed, etc.) can drive it without shelling out.
+
+```json
+{
+  "mcpServers": {
+    "forge": { "command": "forge", "args": ["mcp"] }
+  }
+}
+```
+
+Tools exposed:
+- `list_modes` · the 11 deliberation modes and their phase sequences
+- `list_agents` · the 28 personas
+- `list_sessions` · past Forge sessions (newest first)
+- `get_consensus` · consensus artifacts for a given session
+- `get_transcript` · full transcript for a session
+- `route` · natural-language request → proposed (mode, agents, goal) plan
+
+
 
 ## Skills System
 
