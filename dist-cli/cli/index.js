@@ -382,6 +382,296 @@ var init_personas_specialist = __esm({
   }
 });
 
+// src/agents/personas-extended.ts
+var CODING_PERSONAS, PRODUCT_DESIGN_PERSONAS, DATA_PERSONAS, OPS_PERSONAS, DOCS_PERSONAS, EXTENDED_PERSONAS;
+var init_personas_extended = __esm({
+  "src/agents/personas-extended.ts"() {
+    "use strict";
+    CODING_PERSONAS = [
+      {
+        id: "senior-engineer",
+        name: "Senior Engineer",
+        nameHe: "\u05DE\u05D4\u05E0\u05D3\u05E1 \u05D1\u05DB\u05D9\u05E8",
+        role: "Shipping-Engineer \xB7 Pragmatic Builder",
+        age: 0,
+        background: `Has shipped many systems in production and carries the scars. Prefers proven
+    patterns over novel ones. Cares about runbook, incident response, and "what happens at 3am
+    when this breaks". Won't sign off on code that can't be operated.`,
+        personality: [
+          "Favours proven stacks over novel ones",
+          "Thinks in incident-ready operations",
+          "Respects legacy that still earns its keep",
+          "Allergic to vanity rewrites",
+          "Treats tests + docs as features"
+        ],
+        biases: ['May dismiss genuinely better tools as "too new"', "Under-values clean-slate rewrites when they genuinely help"],
+        strengths: ["Catches missing operational concerns", "Knows the failure modes of each choice", "Right-sizes architecture to the team"],
+        weaknesses: ["Conservative bias can slow innovation", "May anchor on past solutions"],
+        speakingStyle: `Plain-spoken, ops-first. "Who's on-call for this?", "what's the rollback?".`,
+        color: "blue"
+      },
+      {
+        id: "junior-engineer",
+        name: "Junior Engineer",
+        nameHe: "\u05DE\u05D4\u05E0\u05D3\u05E1 \u05D6\u05D5\u05D8\u05E8",
+        role: "Fresh-Eyes Questioner",
+        age: 0,
+        background: `Joined the team recently. Hasn't built up the calluses that explain why certain
+    things are "just how we do it". Asks naive questions that sometimes surface real assumptions
+    nobody noticed. Not afraid to say "I don't understand this" in a room of seniors.`,
+        personality: [
+          'Asks "why" without shame',
+          "Spots tribal knowledge that never got written down",
+          "Fresh mental models, no sunk-cost filters",
+          "Learns by writing code",
+          `Skeptical of "because we've always done it this way"`
+        ],
+        biases: ["May under-weight operational reality", "Can mistake novelty for correctness"],
+        strengths: ["Surfaces undocumented assumptions", "Challenges institutional inertia", "Represents the next hire"],
+        weaknesses: ["Limited battle scars", "Can propose ideas that don't survive prod"],
+        speakingStyle: 'Curious, direct. "Why do we do it this way?", "what would break if we just...?".',
+        color: "cyan"
+      },
+      {
+        id: "refactorer",
+        name: "Refactorer",
+        nameHe: "\u05DE\u05E9\u05DB\u05EA\u05D1 \u05E7\u05D5\u05D3",
+        role: "Code-Smell Radar \xB7 Abstraction Sniffer",
+        age: 0,
+        background: `Reads code looking for the abstraction that's about to emerge. Knows when to
+    extract and when to leave duplication alone. Can tell a dead pattern from a slowly-useful one.
+    Happy doing unglamorous plumbing work that makes everything else easier.`,
+        personality: [
+          "Has an internal smell detector for premature abstraction",
+          "Values deletion over creation",
+          "Reads diffs for coupling, not just correctness",
+          "Appreciates a well-placed silence",
+          "Pair-programs with tests first"
+        ],
+        biases: ["Can slow delivery by refactoring too early", "May see abstractions where none are needed"],
+        strengths: ["Keeps code base readable under growth", "Spots the real coupling", "Finds deletable code"],
+        weaknesses: ["Can spiral into endless polish", "Under-values new-feature velocity"],
+        speakingStyle: 'Surgical, diff-oriented. "This is two ideas in one function", "we can delete this whole branch".',
+        color: "magenta"
+      }
+    ];
+    PRODUCT_DESIGN_PERSONAS = [
+      {
+        id: "product-manager",
+        name: "Product Manager",
+        nameHe: "\u05DE\u05E0\u05D4\u05DC \u05DE\u05D5\u05E6\u05E8",
+        role: "Roadmap Gate-Keeper",
+        age: 0,
+        background: `Translates customer pain into prioritised work. Fights for scope reductions and
+    clarity. Can say "no" to legitimate-but-wrong-time requests. Tracks leading and lagging
+    metrics and reports on both. Owns the trade-off between shipping and polish.`,
+        personality: [
+          "Obsessively prioritises",
+          "Writes crisp user stories",
+          "Thinks in leading indicators",
+          "Protects focus time",
+          "Respects engineering capacity"
+        ],
+        biases: ["Can over-discount long-term bets", "Trusts metrics over instinct even when instinct is right"],
+        strengths: ["Forces clear priority calls", "Turns desires into shippable increments", "Owns the timeline"],
+        weaknesses: ["May over-constrain creative exploration", "Politically compromised in large orgs"],
+        speakingStyle: `Structured, metric-driven. "What's the user job here?", "does this move our KPI?".`,
+        color: "yellow"
+      },
+      {
+        id: "ux-researcher",
+        name: "UX Researcher",
+        nameHe: "\u05D7\u05D5\u05E7\u05E8 UX",
+        role: "User-Pain Archaeologist",
+        age: 0,
+        background: `Runs interviews, synthesises notes, and maps jobs-to-be-done. Allergic to
+    self-reported preferences \xB7 watches what users actually do. Calls out team assumptions
+    about "what users want" when the evidence says otherwise.`,
+        personality: [
+          "Trusts observed behaviour over survey data",
+          "Writes down verbatim quotes",
+          "Maps pain into concrete tasks",
+          "Suspicious of persona-theatre",
+          "Values qualitative signal"
+        ],
+        biases: ["Small-N bias \u2014 may over-weight a few vivid stories", "Under-weights quant data when at odds with qual"],
+        strengths: ["Surfaces real user pain", "Holds the team honest about user behaviour", "Translates fuzzy feedback into tasks"],
+        weaknesses: ["Slower feedback loop than ops metrics", "Hard to A/B test qualitative claims"],
+        speakingStyle: 'Grounded, quote-heavy. "When user X said\u2026", "this came up in three interviews".',
+        color: "magenta"
+      },
+      {
+        id: "designer",
+        name: "Designer",
+        nameHe: "\u05DE\u05E2\u05E6\u05D1",
+        role: "Visual + Interaction Craft",
+        age: 0,
+        background: `Composes information visually \xB7 hierarchy, rhythm, white-space. Treats the
+    interface as an argument. Can tell a "designed" decision from a "defaulted" one. Carries a
+    strong sense of when to conform to convention and when to break it deliberately.`,
+        personality: [
+          "Thinks in systems, not screens",
+          "Respects typographic craft",
+          "Right-sizes motion to meaning",
+          "Reads inspiration voraciously",
+          "Prioritises clarity over novelty"
+        ],
+        biases: ["May chase aesthetic at expense of timeline", "Can over-index on craft details"],
+        strengths: ["Produces coherent visual systems", "Spots affordance failures fast", "Makes information legible"],
+        weaknesses: ["Can be precious about revisions", "Harder to iterate fast"],
+        speakingStyle: 'Visual, reference-driven. "This reads like\u2026", "the hierarchy fights the copy".',
+        color: "cyan"
+      }
+    ];
+    DATA_PERSONAS = [
+      {
+        id: "data-scientist",
+        name: "Data Scientist",
+        nameHe: "\u05DE\u05D3\u05E2\u05DF \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD",
+        role: "Statistical-Rigor Enforcer",
+        age: 0,
+        background: `Demands controls, baselines, and confidence intervals before declaring
+    anything "works". Suspicious of Simpson's paradox, p-hacking, and survivorship bias.
+    Can say "we don't have the sample size" without flinching.`,
+        personality: [
+          "Thinks in sampling, cohorts, and baselines",
+          "Writes down the null hypothesis first",
+          "Checks assumptions before running tests",
+          "Prefers effect sizes over significance stars",
+          "Watches for leakage in train/test splits"
+        ],
+        biases: ["Can paralyse decisions waiting for more data", "May under-value qualitative signal"],
+        strengths: ["Catches bad causal claims", "Right-sizes experiments", "Keeps the team honest about variance"],
+        weaknesses: ["Slows decisions", "Can over-rotate to rigour when intuition suffices"],
+        speakingStyle: `Technical, conditional. "That's a correlation, not causation", "what's the control arm?".`,
+        color: "blue"
+      },
+      {
+        id: "ml-engineer",
+        name: "ML Engineer",
+        nameHe: "\u05DE\u05D4\u05E0\u05D3\u05E1 ML",
+        role: "Production-ML Operator",
+        age: 0,
+        background: `Cares about the model AFTER the notebook \xB7 data pipelines, feature freshness,
+    inference latency, drift monitoring, retraining cadence. Knows the gap between "model
+    works on Tuesday" and "model serves 10k QPS for a year".`,
+        personality: [
+          "Thinks in serving, not training",
+          "Respects data pipeline as first-class code",
+          "Plans for drift + rollback from day one",
+          "Budgets latency ruthlessly",
+          "Treats features as contracts"
+        ],
+        biases: ["Can over-engineer for scale that never comes", "May discount research prototypes prematurely"],
+        strengths: ["Bridges research and production", "Names the operational failure modes", "Gets models in front of users"],
+        weaknesses: ['Can be seen as the "no" person in research teams'],
+        speakingStyle: `Ops-aware, latency-focused. "What's the p99 at serving?", "how do we retrain this?".`,
+        color: "yellow"
+      }
+    ];
+    OPS_PERSONAS = [
+      {
+        id: "sre",
+        name: "Site Reliability Engineer",
+        nameHe: "\u05DE\u05D4\u05E0\u05D3\u05E1 \u05D0\u05DE\u05D9\u05E0\u05D5\u05EA",
+        role: "Availability + Budget Math",
+        age: 0,
+        background: `Owns SLOs, error budgets, and incident response. Will not let a feature ship
+    if it threatens the error budget \xB7 or will explicitly spend it knowing the cost. Knows
+    the RED metrics cold. Can estimate on-call load.`,
+        personality: [
+          "Thinks in nines and error budgets",
+          "Writes postmortems without blame",
+          "Values boring, monitorable systems",
+          "Drills runbooks regularly",
+          "Respects toil \xB7 and eliminates it"
+        ],
+        biases: ["Can push for over-engineered reliability", "May under-weight time-to-market pressure"],
+        strengths: ["Keeps services up", "Names the operational debt", "Balances velocity vs stability"],
+        weaknesses: ["Incident fatigue", "Hard political position in growth-first orgs"],
+        speakingStyle: `Numeric, SLO-framed. "That blows the error budget", "what's our MTTR?".`,
+        color: "red"
+      },
+      {
+        id: "platform-engineer",
+        name: "Platform Engineer",
+        nameHe: "\u05DE\u05D4\u05E0\u05D3\u05E1 \u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4",
+        role: "Developer-Experience Custodian",
+        age: 0,
+        background: `Builds the golden path \xB7 the internal tools, CI, deploys, observability
+    that product engineers use. Success looks like product engineers not noticing the
+    platform. Failure looks like everyone writing their own YAML.`,
+        personality: [
+          "Thinks in paved roads, not permissions",
+          "Measures adoption as success",
+          "Obsessively eliminates friction",
+          'Respects "opt-in by default" patterns',
+          "Advocates for internal customers"
+        ],
+        biases: ["Can over-invest in elegant internals vs user value", "May miss edge cases from product teams"],
+        strengths: ["Multiplies other engineers' output", "Removes toil at source", "Makes DX measurable"],
+        weaknesses: ["ROI is slow and qualitative", "Can be invisible until it breaks"],
+        speakingStyle: `DX-centric. "How many clicks?", "what's the blast radius of this default?".`,
+        color: "magenta"
+      }
+    ];
+    DOCS_PERSONAS = [
+      {
+        id: "technical-writer",
+        name: "Technical Writer",
+        nameHe: "\u05DB\u05D5\u05EA\u05D1 \u05D8\u05DB\u05E0\u05D9",
+        role: "Clarity-Builder",
+        age: 0,
+        background: `Turns engineer-jargon into something a new hire or external user can read on
+    their first coffee. Organises information by the reader's journey, not the repo's
+    directory structure. Values examples that actually work. Writes the docs the code
+    wishes it had.`,
+        personality: [
+          "Leads with the task, not the concept",
+          "Tests every snippet by actually running it",
+          "Prefers active voice",
+          "Organises by reader journey",
+          "Respects the cost of unnecessary words"
+        ],
+        biases: ["May over-simplify nuanced edge cases", "Slower than feature-delivery pace"],
+        strengths: ["Onboarding time collapses", "Makes API contracts legible", "Catches UX issues in the doc"],
+        weaknesses: ["Treated as after-the-fact in many orgs"],
+        speakingStyle: `Reader-first. "Who's reading this?", "what's their next action after this page?".`,
+        color: "yellow"
+      },
+      {
+        id: "customer-advocate",
+        name: "Customer Advocate",
+        nameHe: "\u05E0\u05E6\u05D9\u05D2 \u05DC\u05E7\u05D5\u05D7",
+        role: "User-Pain Voice",
+        age: 0,
+        background: `Has been on the phone with users during outages and knows their top-5
+    complaints by heart. Brings real quotes into the room instead of the team's best guesses.
+    Pushes back when internal priorities drift from what users keep raising.`,
+        personality: [
+          "Trusts support ticket patterns",
+          "Repeats user quotes verbatim",
+          "Tracks issue clusters over time",
+          "Pushes cross-functional for user fixes",
+          "Values accessibility + reliability over features"
+        ],
+        biases: ["Over-indexes on vocal users", "May under-weight silent majority"],
+        strengths: ["Keeps team grounded in real pain", "Identifies issue clusters early", "Speaks for users who aren't in the room"],
+        weaknesses: ["Friction in feature-push orgs", "Harder to quantify impact"],
+        speakingStyle: 'Anecdotal, direct. "Three users this week said\u2026", "this keeps coming up in tickets".',
+        color: "cyan"
+      }
+    ];
+    EXTENDED_PERSONAS = [
+      ...CODING_PERSONAS,
+      ...PRODUCT_DESIGN_PERSONAS,
+      ...DATA_PERSONAS,
+      ...OPS_PERSONAS,
+      ...DOCS_PERSONAS
+    ];
+  }
+});
+
 // src/agents/personas.ts
 function registerCustomPersonas(personas) {
   customPersonas = personas;
@@ -404,6 +694,7 @@ var init_personas = __esm({
   "src/agents/personas.ts"() {
     "use strict";
     init_personas_specialist();
+    init_personas_extended();
     AGENT_PERSONAS = [
       {
         id: "skeptic",
@@ -575,7 +866,10 @@ var init_personas = __esm({
       },
       // Specialist personas for the VC-pitch, tech-review and red-team modes
       // live in personas-specialist.ts to keep this file under the 500-line cap.
-      ...SPECIALIST_PERSONAS
+      ...SPECIALIST_PERSONAS,
+      // Extended personas (coding / product / design / data / ops / docs)
+      // live in personas-extended.ts for the same reason.
+      ...EXTENDED_PERSONAS
     ];
     RESEARCHER_AGENTS = [
       {
@@ -744,17 +1038,17 @@ import * as path11 from "path";
 import * as os from "os";
 import * as fs9 from "fs/promises";
 import { spawnSync } from "child_process";
-async function readIfExists(p5) {
+async function readIfExists(p6) {
   try {
-    const content = await fs9.readFile(p5, "utf-8");
+    const content = await fs9.readFile(p6, "utf-8");
     return content.trim() ? content : null;
   } catch {
     return null;
   }
 }
-async function isExecutable(p5) {
+async function isExecutable(p6) {
   try {
-    const stat3 = await fs9.stat(p5);
+    const stat3 = await fs9.stat(p6);
     return stat3.isFile() && (stat3.mode & 73) !== 0;
   } catch {
     return false;
@@ -1435,13 +1729,13 @@ var init_registry = __esm({
         }
       }
       get(id) {
-        const p5 = this.providers.get(id);
-        if (!p5) {
+        const p6 = this.providers.get(id);
+        if (!p6) {
           throw new Error(
             `Unknown provider '${id}'. Available: ${Array.from(this.providers.keys()).join(", ") || "none"}`
           );
         }
-        return p5;
+        return p6;
       }
       tryGet(id) {
         return this.providers.get(id);
@@ -1450,7 +1744,7 @@ var init_registry = __esm({
         return Array.from(this.providers.values());
       }
       listAvailable() {
-        return this.list().filter((p5) => p5.isAvailable());
+        return this.list().filter((p6) => p6.isAvailable());
       }
       getDefault() {
         if (!this.defaultId) {
@@ -1998,8 +2292,8 @@ ${cites.slice(0, 5).map((u, i) => `[${i + 1}] ${u}`).join("\n")}` : content;
           "sonar-reasoning-pro": { in: 2, out: 8 },
           "sonar-deep-research": { in: 2, out: 8 }
         };
-        const p5 = price[model] ?? { in: 1, out: 5 };
-        return inTokens / 1e6 * p5.in + outTokens / 1e6 * p5.out;
+        const p6 = price[model] ?? { in: 1, out: 5 };
+        return inTokens / 1e6 * p6.in + outTokens / 1e6 * p6.out;
       }
     };
   }
@@ -2026,6 +2320,147 @@ var init_providers = __esm({
     init_OllamaProvider();
     init_OpenRouterProvider();
     init_PerplexityProvider();
+  }
+});
+
+// src/lib/eda/ReactionEngine.ts
+var ReactionEngine_exports = {};
+__export(ReactionEngine_exports, {
+  DEFAULT_RULES: () => DEFAULT_RULES,
+  ReactionEngine: () => ReactionEngine
+});
+var DEFAULT_RULES, ReactionEngine;
+var init_ReactionEngine = __esm({
+  "src/lib/eda/ReactionEngine.ts"() {
+    "use strict";
+    DEFAULT_RULES = {
+      rules: [
+        {
+          trigger: "loop_detected",
+          action: "inject_directive",
+          agent: "*",
+          param: "Stop re-litigating. State your single strongest position in two sentences. Tag it [SYNTHESIS].",
+          maxFires: 3
+        },
+        {
+          trigger: "stuck_agent",
+          action: "force_speak",
+          maxFires: 4
+        },
+        {
+          trigger: "low_consensus_after_15",
+          action: "inject_directive",
+          agent: "analyst",
+          param: "The room has been talking for 15+ turns without agreement. Run a written synthesis tagged [SYNTHESIS] that names the single decision point.",
+          maxFires: 1
+        }
+      ]
+    };
+    ReactionEngine = class {
+      orchestrator;
+      rules;
+      fired = /* @__PURE__ */ new Map();
+      messageCount = 0;
+      lastSpokeAt = /* @__PURE__ */ new Map();
+      unsubscribe;
+      constructor(orchestrator, config = DEFAULT_RULES) {
+        this.orchestrator = orchestrator;
+        this.rules = config.rules;
+      }
+      start() {
+        this.unsubscribe = this.orchestrator.on((event) => this.handle(event));
+      }
+      stop() {
+        this.unsubscribe?.();
+        this.unsubscribe = void 0;
+      }
+      ruleKey(rule) {
+        return `${rule.trigger}:${rule.action}:${rule.agent ?? ""}`;
+      }
+      canFire(rule) {
+        const key = this.ruleKey(rule);
+        const fires = this.fired.get(key) ?? 0;
+        const cap = rule.maxFires ?? 3;
+        return fires < cap;
+      }
+      recordFire(rule) {
+        const key = this.ruleKey(rule);
+        this.fired.set(key, (this.fired.get(key) ?? 0) + 1);
+      }
+      async apply(rule) {
+        const targetAgents = this.resolveTargets(rule.agent);
+        switch (rule.action) {
+          case "force_speak":
+            for (const id of targetAgents) {
+              void this.orchestrator.forceSpeak(id, "reaction-engine");
+            }
+            break;
+          case "inject_directive":
+            if (rule.param) {
+              for (const id of targetAgents) {
+                this.orchestrator.injectSystemSuffix(id, rule.param);
+              }
+            }
+            break;
+          case "pause":
+            for (const id of targetAgents) {
+              this.orchestrator.updateAgentConfig(id, { paused: true });
+            }
+            break;
+          case "log":
+            console.error(`[reaction] ${rule.trigger} \u2192 log: ${rule.param ?? ""}`);
+            break;
+        }
+        this.recordFire(rule);
+      }
+      resolveTargets(spec) {
+        const enabled = this.orchestrator.getSession().config.enabledAgents;
+        if (!spec || spec === "*") return [...enabled];
+        return enabled.filter((id) => id === spec);
+      }
+      handle(event) {
+        if (event.type === "agent_message") {
+          const data = event.data;
+          this.messageCount++;
+          if (data.agentId) this.lastSpokeAt.set(data.agentId, this.messageCount);
+        }
+        if (event.type === "intervention") {
+          const data = event.data;
+          if (data.type === "loop_detected") {
+            for (const rule of this.rules) {
+              if (rule.trigger === "loop_detected" && this.canFire(rule)) void this.apply(rule);
+            }
+          }
+        }
+        if (event.type === "phase_change") {
+          for (const rule of this.rules) {
+            if (rule.trigger === "phase_change" && this.canFire(rule)) void this.apply(rule);
+          }
+        }
+        if (event.type === "agent_message" && this.messageCount % 6 === 0) {
+          const enabled = this.orchestrator.getSession().config.enabledAgents;
+          for (const id of enabled) {
+            const lastTurn = this.lastSpokeAt.get(id) ?? 0;
+            if (this.messageCount - lastTurn >= 12) {
+              for (const rule of this.rules) {
+                if (rule.trigger === "stuck_agent" && this.canFire(rule)) {
+                  const scoped = { ...rule, agent: id };
+                  void this.apply(scoped);
+                }
+              }
+            }
+          }
+        }
+        if (event.type === "agent_message" && this.messageCount === 15) {
+          const ratio = this.orchestrator.getConsensusRatio();
+          if (ratio < 0.5) {
+            for (const rule of this.rules) {
+              if (rule.trigger === "low_consensus_after_15" && this.canFire(rule)) void this.apply(rule);
+            }
+          }
+        }
+      }
+    };
   }
 });
 
@@ -2314,7 +2749,7 @@ function AgentControlPanel({
       const next = cycle(
         availableProviders,
         availableProviders[0],
-        (p5) => p5.id === selected.config.providerId
+        (p6) => p6.id === selected.config.providerId
       );
       orchestrator.updateAgentConfig(selected.id, {
         providerId: next.id,
@@ -2453,7 +2888,7 @@ function HeaderBar({
   currentPhaseId,
   elapsedSeconds
 }) {
-  const currentIdx = Math.max(0, phases.findIndex((p5) => p5.id === currentPhaseId));
+  const currentIdx = Math.max(0, phases.findIndex((p6) => p6.id === currentPhaseId));
   return /* @__PURE__ */ jsxs3(
     "box",
     {
@@ -2767,13 +3202,13 @@ function OpenTuiApp({
   }, [orchestrator]);
   const mode = orchestrator.getModeController().getMode();
   const modePhases = useMemo3(
-    () => mode.phases.map((p5) => ({ id: p5.id, name: p5.name || p5.id })),
+    () => mode.phases.map((p6) => ({ id: p6.id, name: p6.name || p6.id })),
     [mode]
   );
   const currentModePhase = modeProgress.currentPhase;
   const currentPhaseIdx = Math.max(
     0,
-    modePhases.findIndex((p5) => p5.id === currentModePhase)
+    modePhases.findIndex((p6) => p6.id === currentModePhase)
   );
   const currentPhaseConfig = mode.phases[currentPhaseIdx];
   const phaseMaxMessages = currentPhaseConfig?.maxMessages ?? 0;
@@ -2920,13 +3355,13 @@ __export(node_exports, {
   startNode: () => startNode,
   stopNode: () => stopNode
 });
-import path22 from "path";
-import fs19 from "fs/promises";
+import path23 from "path";
+import fs20 from "fs/promises";
 async function startNode({ dataDir: dataDir2 }) {
-  storePath = path22.join(dataDir2, "store.jsonl");
-  await fs19.mkdir(dataDir2, { recursive: true });
+  storePath = path23.join(dataDir2, "store.jsonl");
+  await fs20.mkdir(dataDir2, { recursive: true });
   try {
-    const content = await fs19.readFile(storePath, "utf-8");
+    const content = await fs20.readFile(storePath, "utf-8");
     for (const line of content.split("\n")) {
       if (!line.trim()) continue;
       try {
@@ -2959,7 +3394,7 @@ async function putDoc(doc) {
   requireStarted();
   if (!doc || !doc._id) throw new Error("putDoc requires _id");
   docs.set(doc._id, doc);
-  await fs19.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
+  await fs20.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
   for (const cb of updateListeners) {
     try {
       cb({ hash: doc._id, id: doc._id, op: "PUT" });
@@ -2982,7 +3417,7 @@ async function allDocs() {
 async function deleteDoc(id) {
   requireStarted();
   docs.delete(id);
-  await fs19.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
+  await fs20.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
   return id;
 }
 async function getStatus() {
@@ -3033,11 +3468,11 @@ var init_embeddings = __esm({
       if (pipelineInstance) return pipelineInstance;
       if (pipelinePromise) return pipelinePromise;
       loading = true;
-      pipelinePromise = loadPipeline().then((p5) => {
-        pipelineInstance = p5;
+      pipelinePromise = loadPipeline().then((p6) => {
+        pipelineInstance = p6;
         loading = false;
         console.log("[embeddings] model loaded:", MODEL_ID);
-        return p5;
+        return p6;
       }).catch((err2) => {
         loading = false;
         pipelinePromise = null;
@@ -3062,8 +3497,8 @@ var init_embeddings = __esm({
 });
 
 // electron/connections/vector-index.js
-import path23 from "path";
-import fs20 from "fs/promises";
+import path24 from "path";
+import fs21 from "fs/promises";
 var Index, MetricKind, index, idMap, dataDir, indexPath, mapPath, dimensions, dirty, loadUsearch, loadIdMap, saveIdMap, load, requireOpen, addVector, hasId, removeVector, searchSimilar, size, save, close;
 var init_vector_index = __esm({
   "electron/connections/vector-index.js"() {
@@ -3086,27 +3521,27 @@ var init_vector_index = __esm({
     };
     loadIdMap = async () => {
       try {
-        const raw = await fs20.readFile(mapPath, "utf-8");
+        const raw = await fs21.readFile(mapPath, "utf-8");
         idMap = JSON.parse(raw);
       } catch {
         idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
       }
     };
     saveIdMap = async () => {
-      await fs20.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
+      await fs21.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
     };
     load = async ({ dir, dims = 384 }) => {
       if (index) return;
       await loadUsearch();
       dataDir = dir;
       dimensions = dims;
-      indexPath = path23.join(dir, "index.usearch");
-      mapPath = path23.join(dir, "id-map.json");
-      await fs20.mkdir(dir, { recursive: true });
+      indexPath = path24.join(dir, "index.usearch");
+      mapPath = path24.join(dir, "id-map.json");
+      await fs21.mkdir(dir, { recursive: true });
       await loadIdMap();
       index = new Index(dimensions, MetricKind.Cos);
       try {
-        await fs20.access(indexPath);
+        await fs21.access(indexPath);
         index.load(indexPath);
         console.log(`[vector-index] loaded ${index.size()} vectors from ${indexPath}`);
       } catch {
@@ -3190,7 +3625,7 @@ __export(service_exports, {
   status: () => status,
   stopService: () => stopService
 });
-import path24 from "path";
+import path25 from "path";
 var serviceDataDir, startService, stopService, indexContribution, deindexContribution, findSimilarByText, status;
 var init_service = __esm({
   "electron/connections/service.js"() {
@@ -3199,7 +3634,7 @@ var init_service = __esm({
     init_vector_index();
     serviceDataDir = null;
     startService = async ({ dataDir: dataDir2 }) => {
-      serviceDataDir = path24.join(dataDir2, "connections");
+      serviceDataDir = path25.join(dataDir2, "connections");
       await load({ dir: serviceDataDir, dims: EMBEDDING_DIMENSIONS });
       ensureReady().catch(
         (err2) => console.error("[connections] model warmup failed:", err2)
@@ -3248,7 +3683,7 @@ var init_service = __esm({
 });
 
 // cli/index.ts
-import { Command as Command16 } from "commander";
+import { Command as Command17 } from "commander";
 
 // cli/adapters/FileSystemAdapter.ts
 import * as fs from "fs/promises";
@@ -3517,9 +3952,9 @@ Generate exactly ${options.count} personas.`;
         personas2 = parsed.personas;
         expertise = parsed.expertise || "";
       }
-      for (const p5 of personas2) {
-        if (!p5.id || !p5.name || !p5.role) {
-          console.error("Invalid persona structure:", p5);
+      for (const p6 of personas2) {
+        if (!p6.id || !p6.name || !p6.role) {
+          console.error("Invalid persona structure:", p6);
           process.exit(1);
         }
       }
@@ -3534,11 +3969,11 @@ Generate exactly ${options.count} personas.`;
       }
       console.log(`\u2705 Generated ${personas2.length} personas:
 `);
-      for (const p5 of personas2) {
-        console.log(`  \u2022 ${p5.name} (${p5.nameHe}) - ${p5.role}`);
-        console.log(`    ${p5.background.slice(0, 80)}...`);
-        if (p5.expertise) {
-          console.log(`    Expertise: ${p5.expertise.slice(0, 3).join(", ")}`);
+      for (const p6 of personas2) {
+        console.log(`  \u2022 ${p6.name} (${p6.nameHe}) - ${p6.role}`);
+        console.log(`    ${p6.background.slice(0, 80)}...`);
+        if (p6.expertise) {
+          console.log(`    Expertise: ${p6.expertise.slice(0, 3).join(", ")}`);
         }
         console.log("");
       }
@@ -3567,8 +4002,8 @@ Use with: forge start --personas ${options.name}`);
         const content = await fs2.readFile(path2.join(personasDir, file), "utf-8");
         const personas2 = JSON.parse(content);
         console.log(`  \u2022 ${name} (${personas2.length} personas)`);
-        for (const p5 of personas2) {
-          console.log(`    - ${p5.name}: ${p5.role}`);
+        for (const p6 of personas2) {
+          console.log(`    - ${p6.name}: ${p6.role}`);
         }
         console.log("");
       }
@@ -3587,27 +4022,27 @@ Use with: forge start --personas ${options.name}`);
 \u{1F4CB} Persona Set: ${name}
 `);
       console.log("\u2500".repeat(60));
-      for (const p5 of personas2) {
+      for (const p6 of personas2) {
         console.log(`
-### ${p5.name} (${p5.nameHe}) - ${p5.role}`);
-        console.log(`Age: ${p5.age} | Color: ${p5.color}`);
+### ${p6.name} (${p6.nameHe}) - ${p6.role}`);
+        console.log(`Age: ${p6.age} | Color: ${p6.color}`);
         console.log(`
 Background:
-${p5.background}`);
+${p6.background}`);
         console.log(`
 Personality:`);
-        p5.personality.forEach((t) => console.log(`  \u2022 ${t}`));
+        p6.personality.forEach((t) => console.log(`  \u2022 ${t}`));
         console.log(`
 Biases:`);
-        p5.biases.forEach((b) => console.log(`  \u2022 ${b}`));
+        p6.biases.forEach((b) => console.log(`  \u2022 ${b}`));
         console.log(`
 Strengths:`);
-        p5.strengths.forEach((s) => console.log(`  \u2022 ${s}`));
+        p6.strengths.forEach((s) => console.log(`  \u2022 ${s}`));
         console.log(`
 Weaknesses:`);
-        p5.weaknesses.forEach((w) => console.log(`  \u2022 ${w}`));
+        p6.weaknesses.forEach((w) => console.log(`  \u2022 ${w}`));
         console.log(`
-Speaking Style: ${p5.speakingStyle}`);
+Speaking Style: ${p6.speakingStyle}`);
         console.log("\n" + "\u2500".repeat(60));
       }
     } catch {
@@ -3857,9 +4292,9 @@ function generateSummary(metadata, messages, format) {
   if (summary.keyMoments.topProposals.length > 0) {
     lines.push("## Recent Proposals");
     lines.push("");
-    for (const p5 of summary.keyMoments.topProposals) {
-      lines.push(`### From ${p5.from}`);
-      lines.push(p5.preview + "...");
+    for (const p6 of summary.keyMoments.topProposals) {
+      lines.push(`### From ${p6.from}`);
+      lines.push(p6.preview + "...");
       lines.push("");
     }
   }
@@ -3990,8 +4425,8 @@ var SessionPersistence = class {
   autoSaveTimer = null;
   lastSavedMessageCount = 0;
   session = null;
-  constructor(fs21, config = {}) {
-    this.fs = fs21;
+  constructor(fs22, config = {}) {
+    this.fs = fs22;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
   /**
@@ -4342,8 +4777,8 @@ var ConversationMemory = class _ConversationMemory {
       this.decisions = this.decisions.slice(toRemove);
     }
     if (this.proposals.length > this.config.maxProposals * threshold) {
-      const active = this.proposals.filter((p5) => p5.status === "active");
-      const resolved = this.proposals.filter((p5) => p5.status !== "active");
+      const active = this.proposals.filter((p6) => p6.status === "active");
+      const resolved = this.proposals.filter((p6) => p6.status !== "active");
       const targetTotal = this.config.maxProposals;
       if (active.length >= targetTotal) {
         this.proposals = active.slice(-targetTotal);
@@ -4469,7 +4904,7 @@ var ConversationMemory = class _ConversationMemory {
     const state = this.agentStates.get(agentId);
     state.messageCount++;
     const content = message.content;
-    const isProposal = message.type === "proposal" || PROPOSAL_PATTERNS.some((p5) => p5.test(content));
+    const isProposal = message.type === "proposal" || PROPOSAL_PATTERNS.some((p6) => p6.test(content));
     if (isProposal) {
       this.proposals.push({
         id: generateMemoryId(),
@@ -4485,7 +4920,7 @@ var ConversationMemory = class _ConversationMemory {
       });
       state.keyPoints.push(this.extractFirstSentence(content));
     }
-    const isDecision = DECISION_PATTERNS.some((p5) => p5.test(content));
+    const isDecision = DECISION_PATTERNS.some((p6) => p6.test(content));
     if (isDecision) {
       this.decisions.push({
         id: generateMemoryId(),
@@ -4612,8 +5047,8 @@ ${keyPoints.join("\n")}`,
     }
     if (this.proposals.length > 0) {
       parts.push("\n## Active Proposals");
-      this.proposals.slice(-5).forEach((p5) => {
-        parts.push(`- [${p5.agentId}] ${p5.content}`);
+      this.proposals.slice(-5).forEach((p6) => {
+        parts.push(`- [${p6.agentId}] ${p6.content}`);
       });
     }
     if (forAgentId && this.agentStates.has(forAgentId)) {
@@ -4622,7 +5057,7 @@ ${keyPoints.join("\n")}`,
 ## Your Previous Contributions (${forAgentId})`);
       if (state.keyPoints.length > 0) {
         parts.push("Key points you made:");
-        state.keyPoints.slice(-3).forEach((p5) => parts.push(`- ${p5}`));
+        state.keyPoints.slice(-3).forEach((p6) => parts.push(`- ${p6}`));
       }
       if (state.agreements.length > 0) {
         parts.push("You agreed with:");
@@ -4737,7 +5172,7 @@ ${keyPoints.join("\n")}`,
    * @returns true if proposal was found and updated, false otherwise
    */
   updateProposalStatus(proposalId, status2) {
-    const proposal = this.proposals.find((p5) => p5.id === proposalId);
+    const proposal = this.proposals.find((p6) => p6.id === proposalId);
     if (proposal) {
       proposal.status = status2;
       return true;
@@ -4751,7 +5186,7 @@ ${keyPoints.join("\n")}`,
    * @returns true if proposal was found and reaction added, false otherwise
    */
   addProposalReaction(proposalId, reaction) {
-    const proposal = this.proposals.find((p5) => p5.id === proposalId);
+    const proposal = this.proposals.find((p6) => p6.id === proposalId);
     if (proposal) {
       if (!proposal.reactions) {
         proposal.reactions = [];
@@ -4772,14 +5207,14 @@ ${keyPoints.join("\n")}`,
    * @returns The proposal if found, undefined otherwise
    */
   getProposal(proposalId) {
-    return this.proposals.find((p5) => p5.id === proposalId);
+    return this.proposals.find((p6) => p6.id === proposalId);
   }
   /**
    * Get all active proposals
    * @returns Array of proposals with status 'active'
    */
   getActiveProposals() {
-    return this.proposals.filter((p5) => p5.status === "active");
+    return this.proposals.filter((p6) => p6.status === "active");
   }
   /**
    * Get the most recent proposal for reaction tracking
@@ -5259,7 +5694,7 @@ function generateAgentSystemPrompt(agent, config, context, skills) {
 - **Speaking Style**: ${agent.speakingStyle}
 
 ## Your Personality Traits
-${agent.personality.map((p5) => `- ${p5}`).join("\n")}
+${agent.personality.map((p6) => `- ${p6}`).join("\n")}
 
 ## Your Known Biases (be aware of these)
 ${agent.biases.map((b) => `- ${b}`).join("\n")}
@@ -7346,13 +7781,13 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
    * Per MODE_SYSTEM.md: Enforces requiredBeforeSynthesis and phase exit criteria
    */
   checkPhaseTransition() {
-    const currentPhaseConfig = this.mode.phases.find((p5) => p5.id === this.progress.currentPhase);
+    const currentPhaseConfig = this.mode.phases.find((p6) => p6.id === this.progress.currentPhase);
     if (!currentPhaseConfig) return null;
     if (!currentPhaseConfig.autoTransition) return null;
     const maxMessagesReached = this.progress.messagesInPhase >= currentPhaseConfig.maxMessages;
     const exitCriteriaMet = this.checkExitCriteria(currentPhaseConfig.exitCriteria);
     if (maxMessagesReached || exitCriteriaMet.met) {
-      const nextPhase = this.mode.phases.find((p5) => p5.order === currentPhaseConfig.order + 1);
+      const nextPhase = this.mode.phases.find((p6) => p6.order === currentPhaseConfig.order + 1);
       if (nextPhase) {
         if (this.isSynthesisPhase(nextPhase.id)) {
           const researchCheck = this.checkRequiredResearch();
@@ -7467,7 +7902,7 @@ Previous phase complete. Carry forward what we learned, but shift focus.`
     const maxMessages = this.mode.successCriteria.maxMessages;
     const atLimit = this.progress.totalMessages >= maxMessages;
     const neverSynthesized = !this.mode.phases.some(
-      (p5) => p5.id === "synthesis" && this.progress.currentPhase === "synthesis"
+      (p6) => p6.id === "synthesis" && this.progress.currentPhase === "synthesis"
     );
     return atLimit && neverSynthesized;
   }
@@ -7554,7 +7989,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
    * Manually transition to a phase
    */
   transitionToPhase(phaseId) {
-    const phase = this.mode.phases.find((p5) => p5.id === phaseId);
+    const phase = this.mode.phases.find((p6) => p6.id === phaseId);
     if (phase) {
       this.progress.currentPhase = phaseId;
       this.progress.messagesInPhase = 0;
@@ -7566,7 +8001,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
    * Get current phase config
    */
   getCurrentPhase() {
-    return this.mode.phases.find((p5) => p5.id === this.progress.currentPhase);
+    return this.mode.phases.find((p6) => p6.id === this.progress.currentPhase);
   }
   /**
    * Get mode-specific agent instructions
@@ -7921,8 +8356,8 @@ var WorkdirManager = class {
   consensusDir;
   skillsDir;
   initialized = false;
-  constructor(fs21, opts) {
-    this.fs = fs21;
+  constructor(fs22, opts) {
+    this.fs = fs22;
     this.sessionDir = opts.sessionDir;
     this.consensusDir = path6.join(opts.sessionDir, "consensus");
     this.skillsDir = path6.join(opts.sessionDir, "skills");
@@ -7954,8 +8389,8 @@ var WorkdirManager = class {
     await this.init();
     for (const [agentId, content] of perAgent) {
       if (!content.trim()) continue;
-      const p5 = path6.join(this.skillsDir, `${agentId}.md`);
-      await this.fs.writeFile(p5, content);
+      const p6 = path6.join(this.skillsDir, `${agentId}.md`);
+      await this.fs.writeFile(p6, content);
     }
   }
   getAgentPaths(agentId) {
@@ -7989,7 +8424,7 @@ var WorkdirManager = class {
     const ts = new Date(message.timestamp).toISOString().replace(/[:.]/g, "-");
     const safePhase = opts.phaseId.replace(/[^a-z0-9_-]+/gi, "_");
     const filename = `${safePhase}-${ts}-${message.agentId}.md`;
-    const p5 = path6.join(this.consensusDir, filename);
+    const p6 = path6.join(this.consensusDir, filename);
     const body = [
       `# ${opts.phaseId} \xB7 consensus \xB7 ${message.agentId}`,
       "",
@@ -8002,8 +8437,8 @@ var WorkdirManager = class {
       message.content,
       ""
     ].filter((l) => l !== null).join("\n");
-    await this.fs.writeFile(p5, body);
-    return p5;
+    await this.fs.writeFile(p6, body);
+    return p6;
   }
 };
 
@@ -8609,7 +9044,7 @@ Discussion continues without research results.`
     const fileList = result.filesRead.length > 0 ? `
 
 **\u{1F4C1} Files read (${result.filesRead.length}):**
-${result.filesRead.slice(0, 12).map((p5) => `- \`${p5}\``).join("\n")}${result.filesRead.length > 12 ? `
+${result.filesRead.slice(0, 12).map((p6) => `- \`${p6}\``).join("\n")}${result.filesRead.length > 12 ? `
 - \u2026and ${result.filesRead.length - 12} more` : ""}` : "";
     return [
       `**\u{1F50D} Local project introspection**`,
@@ -9604,8 +10039,8 @@ async function runBatch(pattern, options) {
     console.log("");
   }
   if (options.dryRun) {
-    const dryRunResults = briefPaths.map((p5) => ({
-      brief: path7.relative(cwd, p5),
+    const dryRunResults = briefPaths.map((p6) => ({
+      brief: path7.relative(cwd, p6),
       wouldProcess: true
     }));
     if (options.json) {
@@ -9620,7 +10055,7 @@ async function runBatch(pattern, options) {
   let toProcess = briefPaths;
   if (options.resume) {
     const processed = await getProcessedBriefs(outputDir);
-    toProcess = briefPaths.filter((p5) => !processed.has(path7.basename(p5, ".md")));
+    toProcess = briefPaths.filter((p6) => !processed.has(path7.basename(p6, ".md")));
     if (!options.json && toProcess.length < briefPaths.length) {
       console.log(`Skipping ${briefPaths.length - toProcess.length} already processed briefs.`);
     }
@@ -11832,6 +12267,20 @@ async function launchSession(req) {
       persistence.updateSession(orchestrator.getSession());
     }
   });
+  const { ReactionEngine: ReactionEngine2, DEFAULT_RULES: DEFAULT_RULES2 } = await Promise.resolve().then(() => (init_ReactionEngine(), ReactionEngine_exports));
+  let reactionConfig = DEFAULT_RULES2;
+  for (const candidate of ["reactions.json"]) {
+    const p6 = path17.join(cwd, candidate);
+    try {
+      const raw = await fs14.readFile(p6, "utf-8");
+      reactionConfig = JSON.parse(raw);
+      console.error(chalk7.dim(`  \xB7 reactions loaded from ${candidate}`));
+      break;
+    } catch {
+    }
+  }
+  const reactions = new ReactionEngine2(orchestrator, reactionConfig);
+  reactions.start();
   let configFlushPending = false;
   orchestrator.on(async (event) => {
     if (event.type !== "agent_config_change") return;
@@ -12002,11 +12451,11 @@ async function newSessionWizard(defaults) {
     ].join("\n"),
     "Ready to run"
   );
-  const confirm5 = await p2.confirm({
+  const confirm6 = await p2.confirm({
     message: "Start the deliberation?",
     initialValue: true
   });
-  if (p2.isCancel(confirm5) || !confirm5) return null;
+  if (p2.isCancel(confirm6) || !confirm6) return null;
   return {
     projectName: String(projectName).trim(),
     goal: String(goal).trim(),
@@ -12040,7 +12489,7 @@ async function runMenu() {
   const settings = await loadConfig2();
   const defaultMode = settings.defaults?.mode;
   const providersConfigured = Object.values(settings.providers ?? {}).some(
-    (p5) => p5?.enabled
+    (p6) => p6?.enabled
   );
   let keepGoing = true;
   let firstRender = true;
@@ -12217,11 +12666,11 @@ async function run(text2, opts) {
     "Proposed plan"
   );
   if (!opts.yes) {
-    const confirm5 = await p3.confirm({
+    const confirm6 = await p3.confirm({
       message: "Start this deliberation?",
       initialValue: true
     });
-    if (p3.isCancel(confirm5) || !confirm5) {
+    if (p3.isCancel(confirm6) || !confirm6) {
       p3.cancel("Cancelled. Re-run with different wording to try again.");
       return;
     }
@@ -12458,7 +12907,7 @@ async function runMcp() {
         id: m.id,
         name: m.name,
         description: m.description,
-        phases: m.phases.map((p5) => p5.id),
+        phases: m.phases.map((p6) => p6.id),
         requiredOutputs: m.successCriteria?.requiredOutputs ?? []
       }));
       return { content: [{ type: "text", text: JSON.stringify(modes, null, 2) }] };
@@ -12706,8 +13155,167 @@ function createParallelCommand() {
   });
 }
 
-// cli/commands/login.ts
+// cli/commands/pipeline.ts
 import { Command as Command14 } from "commander";
+import * as p5 from "@clack/prompts";
+import * as path22 from "path";
+import * as fs19 from "fs/promises";
+import chalk12 from "chalk";
+init_personas();
+var DEFAULT_CHAINS = {
+  startup: ["ideation", "idea-validation", "business-plan", "gtm-strategy", "vc-pitch"],
+  launch: ["red-team", "tech-review", "copywrite"],
+  decide: ["idea-validation", "will-it-work"]
+};
+var DEFAULT_AGENTS = {
+  "vc-pitch": ["vc-partner", "vc-associate", "lp-skeptic", "founder-voice"],
+  "tech-review": ["architect", "perf-engineer", "security-reviewer", "test-engineer"],
+  "red-team": ["attack-planner", "social-engineer", "blue-team-lead"]
+};
+var GENERIC2 = ["skeptic", "pragmatist", "analyst"];
+function agentsFor(mode) {
+  const preferred = DEFAULT_AGENTS[mode] ?? GENERIC2;
+  return preferred.filter((id) => AGENT_PERSONAS.some((a) => a.id === id));
+}
+async function readConsensusBundle(sessionDir) {
+  const dir = path22.join(sessionDir, "consensus");
+  try {
+    const files = await fs19.readdir(dir);
+    const mds = files.filter((f) => f.endsWith(".md")).sort();
+    if (mds.length === 0) return "";
+    const parts = [];
+    for (const f of mds.slice(0, 6)) {
+      const body = await fs19.readFile(path22.join(dir, f), "utf-8");
+      parts.push(body.trim());
+    }
+    return parts.join("\n\n---\n\n");
+  } catch {
+    return "";
+  }
+}
+function buildNextGoal(originalSpec, priorModeId, priorConsensus, nextModeId) {
+  const nextMode = getModeById(nextModeId);
+  if (!priorConsensus) {
+    return `${originalSpec}
+
+(Previous phase \`${priorModeId}\` ran but captured no consensus artifact.)`;
+  }
+  return [
+    originalSpec,
+    "",
+    `## Upstream \xB7 \`${priorModeId}\` output`,
+    "",
+    priorConsensus.slice(0, 2400),
+    "",
+    `## This phase \xB7 \`${nextModeId}\` (${nextMode?.name ?? nextModeId})`,
+    "",
+    nextMode?.description ?? "Continue the deliberation using this phase's framework."
+  ].join("\n");
+}
+async function run4(spec, opts) {
+  let chain;
+  if (opts.custom) {
+    chain = opts.custom.split(",").map((s) => s.trim()).filter(Boolean);
+  } else {
+    const preset = opts.chain ?? "startup";
+    if (!(preset in DEFAULT_CHAINS)) {
+      console.error(chalk12.red(`Unknown chain preset: ${preset}. Use one of: ${Object.keys(DEFAULT_CHAINS).join(", ")} or --custom.`));
+      process.exit(1);
+    }
+    chain = DEFAULT_CHAINS[preset];
+  }
+  const known = new Set(getAllModes().map((m) => m.id));
+  for (const m of chain) {
+    if (!known.has(m)) {
+      console.error(chalk12.red(`Unknown mode in chain: ${m}`));
+      process.exit(1);
+    }
+  }
+  p5.intro(chalk12.bold(`\u2692  forge pipeline \xB7 ${chain.length} phases`));
+  p5.note(
+    chain.map((m, i) => `${String(i + 1).padStart(2, " ")}. ${chalk12.bold(m)}  ${chalk12.dim(getModeById(m)?.description ?? "")}`).join("\n"),
+    "Chain"
+  );
+  if (!opts.yes) {
+    const ok2 = await p5.confirm({
+      message: `Run all ${chain.length} phases sequentially? Each ~2-4 minutes, each costs LLM inference.`,
+      initialValue: true
+    });
+    if (p5.isCancel(ok2) || !ok2) {
+      p5.cancel("Cancelled.");
+      return;
+    }
+  }
+  const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
+  const pipelineDir = path22.join(opts.output ?? "output/sessions", `pipeline-${ts}`);
+  await fs19.mkdir(pipelineDir, { recursive: true });
+  let priorMode = "";
+  let priorConsensus = "";
+  const phaseResults = [];
+  for (let i = 0; i < chain.length; i++) {
+    const modeId = chain[i];
+    const goal = i === 0 ? spec : buildNextGoal(spec, priorMode, priorConsensus, modeId);
+    p5.note(
+      `[${i + 1}/${chain.length}] ${chalk12.bold(modeId)} \xB7 ${getModeById(modeId)?.name}
+
+${goal.slice(0, 200)}${goal.length > 200 ? "\u2026" : ""}`,
+      `Phase ${i + 1}`
+    );
+    const phaseDir = path22.join(pipelineDir, `${String(i + 1).padStart(2, "0")}-${modeId}`);
+    const result = await launchSession({
+      projectName: `Pipeline-${modeId}`,
+      goal,
+      mode: modeId,
+      agents: agentsFor(modeId),
+      language: "english",
+      humanParticipation: false,
+      outputDir: phaseDir
+    });
+    const captured = result.sessionDir ? await readConsensusBundle(result.sessionDir) : "";
+    phaseResults.push({ mode: modeId, dir: result.sessionDir, consensus: captured });
+    priorMode = modeId;
+    priorConsensus = captured;
+  }
+  const aggregate2 = [
+    `# Forge pipeline report`,
+    ``,
+    `**Original spec:** ${spec}`,
+    `**Chain:** ${chain.join(" \u2192 ")}`,
+    `**Started:** ${ts}`,
+    ``
+  ];
+  for (const r of phaseResults) {
+    aggregate2.push(`## ${r.mode}`);
+    aggregate2.push("");
+    if (r.dir) aggregate2.push(`- Session: \`${r.dir}\``);
+    if (r.consensus) {
+      aggregate2.push("");
+      aggregate2.push(r.consensus);
+    } else {
+      aggregate2.push("_No consensus artifact captured._");
+    }
+    aggregate2.push("");
+    aggregate2.push("---");
+    aggregate2.push("");
+  }
+  const aggPath = path22.join(pipelineDir, "AGGREGATE.md");
+  await fs19.writeFile(aggPath, aggregate2.join("\n"));
+  p5.outro(chalk12.green(`Pipeline complete \xB7 ${aggPath}`));
+}
+function createPipelineCommand() {
+  return new Command14("pipeline").description("Chain multiple modes so each phase's consensus feeds the next (startup / launch / decide presets, or --custom list)").argument("<spec...>", "The initial spec for phase 1").option("-c, --chain <preset>", "Preset chain \xB7 startup | launch | decide", "startup").option("--custom <modes>", "Comma-separated list of modes to chain (overrides --chain)").option("-o, --output <dir>", "Output directory root", "output/sessions").option("-y, --yes", "Skip confirmation").action(async (spec, opts) => {
+    try {
+      await run4(spec.join(" "), opts);
+    } catch (err2) {
+      if (err2 instanceof Error && /force closed/i.test(err2.message)) return;
+      console.error(chalk12.red("forge pipeline failed:"), err2 instanceof Error ? err2.message : err2);
+      process.exitCode = 1;
+    }
+  });
+}
+
+// cli/commands/login.ts
+import { Command as Command15 } from "commander";
 import * as readline from "readline";
 
 // src/lib/render/progress.ts
@@ -12744,7 +13352,7 @@ var printIdentity = (state) => {
   console.log("");
 };
 var createLoginCommand = () => {
-  const cmd = new Command14("login").description("Create or restore your decentralized DID identity").option("--new", "Force create a new identity (replaces existing)").action(async (opts) => {
+  const cmd = new Command15("login").description("Create or restore your decentralized DID identity").option("--new", "Force create a new identity (replaces existing)").action(async (opts) => {
     if (!opts.new) {
       const restoreResult = await repo.restoreSession();
       const restored = restoreResult.match(
@@ -12775,9 +13383,9 @@ var createLoginCommand = () => {
     if (wantAttestation && wantAttestation !== "skip" && wantAttestation !== "n") {
       const platforms = ["mastodon", "github", "bluesky"];
       let platform = null;
-      for (const p5 of platforms) {
-        if (wantAttestation.toLowerCase().includes(p5)) {
-          platform = p5;
+      for (const p6 of platforms) {
+        if (wantAttestation.toLowerCase().includes(p6)) {
+          platform = p6;
           break;
         }
       }
@@ -12808,7 +13416,7 @@ var createLoginCommand = () => {
     }
   });
   cmd.addCommand(
-    new Command14("status").description("Show current identity status").action(async () => {
+    new Command15("status").description("Show current identity status").action(async () => {
       const result = await repo.restoreSession();
       result.match(
         (s) => {
@@ -12825,7 +13433,7 @@ var createLoginCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command14("logout").description("Remove stored identity").action(async () => {
+    new Command15("logout").description("Remove stored identity").action(async () => {
       await repo.logout();
       console.log(style(forgeTheme.status.success, "  \u2714 Identity cleared"));
     })
@@ -12834,7 +13442,7 @@ var createLoginCommand = () => {
 };
 
 // cli/commands/community.ts
-import { Command as Command15 } from "commander";
+import { Command as Command16 } from "commander";
 import * as readline2 from "readline";
 
 // src/lib/p2p/errors.ts
@@ -12919,7 +13527,7 @@ var fetchAll = () => ResultAsync.fromPromise(
 });
 
 // cli/adapters/services.ts
-import * as path25 from "path";
+import * as path26 from "path";
 
 // src/lib/connections/errors.ts
 var bridgeUnavailable3 = makeError("BridgeUnavailable");
@@ -12950,7 +13558,7 @@ var started = false;
 async function ensureServices() {
   if (started) return;
   started = true;
-  const p2pDataDir = path25.join(forgeDataDir, "p2p");
+  const p2pDataDir = path26.join(forgeDataDir, "p2p");
   try {
     const { peerId } = await startP2P(p2pDataDir);
     console.log(`\x1B[2m[p2p] peer: ${peerId.slice(0, 12)}\u2026\x1B[0m`);
@@ -12991,13 +13599,13 @@ var repo2 = createSessionRepository(
 );
 var isContribution = (payload) => {
   if (!payload || typeof payload !== "object") return false;
-  const p5 = payload;
-  return typeof p5.kind === "string" && typeof p5.v === "number" && typeof p5.title === "string" && ["persona", "insight", "template", "prompt"].includes(p5.kind) && typeof p5.content === "object";
+  const p6 = payload;
+  return typeof p6.kind === "string" && typeof p6.v === "number" && typeof p6.title === "string" && ["persona", "insight", "template", "prompt"].includes(p6.kind) && typeof p6.content === "object";
 };
 var isReaction = (payload) => {
   if (!payload || typeof payload !== "object") return false;
-  const p5 = payload;
-  return p5.kind === "reaction" && typeof p5.targetId === "string";
+  const p6 = payload;
+  return p6.kind === "reaction" && typeof p6.targetId === "string";
 };
 var shortenDid = (did) => did.length > 24 ? `${did.slice(0, 12)}\u2026${did.slice(-8)}` : did;
 var ask2 = (question) => {
@@ -13010,9 +13618,9 @@ var ask2 = (question) => {
   });
 };
 var createCommunityCommand = () => {
-  const cmd = new Command15("community").description("Browse and publish community contributions (P2P)");
+  const cmd = new Command16("community").description("Browse and publish community contributions (P2P)");
   cmd.addCommand(
-    new Command15("list").description("List contributions from connected peers").option("-k, --kind <kind>", "Filter by kind (persona|insight|template|prompt)").action(async (opts) => {
+    new Command16("list").description("List contributions from connected peers").option("-k, --kind <kind>", "Filter by kind (persona|insight|template|prompt)").action(async (opts) => {
       await ensureServices();
       const result = await fetchAll();
       result.match(
@@ -13055,7 +13663,7 @@ var createCommunityCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command15("publish").description("Publish a new contribution").requiredOption("-k, --kind <kind>", "Contribution kind (persona|insight|template|prompt)").requiredOption("-t, --title <title>", "Title").requiredOption("-d, --description <desc>", "One-line description").option("-b, --body <body>", "Body content (or will prompt)").option("--tags <tags>", "Comma-separated tags").action(async (opts) => {
+    new Command16("publish").description("Publish a new contribution").requiredOption("-k, --kind <kind>", "Contribution kind (persona|insight|template|prompt)").requiredOption("-t, --title <title>", "Title").requiredOption("-d, --description <desc>", "One-line description").option("-b, --body <body>", "Body content (or will prompt)").option("--tags <tags>", "Comma-separated tags").action(async (opts) => {
       await ensureServices();
       const session = await repo2.restoreSession();
       const authState = session.match((s) => s, () => null);
@@ -13115,7 +13723,7 @@ var createCommunityCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command15("vote").description("Upvote or downvote a contribution").argument("<id>", "Contribution ID (or prefix)").option("--down", "Downvote instead of upvote").action(async (idOrPrefix, opts) => {
+    new Command16("vote").description("Upvote or downvote a contribution").argument("<id>", "Contribution ID (or prefix)").option("--down", "Downvote instead of upvote").action(async (idOrPrefix, opts) => {
       await ensureServices();
       const session = await repo2.restoreSession();
       const authState = session.match((s) => s, () => null);
@@ -13166,7 +13774,7 @@ var YELLOW2 = forgeTheme.status.warning;
 var CYAN2 = forgeTheme.status.info;
 var RED2 = forgeTheme.status.error;
 var MAGENTA = forgeTheme.text.emphasis;
-var program = new Command16();
+var program = new Command17();
 program.name("forge").description("Multi-agent deliberation engine - reach consensus through structured debate").version("1.0.0");
 program.command("start", { hidden: true }).description("[power-user] Launch a session directly from flags (regular use: run `forge` for the menu)").option("-b, --brief <name>", "Brief name to load (from briefs/ directory)").option("-p, --project <name>", "Project name", "New Project").option("-g, --goal <goal>", "Project goal").option("-a, --agents <ids>", "Comma-separated agent IDs (from default or custom personas)").option("-m, --mode <mode>", "Deliberation mode (see `forge --help`)", "will-it-work").option("--personas <name>", "Use custom persona set (from personas/ directory)").option("-l, --language <lang>", "Language: hebrew, english, mixed", "english").option("--human", "Enable human participation", true).option("--no-human", "Disable human participation").option("-o, --output <dir>", "Output directory for sessions", "output/sessions").action(async (options) => {
   const agents = options.agents ? String(options.agents).split(",").map((s) => s.trim()).filter(Boolean) : ["skeptic", "pragmatist", "analyst"];
@@ -13227,6 +13835,7 @@ program.addCommand(createAutoCommand());
 program.addCommand(createCompressCommand());
 program.addCommand(createMcpCommand());
 program.addCommand(createParallelCommand());
+program.addCommand(createPipelineCommand());
 program.addCommand(createLoginCommand());
 program.addCommand(createCommunityCommand());
 program.action(createMenuCommand());

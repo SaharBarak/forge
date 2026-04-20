@@ -36,6 +36,7 @@ import { createAutoCommand } from './commands/auto';
 import { createCompressCommand } from './commands/compress';
 import { createMcpCommand } from './commands/mcp';
 import { createParallelCommand } from './commands/parallel';
+import { createPipelineCommand } from './commands/pipeline';
 import { launchSession } from './lib/session-launcher';
 import { createLoginCommand } from './commands/login';
 import { createCommunityCommand } from './commands/community';
@@ -448,6 +449,9 @@ program.addCommand(createMcpCommand());
 
 // Parallel runner — split a spec into N sub-deliberations, aggregate.
 program.addCommand(createParallelCommand());
+
+// Pipeline — chain modes so each phase's consensus feeds the next.
+program.addCommand(createPipelineCommand());
 
 // Decentralized identity + community (Phases 1-4)
 program.addCommand(createLoginCommand());

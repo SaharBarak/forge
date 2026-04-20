@@ -7,6 +7,7 @@
 
 import type { AgentPersona, ResearcherAgent } from '../types';
 import { SPECIALIST_PERSONAS } from './personas-specialist';
+import { EXTENDED_PERSONAS } from './personas-extended';
 
 // ============================================================================
 // COPYWRITING EXPERTISE (shared by all agents)
@@ -242,6 +243,9 @@ export const AGENT_PERSONAS: AgentPersona[] = [
   // Specialist personas for the VC-pitch, tech-review and red-team modes
   // live in personas-specialist.ts to keep this file under the 500-line cap.
   ...SPECIALIST_PERSONAS,
+  // Extended personas (coding / product / design / data / ops / docs)
+  // live in personas-extended.ts for the same reason.
+  ...EXTENDED_PERSONAS,
 ];
 
 // ============================================================================

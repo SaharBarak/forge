@@ -201,6 +201,25 @@ export async function launchSession(
     }
   });
 
+  // Reaction engine · loads reactions.json / reactions.yaml from the
+  // working directory if present, falls back to sensible defaults
+  // (handle loop_detected, stuck_agent, low_consensus_after_15).
+  const { ReactionEngine, DEFAULT_RULES } = await import('../../src/lib/eda/ReactionEngine');
+  let reactionConfig = DEFAULT_RULES;
+  for (const candidate of ['reactions.json']) {
+    const p = path.join(cwd, candidate);
+    try {
+      const raw = await fs.readFile(p, 'utf-8');
+      reactionConfig = JSON.parse(raw);
+      console.error(chalk.dim(`  · reactions loaded from ${candidate}`));
+      break;
+    } catch {
+      // ignore
+    }
+  }
+  const reactions = new ReactionEngine(orchestrator, reactionConfig);
+  reactions.start();
+
   let configFlushPending = false;
   orchestrator.on(async (event) => {
     if (event.type !== 'agent_config_change') return;
