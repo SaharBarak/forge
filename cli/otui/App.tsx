@@ -266,13 +266,13 @@ function CouncilPanel({ agents, currentSpeaker }: CouncilPanelProps): React.Reac
             flexDirection="column"
           >
             <box flexDirection="row">
-              <text fg={isSpeaking ? '#00e5ff' : '#f5e6ff'}>{icon} </text>
-              <text fg={color}>{agent.name}</text>
+              <text fg={isSpeaking ? '#00e5ff' : '#f5e6ff'} bg="#0a0a0b">{icon} </text>
+              <text fg={color} bg="#0a0a0b">{agent.name.slice(0, 24).padEnd(24, ' ')}</text>
             </box>
-            {agent.role ? <text fg="#6b6b76">{agent.role.slice(0, 26)}</text> : null}
+            {agent.role ? <text fg="#6b6b76" bg="#0a0a0b">{agent.role.slice(0, 26).padEnd(26, ' ')}</text> : null}
             <box flexDirection="row">
-              <text fg={isSpeaking ? '#00e5ff' : '#6b6b76'}>{bar}</text>
-              <text fg="#6b6b76"> {agent.contributions}</text>
+              <text fg={isSpeaking ? '#00e5ff' : '#6b6b76'} bg="#0a0a0b">{bar}</text>
+              <text fg="#6b6b76" bg="#0a0a0b"> {agent.contributions}</text>
             </box>
           </box>
         );

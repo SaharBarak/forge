@@ -3167,16 +3167,16 @@ function CouncilPanel({ agents, currentSpeaker }) {
           flexDirection: "column",
           children: [
             /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
-              /* @__PURE__ */ jsxs3("text", { fg: isSpeaking ? "#00e5ff" : "#f5e6ff", children: [
+              /* @__PURE__ */ jsxs3("text", { fg: isSpeaking ? "#00e5ff" : "#f5e6ff", bg: "#0a0a0b", children: [
                 icon,
                 " "
               ] }),
-              /* @__PURE__ */ jsx3("text", { fg: color, children: agent.name })
+              /* @__PURE__ */ jsx3("text", { fg: color, bg: "#0a0a0b", children: agent.name.slice(0, 24).padEnd(24, " ") })
             ] }),
-            agent.role ? /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: agent.role.slice(0, 26) }) : null,
+            agent.role ? /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", bg: "#0a0a0b", children: agent.role.slice(0, 26).padEnd(26, " ") }) : null,
             /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
-              /* @__PURE__ */ jsx3("text", { fg: isSpeaking ? "#00e5ff" : "#6b6b76", children: bar2 }),
-              /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
+              /* @__PURE__ */ jsx3("text", { fg: isSpeaking ? "#00e5ff" : "#6b6b76", bg: "#0a0a0b", children: bar2 }),
+              /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", bg: "#0a0a0b", children: [
                 " ",
                 agent.contributions
               ] })
