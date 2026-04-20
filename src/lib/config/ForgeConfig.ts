@@ -28,6 +28,8 @@ export interface ForgeSettings {
     gemini?: ProviderConfig;
     openai?: ProviderConfig;
     ollama?: ProviderConfig;
+    openrouter?: ProviderConfig;
+    perplexity?: ProviderConfig;
   };
   defaults?: {
     /** Default deliberation mode when none is passed to `forge start`. */
@@ -78,7 +80,7 @@ export async function saveConfig(settings: ForgeSettings): Promise<void> {
  */
 export function resolveProviderKey(
   settings: ForgeSettings,
-  provider: 'gemini' | 'openai' | 'ollama' | 'anthropic',
+  provider: 'gemini' | 'openai' | 'ollama' | 'anthropic' | 'openrouter' | 'perplexity',
   envName?: string
 ): string | undefined {
   const envKey = envName ? process.env[envName] : undefined;

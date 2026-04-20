@@ -103,6 +103,48 @@ async function runInit(opts: { force?: boolean }): Promise<void> {
     next.providers.openai = { enabled: false };
   }
 
+  // ─── OpenRouter (aggregates 100+ models behind one key) ─────────
+  const openrouter = await p.confirm({
+    message: 'Enable OpenRouter? (100+ models · Claude / GPT / Gemini / DeepSeek / Grok / Llama / Mistral / Qwen via one API)',
+    initialValue: next.providers.openrouter?.enabled ?? false,
+  });
+  if (p.isCancel(openrouter)) return abortAndReturn();
+  if (openrouter) {
+    const key = await p.password({
+      message: 'Paste OPENROUTER_API_KEY:',
+      mask: '•',
+    });
+    if (p.isCancel(key)) return abortAndReturn();
+    next.providers.openrouter = {
+      enabled: true,
+      apiKey: key ? String(key).trim() : next.providers.openrouter?.apiKey,
+      defaultModel: next.providers.openrouter?.defaultModel ?? 'anthropic/claude-sonnet-4.5',
+    };
+  } else {
+    next.providers.openrouter = { enabled: false };
+  }
+
+  // ─── Perplexity (web-search-grounded answers) ───────────────────
+  const perplexity = await p.confirm({
+    message: 'Enable Perplexity? (live web search for research phases · sonar / sonar-pro)',
+    initialValue: next.providers.perplexity?.enabled ?? false,
+  });
+  if (p.isCancel(perplexity)) return abortAndReturn();
+  if (perplexity) {
+    const key = await p.password({
+      message: 'Paste PERPLEXITY_API_KEY:',
+      mask: '•',
+    });
+    if (p.isCancel(key)) return abortAndReturn();
+    next.providers.perplexity = {
+      enabled: true,
+      apiKey: key ? String(key).trim() : next.providers.perplexity?.apiKey,
+      defaultModel: next.providers.perplexity?.defaultModel ?? 'sonar-pro',
+    };
+  } else {
+    next.providers.perplexity = { enabled: false };
+  }
+
   // ─── Ollama (local: Gemma / Llama / Qwen / Mistral / DeepSeek) ──
   const spin = p.spinner();
   spin.start('Probing Ollama at http://localhost:11434');

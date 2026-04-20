@@ -32,6 +32,10 @@ import { createConfigCommand } from './commands/config';
 import { createSkillsCommand } from './commands/skills';
 import { createInitCommand } from './commands/init';
 import { createMenuCommand } from './commands/menu';
+import { createAutoCommand } from './commands/auto';
+import { createCompressCommand } from './commands/compress';
+import { createMcpCommand } from './commands/mcp';
+import { createParallelCommand } from './commands/parallel';
 import { launchSession } from './lib/session-launcher';
 import { createLoginCommand } from './commands/login';
 import { createCommunityCommand } from './commands/community';
@@ -431,6 +435,19 @@ program.addCommand(createSkillsCommand());
 
 // Interactive first-run setup — writes to ~/.config/forge/config.json.
 program.addCommand(createInitCommand());
+
+// Smart router — natural-language request → mode + agents + goal → run.
+program.addCommand(createAutoCommand());
+
+// Token compression pipe — transcript in, handoff brief out.
+program.addCommand(createCompressCommand());
+
+// MCP server — exposes list_modes / list_sessions / get_consensus / route
+// to any MCP host (Cursor, Claude Code, etc.) over stdio.
+program.addCommand(createMcpCommand());
+
+// Parallel runner — split a spec into N sub-deliberations, aggregate.
+program.addCommand(createParallelCommand());
 
 // Decentralized identity + community (Phases 1-4)
 program.addCommand(createLoginCommand());

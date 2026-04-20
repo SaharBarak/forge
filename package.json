@@ -29,6 +29,7 @@
     "@clack/prompts": "^1.2.0",
     "@google/genai": "^1.50.1",
     "@huggingface/transformers": "^4.0.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@noble/ed25519": "^3.0.1",
     "@noble/hashes": "^2.0.1",
     "@opentui/core": "^0.1.99",

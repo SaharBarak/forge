@@ -1863,6 +1863,45 @@ ${draft}
     this.updateAgentConfig(agentId, { systemSuffix: suffix });
   }
 
+  // ─── Hard consensus gate ─────────────────────────────────────────────
+  //
+  // Opt-in check an external caller can use to decide whether the
+  // session is allowed to move into Finalization / Drafting / shipping.
+  // Mirrors Octopus's 75% consensus gate. Returns the actual consensus
+  // ratio (supportRatio averaged across tracked insights) plus a pass/
+  // fail verdict at the supplied threshold.
+
+  /**
+   * Ratio of tracked insights whose support meets or exceeds
+   * consensusThreshold · a lightweight proxy for "how much does the
+   * room agree". Returns 0 when no insights are tracked yet.
+   */
+  getConsensusRatio(): number {
+    const insights = Array.from(this.keyInsights.values());
+    if (insights.length === 0) return 0;
+    const enabledAgents = this.session.config.enabledAgents;
+    const humanWeight = 2;
+    const totalWeight =
+      enabledAgents.length +
+      (this.agentContributions.has('human') ? humanWeight : 0);
+    let agreed = 0;
+    for (const insight of insights) {
+      let sup = insight.supporters.size;
+      if (insight.supporters.has('human')) sup += humanWeight - 1;
+      if (sup / totalWeight >= this.consensusThreshold) agreed++;
+    }
+    return agreed / insights.length;
+  }
+
+  /**
+   * Hard gate · true when the deliberation has reached the supplied
+   * consensus ratio (default 0.75 to match Octopus). Callers can use
+   * this to block shipping, advance a phase, or prompt the operator.
+   */
+  isConsensusReached(threshold = 0.75): boolean {
+    return this.getConsensusRatio() >= threshold;
+  }
+
   // ─── Skills + workdir helpers ────────────────────────────────────────
 
   /**

@@ -643,22 +643,118 @@ var init_personas = __esm({
   }
 });
 
+// cli/adapters/CLIAgentRunner.ts
+var CLIAgentRunner_exports = {};
+__export(CLIAgentRunner_exports, {
+  CLIAgentRunner: () => CLIAgentRunner
+});
+import Anthropic2 from "@anthropic-ai/sdk";
+var CLIAgentRunner;
+var init_CLIAgentRunner = __esm({
+  "cli/adapters/CLIAgentRunner.ts"() {
+    "use strict";
+    CLIAgentRunner = class {
+      client;
+      defaultModel;
+      constructor(apiKey, defaultModel = "claude-sonnet-4-20250514") {
+        this.client = new Anthropic2({
+          apiKey: apiKey || process.env.ANTHROPIC_API_KEY
+        });
+        this.defaultModel = defaultModel;
+      }
+      async query(params) {
+        try {
+          const response = await this.client.messages.create({
+            model: params.model || this.defaultModel,
+            max_tokens: 2048,
+            system: params.systemPrompt || "",
+            messages: [
+              {
+                role: "user",
+                content: params.prompt
+              }
+            ]
+          });
+          const content = response.content[0].type === "text" ? response.content[0].text : "";
+          return {
+            success: true,
+            content,
+            usage: {
+              inputTokens: response.usage.input_tokens,
+              outputTokens: response.usage.output_tokens,
+              costUsd: this.estimateCost(response.usage.input_tokens, response.usage.output_tokens)
+            }
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error"
+          };
+        }
+      }
+      async evaluate(params) {
+        try {
+          const response = await this.client.messages.create({
+            model: "claude-opus-4-6",
+            max_tokens: 200,
+            messages: [
+              {
+                role: "user",
+                content: params.evalPrompt
+              }
+            ]
+          });
+          const text2 = response.content[0].type === "text" ? response.content[0].text : "{}";
+          const jsonMatch = text2.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) {
+            return {
+              success: false,
+              urgency: "pass",
+              reason: "Failed to parse response",
+              responseType: ""
+            };
+          }
+          const result = JSON.parse(jsonMatch[0]);
+          return {
+            success: true,
+            urgency: result.urgency || "pass",
+            reason: result.reason || "",
+            responseType: result.responseType || ""
+          };
+        } catch (error) {
+          return {
+            success: false,
+            urgency: "pass",
+            reason: error instanceof Error ? error.message : "Unknown error",
+            responseType: ""
+          };
+        }
+      }
+      estimateCost(inputTokens, outputTokens) {
+        const inputCost = inputTokens / 1e6 * 3;
+        const outputCost = outputTokens / 1e6 * 15;
+        return inputCost + outputCost;
+      }
+    };
+  }
+});
+
 // src/lib/skills/SkillsLoader.ts
 import * as path11 from "path";
 import * as os from "os";
 import * as fs9 from "fs/promises";
 import { spawnSync } from "child_process";
-async function readIfExists(p3) {
+async function readIfExists(p5) {
   try {
-    const content = await fs9.readFile(p3, "utf-8");
+    const content = await fs9.readFile(p5, "utf-8");
     return content.trim() ? content : null;
   } catch {
     return null;
   }
 }
-async function isExecutable(p3) {
+async function isExecutable(p5) {
   try {
-    const stat3 = await fs9.stat(p3);
+    const stat3 = await fs9.stat(p5);
     return stat3.isFile() && (stat3.mode & 73) !== 0;
   } catch {
     return false;
@@ -1092,6 +1188,44 @@ async function runInit(opts) {
   } else {
     next.providers.openai = { enabled: false };
   }
+  const openrouter = await p.confirm({
+    message: "Enable OpenRouter? (100+ models \xB7 Claude / GPT / Gemini / DeepSeek / Grok / Llama / Mistral / Qwen via one API)",
+    initialValue: next.providers.openrouter?.enabled ?? false
+  });
+  if (p.isCancel(openrouter)) return abortAndReturn();
+  if (openrouter) {
+    const key = await p.password({
+      message: "Paste OPENROUTER_API_KEY:",
+      mask: "\u2022"
+    });
+    if (p.isCancel(key)) return abortAndReturn();
+    next.providers.openrouter = {
+      enabled: true,
+      apiKey: key ? String(key).trim() : next.providers.openrouter?.apiKey,
+      defaultModel: next.providers.openrouter?.defaultModel ?? "anthropic/claude-sonnet-4.5"
+    };
+  } else {
+    next.providers.openrouter = { enabled: false };
+  }
+  const perplexity = await p.confirm({
+    message: "Enable Perplexity? (live web search for research phases \xB7 sonar / sonar-pro)",
+    initialValue: next.providers.perplexity?.enabled ?? false
+  });
+  if (p.isCancel(perplexity)) return abortAndReturn();
+  if (perplexity) {
+    const key = await p.password({
+      message: "Paste PERPLEXITY_API_KEY:",
+      mask: "\u2022"
+    });
+    if (p.isCancel(key)) return abortAndReturn();
+    next.providers.perplexity = {
+      enabled: true,
+      apiKey: key ? String(key).trim() : next.providers.perplexity?.apiKey,
+      defaultModel: next.providers.perplexity?.defaultModel ?? "sonar-pro"
+    };
+  } else {
+    next.providers.perplexity = { enabled: false };
+  }
   const spin = p.spinner();
   spin.start("Probing Ollama at http://localhost:11434");
   const ollama = await probeOllama();
@@ -1174,6 +1308,118 @@ var init_init = __esm({
   }
 });
 
+// cli/adapters/ClaudeCodeCLIRunner.ts
+var ClaudeCodeCLIRunner_exports = {};
+__export(ClaudeCodeCLIRunner_exports, {
+  ClaudeCodeCLIRunner: () => ClaudeCodeCLIRunner
+});
+import * as path14 from "path";
+import * as os3 from "os";
+import { query as claudeQuery } from "@anthropic-ai/claude-agent-sdk";
+var CLAUDE_CODE_PATH, ClaudeCodeCLIRunner;
+var init_ClaudeCodeCLIRunner = __esm({
+  "cli/adapters/ClaudeCodeCLIRunner.ts"() {
+    "use strict";
+    CLAUDE_CODE_PATH = path14.join(os3.homedir(), ".local", "bin", "claude");
+    ClaudeCodeCLIRunner = class {
+      defaultModel;
+      evalModel;
+      constructor(defaultModel = "claude-sonnet-4-20250514", evalModel = "claude-opus-4-6") {
+        this.defaultModel = defaultModel;
+        this.evalModel = evalModel;
+      }
+      async query(params) {
+        let content = "";
+        let sessionId;
+        let usage;
+        try {
+          const q = claudeQuery({
+            prompt: params.prompt,
+            options: {
+              systemPrompt: params.systemPrompt || void 0,
+              model: params.model || this.defaultModel,
+              permissionMode: "bypassPermissions",
+              maxTurns: 1,
+              pathToClaudeCodeExecutable: CLAUDE_CODE_PATH,
+              stderr: (data) => {
+                const text2 = typeof data === "string" ? data : String(data);
+                if (!text2.trim()) return;
+                if (text2.includes("[DEBUG]") || text2.includes("INFO")) return;
+                console.error("[claude sdk]", text2.trim());
+              }
+            }
+          });
+          for await (const message of q) {
+            if ("session_id" in message && typeof message.session_id === "string") {
+              sessionId = message.session_id;
+            }
+            if (message.type === "assistant" && "message" in message) {
+              const msg = message.message;
+              if (msg?.content && Array.isArray(msg.content)) {
+                for (const block of msg.content) {
+                  const b = block;
+                  if (b.type === "text" && b.text) {
+                    content += b.text;
+                  }
+                }
+              }
+            }
+            if (message.type === "result") {
+              const result = message;
+              if (result.usage) {
+                usage = {
+                  inputTokens: result.usage.input_tokens || 0,
+                  outputTokens: result.usage.output_tokens || 0,
+                  costUsd: result.total_cost_usd || 0
+                };
+              }
+            }
+          }
+        } catch (error) {
+          if (content) {
+            return { success: true, content, sessionId, usage };
+          }
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error"
+          };
+        }
+        return { success: true, content, sessionId, usage };
+      }
+      async evaluate(params) {
+        const queryResult = await this.query({
+          prompt: params.evalPrompt,
+          systemPrompt: "You are evaluating whether to speak in a discussion. Respond only with JSON.",
+          model: this.evalModel
+        });
+        if (!queryResult.success || !queryResult.content) {
+          return {
+            success: false,
+            urgency: "pass",
+            reason: queryResult.error || "No response",
+            responseType: ""
+          };
+        }
+        const jsonMatch = queryResult.content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          return { success: true, urgency: "pass", reason: "Listening", responseType: "" };
+        }
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return {
+            success: true,
+            urgency: parsed.urgency || "pass",
+            reason: parsed.reason || "",
+            responseType: parsed.responseType || ""
+          };
+        } catch {
+          return { success: true, urgency: "pass", reason: "Parse error", responseType: "" };
+        }
+      }
+    };
+  }
+});
+
 // src/lib/providers/registry.ts
 var ProviderRegistry;
 var init_registry = __esm({
@@ -1189,13 +1435,13 @@ var init_registry = __esm({
         }
       }
       get(id) {
-        const p3 = this.providers.get(id);
-        if (!p3) {
+        const p5 = this.providers.get(id);
+        if (!p5) {
           throw new Error(
             `Unknown provider '${id}'. Available: ${Array.from(this.providers.keys()).join(", ") || "none"}`
           );
         }
-        return p3;
+        return p5;
       }
       tryGet(id) {
         return this.providers.get(id);
@@ -1204,7 +1450,7 @@ var init_registry = __esm({
         return Array.from(this.providers.values());
       }
       listAvailable() {
-        return this.list().filter((p3) => p3.isAvailable());
+        return this.list().filter((p5) => p5.isAvailable());
       }
       getDefault() {
         if (!this.defaultId) {
@@ -1547,6 +1793,218 @@ ${params.prompt}` : params.prompt
   }
 });
 
+// src/lib/providers/OpenRouterProvider.ts
+import OpenAI2 from "openai";
+var BASE_URL, MODELS4, OpenRouterProvider;
+var init_OpenRouterProvider = __esm({
+  "src/lib/providers/OpenRouterProvider.ts"() {
+    "use strict";
+    BASE_URL = "https://openrouter.ai/api/v1";
+    MODELS4 = [
+      { id: "anthropic/claude-opus-4.1", label: "Claude Opus 4.1 (via OR)", tier: "slow", hint: "deep reasoning" },
+      { id: "anthropic/claude-sonnet-4.5", label: "Claude Sonnet 4.5 (via OR)", tier: "balanced", hint: "default Anthropic" },
+      { id: "openai/gpt-4o", label: "GPT-4o (via OR)", tier: "balanced", hint: "OpenAI flagship" },
+      { id: "openai/o1", label: "o1 (via OR)", tier: "slow", hint: "reasoning-heavy" },
+      { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro (via OR)", tier: "slow", hint: "long-context" },
+      { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (via OR)", tier: "fast", hint: "cheap + fast" },
+      { id: "deepseek/deepseek-chat", label: "DeepSeek V3", tier: "balanced", hint: "open-weight flagship" },
+      { id: "x-ai/grok-2", label: "Grok 2", tier: "balanced", hint: "xAI" },
+      { id: "meta-llama/llama-3.1-405b-instruct", label: "Llama 3.1 405B", tier: "slow", hint: "Meta flagship" },
+      { id: "mistralai/mistral-large", label: "Mistral Large", tier: "balanced", hint: "strong European alternative" },
+      { id: "qwen/qwen-2.5-72b-instruct", label: "Qwen 2.5 72B", tier: "balanced", hint: "Alibaba, strong code" }
+    ];
+    OpenRouterProvider = class {
+      id = "openrouter";
+      name = "OpenRouter";
+      client;
+      constructor(apiKey) {
+        const key = apiKey ?? process.env.OPENROUTER_API_KEY;
+        this.client = key ? new OpenAI2({
+          apiKey: key,
+          baseURL: BASE_URL,
+          defaultHeaders: {
+            "HTTP-Referer": "https://github.com/SaharBarak/forge",
+            "X-Title": "Forge \xB7 deliberation engine"
+          }
+        }) : null;
+      }
+      isAvailable() {
+        return this.client !== null;
+      }
+      listModels() {
+        return MODELS4;
+      }
+      defaultModelId() {
+        return "anthropic/claude-sonnet-4.5";
+      }
+      async query(params) {
+        if (!this.client) {
+          return { success: false, error: "OPENROUTER_API_KEY not set" };
+        }
+        try {
+          const model = params.model || this.defaultModelId();
+          const messages = [
+            ...params.systemPrompt ? [{ role: "system", content: params.systemPrompt }] : [],
+            { role: "user", content: params.prompt }
+          ];
+          const response = await this.client.chat.completions.create({ model, messages });
+          const content = response.choices[0]?.message?.content ?? "";
+          const usage = response.usage;
+          return {
+            success: true,
+            content,
+            usage: usage ? {
+              inputTokens: usage.prompt_tokens ?? 0,
+              outputTokens: usage.completion_tokens ?? 0,
+              // OpenRouter bills per-token at model-specific rates; the
+              // exact cost is returned in the `generation` meta endpoint
+              // which we don't fetch per call. Report 0 and let operators
+              // reconcile from the OR dashboard.
+              costUsd: 0
+            } : void 0
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "OpenRouter request failed"
+          };
+        }
+      }
+      async evaluate(params) {
+        const r = await this.query({
+          prompt: params.evalPrompt,
+          systemPrompt: "You are evaluating whether to speak in a discussion. Respond only with JSON.",
+          model: this.defaultModelId()
+        });
+        if (!r.success || !r.content) {
+          return { success: false, urgency: "pass", reason: r.error || "No response", responseType: "" };
+        }
+        const m = r.content.match(/\{[\s\S]*\}/);
+        if (!m) return { success: true, urgency: "pass", reason: "Listening", responseType: "" };
+        try {
+          const parsed = JSON.parse(m[0]);
+          return {
+            success: true,
+            urgency: parsed.urgency ?? "pass",
+            reason: parsed.reason ?? "",
+            responseType: parsed.responseType ?? ""
+          };
+        } catch {
+          return { success: true, urgency: "pass", reason: "Parse error", responseType: "" };
+        }
+      }
+    };
+  }
+});
+
+// src/lib/providers/PerplexityProvider.ts
+import OpenAI3 from "openai";
+var BASE_URL2, MODELS5, PerplexityProvider;
+var init_PerplexityProvider = __esm({
+  "src/lib/providers/PerplexityProvider.ts"() {
+    "use strict";
+    BASE_URL2 = "https://api.perplexity.ai";
+    MODELS5 = [
+      { id: "sonar", label: "Sonar", tier: "fast", hint: "default \xB7 live web search" },
+      { id: "sonar-pro", label: "Sonar Pro", tier: "balanced", hint: "deeper web research, citations" },
+      { id: "sonar-reasoning", label: "Sonar Reasoning", tier: "balanced", hint: "think-then-search" },
+      { id: "sonar-reasoning-pro", label: "Sonar Reasoning Pro", tier: "slow", hint: "heaviest online reasoning" },
+      { id: "sonar-deep-research", label: "Sonar Deep Research", tier: "slow", hint: "long-form research reports" }
+    ];
+    PerplexityProvider = class {
+      id = "perplexity";
+      name = "Perplexity (web-search)";
+      client;
+      constructor(apiKey) {
+        const key = apiKey ?? process.env.PERPLEXITY_API_KEY;
+        this.client = key ? new OpenAI3({ apiKey: key, baseURL: BASE_URL2 }) : null;
+      }
+      isAvailable() {
+        return this.client !== null;
+      }
+      listModels() {
+        return MODELS5;
+      }
+      defaultModelId() {
+        return "sonar-pro";
+      }
+      async query(params) {
+        if (!this.client) {
+          return { success: false, error: "PERPLEXITY_API_KEY not set" };
+        }
+        try {
+          const model = params.model || this.defaultModelId();
+          const messages = [
+            ...params.systemPrompt ? [{ role: "system", content: params.systemPrompt }] : [],
+            { role: "user", content: params.prompt }
+          ];
+          const response = await this.client.chat.completions.create({ model, messages });
+          const content = response.choices[0]?.message?.content ?? "";
+          const usage = response.usage;
+          const raw = response;
+          const cites = raw.citations || raw.search_results?.map((s) => s.url) || [];
+          const withCites = cites.length > 0 ? `${content}
+
+Sources:
+${cites.slice(0, 5).map((u, i) => `[${i + 1}] ${u}`).join("\n")}` : content;
+          return {
+            success: true,
+            content: withCites,
+            usage: usage ? {
+              inputTokens: usage.prompt_tokens ?? 0,
+              outputTokens: usage.completion_tokens ?? 0,
+              costUsd: this.estimateCost(
+                model,
+                usage.prompt_tokens ?? 0,
+                usage.completion_tokens ?? 0
+              )
+            } : void 0
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "Perplexity request failed"
+          };
+        }
+      }
+      async evaluate(params) {
+        const r = await this.query({
+          prompt: params.evalPrompt,
+          systemPrompt: "You are evaluating whether to speak in a discussion. Respond only with JSON.",
+          model: "sonar"
+        });
+        if (!r.success || !r.content) {
+          return { success: false, urgency: "pass", reason: r.error || "No response", responseType: "" };
+        }
+        const m = r.content.match(/\{[\s\S]*\}/);
+        if (!m) return { success: true, urgency: "pass", reason: "Listening", responseType: "" };
+        try {
+          const parsed = JSON.parse(m[0]);
+          return {
+            success: true,
+            urgency: parsed.urgency ?? "pass",
+            reason: parsed.reason ?? "",
+            responseType: parsed.responseType ?? ""
+          };
+        } catch {
+          return { success: true, urgency: "pass", reason: "Parse error", responseType: "" };
+        }
+      }
+      estimateCost(model, inTokens, outTokens) {
+        const price = {
+          "sonar": { in: 1, out: 1 },
+          "sonar-pro": { in: 3, out: 15 },
+          "sonar-reasoning": { in: 1, out: 5 },
+          "sonar-reasoning-pro": { in: 2, out: 8 },
+          "sonar-deep-research": { in: 2, out: 8 }
+        };
+        const p5 = price[model] ?? { in: 1, out: 5 };
+        return inTokens / 1e6 * p5.in + outTokens / 1e6 * p5.out;
+      }
+    };
+  }
+});
+
 // src/lib/providers/index.ts
 var providers_exports = {};
 __export(providers_exports, {
@@ -1554,6 +2012,8 @@ __export(providers_exports, {
   GeminiProvider: () => GeminiProvider,
   OllamaProvider: () => OllamaProvider,
   OpenAIProvider: () => OpenAIProvider,
+  OpenRouterProvider: () => OpenRouterProvider,
+  PerplexityProvider: () => PerplexityProvider,
   ProviderRegistry: () => ProviderRegistry
 });
 var init_providers = __esm({
@@ -1564,6 +2024,8 @@ var init_providers = __esm({
     init_GeminiProvider();
     init_OpenAIProvider();
     init_OllamaProvider();
+    init_OpenRouterProvider();
+    init_PerplexityProvider();
   }
 });
 
@@ -1852,7 +2314,7 @@ function AgentControlPanel({
       const next = cycle(
         availableProviders,
         availableProviders[0],
-        (p3) => p3.id === selected.config.providerId
+        (p5) => p5.id === selected.config.providerId
       );
       orchestrator.updateAgentConfig(selected.id, {
         providerId: next.id,
@@ -1991,7 +2453,7 @@ function HeaderBar({
   currentPhaseId,
   elapsedSeconds
 }) {
-  const currentIdx = Math.max(0, phases.findIndex((p3) => p3.id === currentPhaseId));
+  const currentIdx = Math.max(0, phases.findIndex((p5) => p5.id === currentPhaseId));
   return /* @__PURE__ */ jsxs3(
     "box",
     {
@@ -2305,13 +2767,13 @@ function OpenTuiApp({
   }, [orchestrator]);
   const mode = orchestrator.getModeController().getMode();
   const modePhases = useMemo3(
-    () => mode.phases.map((p3) => ({ id: p3.id, name: p3.name || p3.id })),
+    () => mode.phases.map((p5) => ({ id: p5.id, name: p5.name || p5.id })),
     [mode]
   );
   const currentModePhase = modeProgress.currentPhase;
   const currentPhaseIdx = Math.max(
     0,
-    modePhases.findIndex((p3) => p3.id === currentModePhase)
+    modePhases.findIndex((p5) => p5.id === currentModePhase)
   );
   const currentPhaseConfig = mode.phases[currentPhaseIdx];
   const phaseMaxMessages = currentPhaseConfig?.maxMessages ?? 0;
@@ -2458,13 +2920,13 @@ __export(node_exports, {
   startNode: () => startNode,
   stopNode: () => stopNode
 });
-import path19 from "path";
-import fs16 from "fs/promises";
+import path22 from "path";
+import fs19 from "fs/promises";
 async function startNode({ dataDir: dataDir2 }) {
-  storePath = path19.join(dataDir2, "store.jsonl");
-  await fs16.mkdir(dataDir2, { recursive: true });
+  storePath = path22.join(dataDir2, "store.jsonl");
+  await fs19.mkdir(dataDir2, { recursive: true });
   try {
-    const content = await fs16.readFile(storePath, "utf-8");
+    const content = await fs19.readFile(storePath, "utf-8");
     for (const line of content.split("\n")) {
       if (!line.trim()) continue;
       try {
@@ -2497,7 +2959,7 @@ async function putDoc(doc) {
   requireStarted();
   if (!doc || !doc._id) throw new Error("putDoc requires _id");
   docs.set(doc._id, doc);
-  await fs16.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
+  await fs19.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
   for (const cb of updateListeners) {
     try {
       cb({ hash: doc._id, id: doc._id, op: "PUT" });
@@ -2520,7 +2982,7 @@ async function allDocs() {
 async function deleteDoc(id) {
   requireStarted();
   docs.delete(id);
-  await fs16.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
+  await fs19.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
   return id;
 }
 async function getStatus() {
@@ -2571,11 +3033,11 @@ var init_embeddings = __esm({
       if (pipelineInstance) return pipelineInstance;
       if (pipelinePromise) return pipelinePromise;
       loading = true;
-      pipelinePromise = loadPipeline().then((p3) => {
-        pipelineInstance = p3;
+      pipelinePromise = loadPipeline().then((p5) => {
+        pipelineInstance = p5;
         loading = false;
         console.log("[embeddings] model loaded:", MODEL_ID);
-        return p3;
+        return p5;
       }).catch((err2) => {
         loading = false;
         pipelinePromise = null;
@@ -2600,8 +3062,8 @@ var init_embeddings = __esm({
 });
 
 // electron/connections/vector-index.js
-import path20 from "path";
-import fs17 from "fs/promises";
+import path23 from "path";
+import fs20 from "fs/promises";
 var Index, MetricKind, index, idMap, dataDir, indexPath, mapPath, dimensions, dirty, loadUsearch, loadIdMap, saveIdMap, load, requireOpen, addVector, hasId, removeVector, searchSimilar, size, save, close;
 var init_vector_index = __esm({
   "electron/connections/vector-index.js"() {
@@ -2624,27 +3086,27 @@ var init_vector_index = __esm({
     };
     loadIdMap = async () => {
       try {
-        const raw = await fs17.readFile(mapPath, "utf-8");
+        const raw = await fs20.readFile(mapPath, "utf-8");
         idMap = JSON.parse(raw);
       } catch {
         idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
       }
     };
     saveIdMap = async () => {
-      await fs17.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
+      await fs20.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
     };
     load = async ({ dir, dims = 384 }) => {
       if (index) return;
       await loadUsearch();
       dataDir = dir;
       dimensions = dims;
-      indexPath = path20.join(dir, "index.usearch");
-      mapPath = path20.join(dir, "id-map.json");
-      await fs17.mkdir(dir, { recursive: true });
+      indexPath = path23.join(dir, "index.usearch");
+      mapPath = path23.join(dir, "id-map.json");
+      await fs20.mkdir(dir, { recursive: true });
       await loadIdMap();
       index = new Index(dimensions, MetricKind.Cos);
       try {
-        await fs17.access(indexPath);
+        await fs20.access(indexPath);
         index.load(indexPath);
         console.log(`[vector-index] loaded ${index.size()} vectors from ${indexPath}`);
       } catch {
@@ -2728,7 +3190,7 @@ __export(service_exports, {
   status: () => status,
   stopService: () => stopService
 });
-import path21 from "path";
+import path24 from "path";
 var serviceDataDir, startService, stopService, indexContribution, deindexContribution, findSimilarByText, status;
 var init_service = __esm({
   "electron/connections/service.js"() {
@@ -2737,7 +3199,7 @@ var init_service = __esm({
     init_vector_index();
     serviceDataDir = null;
     startService = async ({ dataDir: dataDir2 }) => {
-      serviceDataDir = path21.join(dataDir2, "connections");
+      serviceDataDir = path24.join(dataDir2, "connections");
       await load({ dir: serviceDataDir, dims: EMBEDDING_DIMENSIONS });
       ensureReady().catch(
         (err2) => console.error("[connections] model warmup failed:", err2)
@@ -2786,7 +3248,7 @@ var init_service = __esm({
 });
 
 // cli/index.ts
-import { Command as Command12 } from "commander";
+import { Command as Command16 } from "commander";
 
 // cli/adapters/FileSystemAdapter.ts
 import * as fs from "fs/promises";
@@ -3055,9 +3517,9 @@ Generate exactly ${options.count} personas.`;
         personas2 = parsed.personas;
         expertise = parsed.expertise || "";
       }
-      for (const p3 of personas2) {
-        if (!p3.id || !p3.name || !p3.role) {
-          console.error("Invalid persona structure:", p3);
+      for (const p5 of personas2) {
+        if (!p5.id || !p5.name || !p5.role) {
+          console.error("Invalid persona structure:", p5);
           process.exit(1);
         }
       }
@@ -3072,11 +3534,11 @@ Generate exactly ${options.count} personas.`;
       }
       console.log(`\u2705 Generated ${personas2.length} personas:
 `);
-      for (const p3 of personas2) {
-        console.log(`  \u2022 ${p3.name} (${p3.nameHe}) - ${p3.role}`);
-        console.log(`    ${p3.background.slice(0, 80)}...`);
-        if (p3.expertise) {
-          console.log(`    Expertise: ${p3.expertise.slice(0, 3).join(", ")}`);
+      for (const p5 of personas2) {
+        console.log(`  \u2022 ${p5.name} (${p5.nameHe}) - ${p5.role}`);
+        console.log(`    ${p5.background.slice(0, 80)}...`);
+        if (p5.expertise) {
+          console.log(`    Expertise: ${p5.expertise.slice(0, 3).join(", ")}`);
         }
         console.log("");
       }
@@ -3105,8 +3567,8 @@ Use with: forge start --personas ${options.name}`);
         const content = await fs2.readFile(path2.join(personasDir, file), "utf-8");
         const personas2 = JSON.parse(content);
         console.log(`  \u2022 ${name} (${personas2.length} personas)`);
-        for (const p3 of personas2) {
-          console.log(`    - ${p3.name}: ${p3.role}`);
+        for (const p5 of personas2) {
+          console.log(`    - ${p5.name}: ${p5.role}`);
         }
         console.log("");
       }
@@ -3125,27 +3587,27 @@ Use with: forge start --personas ${options.name}`);
 \u{1F4CB} Persona Set: ${name}
 `);
       console.log("\u2500".repeat(60));
-      for (const p3 of personas2) {
+      for (const p5 of personas2) {
         console.log(`
-### ${p3.name} (${p3.nameHe}) - ${p3.role}`);
-        console.log(`Age: ${p3.age} | Color: ${p3.color}`);
+### ${p5.name} (${p5.nameHe}) - ${p5.role}`);
+        console.log(`Age: ${p5.age} | Color: ${p5.color}`);
         console.log(`
 Background:
-${p3.background}`);
+${p5.background}`);
         console.log(`
 Personality:`);
-        p3.personality.forEach((t) => console.log(`  \u2022 ${t}`));
+        p5.personality.forEach((t) => console.log(`  \u2022 ${t}`));
         console.log(`
 Biases:`);
-        p3.biases.forEach((b) => console.log(`  \u2022 ${b}`));
+        p5.biases.forEach((b) => console.log(`  \u2022 ${b}`));
         console.log(`
 Strengths:`);
-        p3.strengths.forEach((s) => console.log(`  \u2022 ${s}`));
+        p5.strengths.forEach((s) => console.log(`  \u2022 ${s}`));
         console.log(`
 Weaknesses:`);
-        p3.weaknesses.forEach((w) => console.log(`  \u2022 ${w}`));
+        p5.weaknesses.forEach((w) => console.log(`  \u2022 ${w}`));
         console.log(`
-Speaking Style: ${p3.speakingStyle}`);
+Speaking Style: ${p5.speakingStyle}`);
         console.log("\n" + "\u2500".repeat(60));
       }
     } catch {
@@ -3395,9 +3857,9 @@ function generateSummary(metadata, messages, format) {
   if (summary.keyMoments.topProposals.length > 0) {
     lines.push("## Recent Proposals");
     lines.push("");
-    for (const p3 of summary.keyMoments.topProposals) {
-      lines.push(`### From ${p3.from}`);
-      lines.push(p3.preview + "...");
+    for (const p5 of summary.keyMoments.topProposals) {
+      lines.push(`### From ${p5.from}`);
+      lines.push(p5.preview + "...");
       lines.push("");
     }
   }
@@ -3506,97 +3968,12 @@ function escapeHtml(text2) {
 }
 
 // cli/commands/batch.ts
+init_CLIAgentRunner();
 import { Command as Command3 } from "commander";
 import * as path7 from "path";
 import * as fs5 from "fs/promises";
 import { glob } from "glob";
 import { v4 as uuid } from "uuid";
-
-// cli/adapters/CLIAgentRunner.ts
-import Anthropic2 from "@anthropic-ai/sdk";
-var CLIAgentRunner = class {
-  client;
-  defaultModel;
-  constructor(apiKey, defaultModel = "claude-sonnet-4-20250514") {
-    this.client = new Anthropic2({
-      apiKey: apiKey || process.env.ANTHROPIC_API_KEY
-    });
-    this.defaultModel = defaultModel;
-  }
-  async query(params) {
-    try {
-      const response = await this.client.messages.create({
-        model: params.model || this.defaultModel,
-        max_tokens: 2048,
-        system: params.systemPrompt || "",
-        messages: [
-          {
-            role: "user",
-            content: params.prompt
-          }
-        ]
-      });
-      const content = response.content[0].type === "text" ? response.content[0].text : "";
-      return {
-        success: true,
-        content,
-        usage: {
-          inputTokens: response.usage.input_tokens,
-          outputTokens: response.usage.output_tokens,
-          costUsd: this.estimateCost(response.usage.input_tokens, response.usage.output_tokens)
-        }
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
-    }
-  }
-  async evaluate(params) {
-    try {
-      const response = await this.client.messages.create({
-        model: "claude-opus-4-6",
-        max_tokens: 200,
-        messages: [
-          {
-            role: "user",
-            content: params.evalPrompt
-          }
-        ]
-      });
-      const text2 = response.content[0].type === "text" ? response.content[0].text : "{}";
-      const jsonMatch = text2.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        return {
-          success: false,
-          urgency: "pass",
-          reason: "Failed to parse response",
-          responseType: ""
-        };
-      }
-      const result = JSON.parse(jsonMatch[0]);
-      return {
-        success: true,
-        urgency: result.urgency || "pass",
-        reason: result.reason || "",
-        responseType: result.responseType || ""
-      };
-    } catch (error) {
-      return {
-        success: false,
-        urgency: "pass",
-        reason: error instanceof Error ? error.message : "Unknown error",
-        responseType: ""
-      };
-    }
-  }
-  estimateCost(inputTokens, outputTokens) {
-    const inputCost = inputTokens / 1e6 * 3;
-    const outputCost = outputTokens / 1e6 * 15;
-    return inputCost + outputCost;
-  }
-};
 
 // cli/adapters/SessionPersistence.ts
 init_personas();
@@ -3613,8 +3990,8 @@ var SessionPersistence = class {
   autoSaveTimer = null;
   lastSavedMessageCount = 0;
   session = null;
-  constructor(fs18, config = {}) {
-    this.fs = fs18;
+  constructor(fs21, config = {}) {
+    this.fs = fs21;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
   /**
@@ -3965,8 +4342,8 @@ var ConversationMemory = class _ConversationMemory {
       this.decisions = this.decisions.slice(toRemove);
     }
     if (this.proposals.length > this.config.maxProposals * threshold) {
-      const active = this.proposals.filter((p3) => p3.status === "active");
-      const resolved = this.proposals.filter((p3) => p3.status !== "active");
+      const active = this.proposals.filter((p5) => p5.status === "active");
+      const resolved = this.proposals.filter((p5) => p5.status !== "active");
       const targetTotal = this.config.maxProposals;
       if (active.length >= targetTotal) {
         this.proposals = active.slice(-targetTotal);
@@ -4092,7 +4469,7 @@ var ConversationMemory = class _ConversationMemory {
     const state = this.agentStates.get(agentId);
     state.messageCount++;
     const content = message.content;
-    const isProposal = message.type === "proposal" || PROPOSAL_PATTERNS.some((p3) => p3.test(content));
+    const isProposal = message.type === "proposal" || PROPOSAL_PATTERNS.some((p5) => p5.test(content));
     if (isProposal) {
       this.proposals.push({
         id: generateMemoryId(),
@@ -4108,7 +4485,7 @@ var ConversationMemory = class _ConversationMemory {
       });
       state.keyPoints.push(this.extractFirstSentence(content));
     }
-    const isDecision = DECISION_PATTERNS.some((p3) => p3.test(content));
+    const isDecision = DECISION_PATTERNS.some((p5) => p5.test(content));
     if (isDecision) {
       this.decisions.push({
         id: generateMemoryId(),
@@ -4235,8 +4612,8 @@ ${keyPoints.join("\n")}`,
     }
     if (this.proposals.length > 0) {
       parts.push("\n## Active Proposals");
-      this.proposals.slice(-5).forEach((p3) => {
-        parts.push(`- [${p3.agentId}] ${p3.content}`);
+      this.proposals.slice(-5).forEach((p5) => {
+        parts.push(`- [${p5.agentId}] ${p5.content}`);
       });
     }
     if (forAgentId && this.agentStates.has(forAgentId)) {
@@ -4245,7 +4622,7 @@ ${keyPoints.join("\n")}`,
 ## Your Previous Contributions (${forAgentId})`);
       if (state.keyPoints.length > 0) {
         parts.push("Key points you made:");
-        state.keyPoints.slice(-3).forEach((p3) => parts.push(`- ${p3}`));
+        state.keyPoints.slice(-3).forEach((p5) => parts.push(`- ${p5}`));
       }
       if (state.agreements.length > 0) {
         parts.push("You agreed with:");
@@ -4360,7 +4737,7 @@ ${keyPoints.join("\n")}`,
    * @returns true if proposal was found and updated, false otherwise
    */
   updateProposalStatus(proposalId, status2) {
-    const proposal = this.proposals.find((p3) => p3.id === proposalId);
+    const proposal = this.proposals.find((p5) => p5.id === proposalId);
     if (proposal) {
       proposal.status = status2;
       return true;
@@ -4374,7 +4751,7 @@ ${keyPoints.join("\n")}`,
    * @returns true if proposal was found and reaction added, false otherwise
    */
   addProposalReaction(proposalId, reaction) {
-    const proposal = this.proposals.find((p3) => p3.id === proposalId);
+    const proposal = this.proposals.find((p5) => p5.id === proposalId);
     if (proposal) {
       if (!proposal.reactions) {
         proposal.reactions = [];
@@ -4395,14 +4772,14 @@ ${keyPoints.join("\n")}`,
    * @returns The proposal if found, undefined otherwise
    */
   getProposal(proposalId) {
-    return this.proposals.find((p3) => p3.id === proposalId);
+    return this.proposals.find((p5) => p5.id === proposalId);
   }
   /**
    * Get all active proposals
    * @returns Array of proposals with status 'active'
    */
   getActiveProposals() {
-    return this.proposals.filter((p3) => p3.status === "active");
+    return this.proposals.filter((p5) => p5.status === "active");
   }
   /**
    * Get the most recent proposal for reaction tracking
@@ -4882,7 +5259,7 @@ function generateAgentSystemPrompt(agent, config, context, skills) {
 - **Speaking Style**: ${agent.speakingStyle}
 
 ## Your Personality Traits
-${agent.personality.map((p3) => `- ${p3}`).join("\n")}
+${agent.personality.map((p5) => `- ${p5}`).join("\n")}
 
 ## Your Known Biases (be aware of these)
 ${agent.biases.map((b) => `- ${b}`).join("\n")}
@@ -6969,13 +7346,13 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
    * Per MODE_SYSTEM.md: Enforces requiredBeforeSynthesis and phase exit criteria
    */
   checkPhaseTransition() {
-    const currentPhaseConfig = this.mode.phases.find((p3) => p3.id === this.progress.currentPhase);
+    const currentPhaseConfig = this.mode.phases.find((p5) => p5.id === this.progress.currentPhase);
     if (!currentPhaseConfig) return null;
     if (!currentPhaseConfig.autoTransition) return null;
     const maxMessagesReached = this.progress.messagesInPhase >= currentPhaseConfig.maxMessages;
     const exitCriteriaMet = this.checkExitCriteria(currentPhaseConfig.exitCriteria);
     if (maxMessagesReached || exitCriteriaMet.met) {
-      const nextPhase = this.mode.phases.find((p3) => p3.order === currentPhaseConfig.order + 1);
+      const nextPhase = this.mode.phases.find((p5) => p5.order === currentPhaseConfig.order + 1);
       if (nextPhase) {
         if (this.isSynthesisPhase(nextPhase.id)) {
           const researchCheck = this.checkRequiredResearch();
@@ -7090,7 +7467,7 @@ Previous phase complete. Carry forward what we learned, but shift focus.`
     const maxMessages = this.mode.successCriteria.maxMessages;
     const atLimit = this.progress.totalMessages >= maxMessages;
     const neverSynthesized = !this.mode.phases.some(
-      (p3) => p3.id === "synthesis" && this.progress.currentPhase === "synthesis"
+      (p5) => p5.id === "synthesis" && this.progress.currentPhase === "synthesis"
     );
     return atLimit && neverSynthesized;
   }
@@ -7177,7 +7554,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
    * Manually transition to a phase
    */
   transitionToPhase(phaseId) {
-    const phase = this.mode.phases.find((p3) => p3.id === phaseId);
+    const phase = this.mode.phases.find((p5) => p5.id === phaseId);
     if (phase) {
       this.progress.currentPhase = phaseId;
       this.progress.messagesInPhase = 0;
@@ -7189,7 +7566,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
    * Get current phase config
    */
   getCurrentPhase() {
-    return this.mode.phases.find((p3) => p3.id === this.progress.currentPhase);
+    return this.mode.phases.find((p5) => p5.id === this.progress.currentPhase);
   }
   /**
    * Get mode-specific agent instructions
@@ -7544,8 +7921,8 @@ var WorkdirManager = class {
   consensusDir;
   skillsDir;
   initialized = false;
-  constructor(fs18, opts) {
-    this.fs = fs18;
+  constructor(fs21, opts) {
+    this.fs = fs21;
     this.sessionDir = opts.sessionDir;
     this.consensusDir = path6.join(opts.sessionDir, "consensus");
     this.skillsDir = path6.join(opts.sessionDir, "skills");
@@ -7577,8 +7954,8 @@ var WorkdirManager = class {
     await this.init();
     for (const [agentId, content] of perAgent) {
       if (!content.trim()) continue;
-      const p3 = path6.join(this.skillsDir, `${agentId}.md`);
-      await this.fs.writeFile(p3, content);
+      const p5 = path6.join(this.skillsDir, `${agentId}.md`);
+      await this.fs.writeFile(p5, content);
     }
   }
   getAgentPaths(agentId) {
@@ -7612,7 +7989,7 @@ var WorkdirManager = class {
     const ts = new Date(message.timestamp).toISOString().replace(/[:.]/g, "-");
     const safePhase = opts.phaseId.replace(/[^a-z0-9_-]+/gi, "_");
     const filename = `${safePhase}-${ts}-${message.agentId}.md`;
-    const p3 = path6.join(this.consensusDir, filename);
+    const p5 = path6.join(this.consensusDir, filename);
     const body = [
       `# ${opts.phaseId} \xB7 consensus \xB7 ${message.agentId}`,
       "",
@@ -7625,8 +8002,8 @@ var WorkdirManager = class {
       message.content,
       ""
     ].filter((l) => l !== null).join("\n");
-    await this.fs.writeFile(p3, body);
-    return p3;
+    await this.fs.writeFile(p5, body);
+    return p5;
   }
 };
 
@@ -8232,7 +8609,7 @@ Discussion continues without research results.`
     const fileList = result.filesRead.length > 0 ? `
 
 **\u{1F4C1} Files read (${result.filesRead.length}):**
-${result.filesRead.slice(0, 12).map((p3) => `- \`${p3}\``).join("\n")}${result.filesRead.length > 12 ? `
+${result.filesRead.slice(0, 12).map((p5) => `- \`${p5}\``).join("\n")}${result.filesRead.length > 12 ? `
 - \u2026and ${result.filesRead.length - 12} more` : ""}` : "";
     return [
       `**\u{1F50D} Local project introspection**`,
@@ -9047,6 +9424,40 @@ ${draft}`
   injectSystemSuffix(agentId, suffix) {
     this.updateAgentConfig(agentId, { systemSuffix: suffix });
   }
+  // ─── Hard consensus gate ─────────────────────────────────────────────
+  //
+  // Opt-in check an external caller can use to decide whether the
+  // session is allowed to move into Finalization / Drafting / shipping.
+  // Mirrors Octopus's 75% consensus gate. Returns the actual consensus
+  // ratio (supportRatio averaged across tracked insights) plus a pass/
+  // fail verdict at the supplied threshold.
+  /**
+   * Ratio of tracked insights whose support meets or exceeds
+   * consensusThreshold · a lightweight proxy for "how much does the
+   * room agree". Returns 0 when no insights are tracked yet.
+   */
+  getConsensusRatio() {
+    const insights = Array.from(this.keyInsights.values());
+    if (insights.length === 0) return 0;
+    const enabledAgents = this.session.config.enabledAgents;
+    const humanWeight = 2;
+    const totalWeight = enabledAgents.length + (this.agentContributions.has("human") ? humanWeight : 0);
+    let agreed = 0;
+    for (const insight of insights) {
+      let sup = insight.supporters.size;
+      if (insight.supporters.has("human")) sup += humanWeight - 1;
+      if (sup / totalWeight >= this.consensusThreshold) agreed++;
+    }
+    return agreed / insights.length;
+  }
+  /**
+   * Hard gate · true when the deliberation has reached the supplied
+   * consensus ratio (default 0.75 to match Octopus). Callers can use
+   * this to block shipping, advance a phase, or prompt the operator.
+   */
+  isConsensusReached(threshold = 0.75) {
+    return this.getConsensusRatio() >= threshold;
+  }
   // ─── Skills + workdir helpers ────────────────────────────────────────
   /**
    * Build the full skill+workspace bundle for a single agent. Shape:
@@ -9193,8 +9604,8 @@ async function runBatch(pattern, options) {
     console.log("");
   }
   if (options.dryRun) {
-    const dryRunResults = briefPaths.map((p3) => ({
-      brief: path7.relative(cwd, p3),
+    const dryRunResults = briefPaths.map((p5) => ({
+      brief: path7.relative(cwd, p5),
       wouldProcess: true
     }));
     if (options.json) {
@@ -9209,7 +9620,7 @@ async function runBatch(pattern, options) {
   let toProcess = briefPaths;
   if (options.resume) {
     const processed = await getProcessedBriefs(outputDir);
-    toProcess = briefPaths.filter((p3) => !processed.has(path7.basename(p3, ".md")));
+    toProcess = briefPaths.filter((p5) => !processed.has(path7.basename(p5, ".md")));
     if (!options.json && toProcess.length < briefPaths.length) {
       console.log(`Skipping ${briefPaths.length - toProcess.length} already processed briefs.`);
     }
@@ -10781,115 +11192,13 @@ function showBanner(savedCount) {
 }
 
 // cli/lib/session-launcher.ts
+init_CLIAgentRunner();
+init_ClaudeCodeCLIRunner();
 import React4 from "react";
 import { v4 as uuid2 } from "uuid";
 import * as path17 from "path";
 import * as fs14 from "fs/promises";
 import chalk7 from "chalk";
-
-// cli/adapters/ClaudeCodeCLIRunner.ts
-import * as path14 from "path";
-import * as os3 from "os";
-import { query as claudeQuery } from "@anthropic-ai/claude-agent-sdk";
-var CLAUDE_CODE_PATH = path14.join(os3.homedir(), ".local", "bin", "claude");
-var ClaudeCodeCLIRunner = class {
-  defaultModel;
-  evalModel;
-  constructor(defaultModel = "claude-sonnet-4-20250514", evalModel = "claude-opus-4-6") {
-    this.defaultModel = defaultModel;
-    this.evalModel = evalModel;
-  }
-  async query(params) {
-    let content = "";
-    let sessionId;
-    let usage;
-    try {
-      const q = claudeQuery({
-        prompt: params.prompt,
-        options: {
-          systemPrompt: params.systemPrompt || void 0,
-          model: params.model || this.defaultModel,
-          permissionMode: "bypassPermissions",
-          maxTurns: 1,
-          pathToClaudeCodeExecutable: CLAUDE_CODE_PATH,
-          stderr: (data) => {
-            const text2 = typeof data === "string" ? data : String(data);
-            if (!text2.trim()) return;
-            if (text2.includes("[DEBUG]") || text2.includes("INFO")) return;
-            console.error("[claude sdk]", text2.trim());
-          }
-        }
-      });
-      for await (const message of q) {
-        if ("session_id" in message && typeof message.session_id === "string") {
-          sessionId = message.session_id;
-        }
-        if (message.type === "assistant" && "message" in message) {
-          const msg = message.message;
-          if (msg?.content && Array.isArray(msg.content)) {
-            for (const block of msg.content) {
-              const b = block;
-              if (b.type === "text" && b.text) {
-                content += b.text;
-              }
-            }
-          }
-        }
-        if (message.type === "result") {
-          const result = message;
-          if (result.usage) {
-            usage = {
-              inputTokens: result.usage.input_tokens || 0,
-              outputTokens: result.usage.output_tokens || 0,
-              costUsd: result.total_cost_usd || 0
-            };
-          }
-        }
-      }
-    } catch (error) {
-      if (content) {
-        return { success: true, content, sessionId, usage };
-      }
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
-    }
-    return { success: true, content, sessionId, usage };
-  }
-  async evaluate(params) {
-    const queryResult = await this.query({
-      prompt: params.evalPrompt,
-      systemPrompt: "You are evaluating whether to speak in a discussion. Respond only with JSON.",
-      model: this.evalModel
-    });
-    if (!queryResult.success || !queryResult.content) {
-      return {
-        success: false,
-        urgency: "pass",
-        reason: queryResult.error || "No response",
-        responseType: ""
-      };
-    }
-    const jsonMatch = queryResult.content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return { success: true, urgency: "pass", reason: "Listening", responseType: "" };
-    }
-    try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        success: true,
-        urgency: parsed.urgency || "pass",
-        reason: parsed.reason || "",
-        responseType: parsed.responseType || ""
-      };
-    } catch {
-      return { success: true, urgency: "pass", reason: "Parse error", responseType: "" };
-    }
-  }
-};
-
-// cli/lib/session-launcher.ts
 init_personas();
 
 // cli/adapters/auth-bridge.ts
@@ -11411,7 +11720,15 @@ async function launchSession(req) {
   const cwd = process.cwd();
   const fsAdapter = new FileSystemAdapter(cwd);
   const agentRunner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner() : new ClaudeCodeCLIRunner();
-  const { ProviderRegistry: ProviderRegistry2, AnthropicProvider: AnthropicProvider2, GeminiProvider: GeminiProvider2, OpenAIProvider: OpenAIProvider2, OllamaProvider: OllamaProvider2 } = await Promise.resolve().then(() => (init_providers(), providers_exports));
+  const {
+    ProviderRegistry: ProviderRegistry2,
+    AnthropicProvider: AnthropicProvider2,
+    GeminiProvider: GeminiProvider2,
+    OpenAIProvider: OpenAIProvider2,
+    OllamaProvider: OllamaProvider2,
+    OpenRouterProvider: OpenRouterProvider2,
+    PerplexityProvider: PerplexityProvider2
+  } = await Promise.resolve().then(() => (init_providers(), providers_exports));
   const forgeSettings = await loadConfig2();
   const providers = new ProviderRegistry2();
   providers.register(new AnthropicProvider2(agentRunner, true), { asDefault: true });
@@ -11421,6 +11738,12 @@ async function launchSession(req) {
   const openaiKey = resolveProviderKey(forgeSettings, "openai", "OPENAI_API_KEY");
   const openai = new OpenAIProvider2(openaiKey);
   if (openai.isAvailable()) providers.register(openai);
+  const openrouterKey = resolveProviderKey(forgeSettings, "openrouter", "OPENROUTER_API_KEY");
+  const openrouter = new OpenRouterProvider2(openrouterKey);
+  if (openrouter.isAvailable()) providers.register(openrouter);
+  const perplexityKey = resolveProviderKey(forgeSettings, "perplexity", "PERPLEXITY_API_KEY");
+  const perplexity = new PerplexityProvider2(perplexityKey);
+  if (perplexity.isAvailable()) providers.register(perplexity);
   const ollamaCfg = forgeSettings.providers.ollama;
   if (ollamaCfg?.enabled !== false) {
     const ollama = new OllamaProvider2({ baseUrl: ollamaCfg?.baseUrl });
@@ -11679,11 +12002,11 @@ async function newSessionWizard(defaults) {
     ].join("\n"),
     "Ready to run"
   );
-  const confirm3 = await p2.confirm({
+  const confirm5 = await p2.confirm({
     message: "Start the deliberation?",
     initialValue: true
   });
-  if (p2.isCancel(confirm3) || !confirm3) return null;
+  if (p2.isCancel(confirm5) || !confirm5) return null;
   return {
     projectName: String(projectName).trim(),
     goal: String(goal).trim(),
@@ -11717,7 +12040,7 @@ async function runMenu() {
   const settings = await loadConfig2();
   const defaultMode = settings.defaults?.mode;
   const providersConfigured = Object.values(settings.providers ?? {}).some(
-    (p3) => p3?.enabled
+    (p5) => p5?.enabled
   );
   let keepGoing = true;
   let firstRender = true;
@@ -11820,8 +12143,571 @@ function createMenuCommand() {
   };
 }
 
-// cli/commands/login.ts
+// cli/commands/auto.ts
 import { Command as Command10 } from "commander";
+import * as p3 from "@clack/prompts";
+import chalk9 from "chalk";
+init_personas();
+init_CLIAgentRunner();
+init_ClaudeCodeCLIRunner();
+async function classify(raw) {
+  const runner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner() : new ClaudeCodeCLIRunner();
+  const modes = getAllModes();
+  const modeList = modes.map((m) => `  ${m.id.padEnd(18)} ${m.description}`).join("\n");
+  const personaList = AGENT_PERSONAS.map((a) => `  ${a.id.padEnd(22)} ${a.role}`).join("\n");
+  const systemPrompt = `You are a router. Given a user's request, pick the right deliberation mode and 3\u20134 agents from the catalog below. Output JSON only.
+
+## Modes
+${modeList}
+
+## Personas
+${personaList}
+
+## Output shape (JSON only, no commentary)
+{
+  "mode": "<one of the mode ids above>",
+  "agents": ["<persona id>", "<persona id>", "<persona id>"],
+  "goal": "<reframed goal, one sentence>",
+  "projectName": "<short, 3\u20135 words, PascalCase or kebab-case>",
+  "rationale": "<one sentence why this mode + these agents fit>"
+}`;
+  const result = await runner.query({
+    prompt: `User request: ${raw}
+
+Return the JSON only.`,
+    systemPrompt,
+    model: "claude-sonnet-4-20250514"
+  });
+  if (!result.success || !result.content) return null;
+  const match = result.content.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    const parsed = JSON.parse(match[0]);
+    if (typeof parsed.mode === "string" && Array.isArray(parsed.agents) && typeof parsed.goal === "string" && typeof parsed.projectName === "string") {
+      return {
+        mode: parsed.mode,
+        agents: parsed.agents,
+        goal: parsed.goal,
+        projectName: parsed.projectName,
+        rationale: parsed.rationale ?? ""
+      };
+    }
+  } catch {
+  }
+  return null;
+}
+async function run(text2, opts) {
+  p3.intro(chalk9.bold("\u2692  forge auto"));
+  const spin = p3.spinner();
+  spin.start("Classifying your request");
+  const decision = await classify(text2);
+  spin.stop(decision ? "Router picked a plan" : "Router fell back to custom mode");
+  const mode = decision?.mode ?? "custom";
+  const modeMeta = getModeById(mode);
+  const validAgents = (decision?.agents ?? []).filter((id) => AGENT_PERSONAS.some((a) => a.id === id));
+  const agents = validAgents.length >= 2 ? validAgents : ["skeptic", "pragmatist", "analyst"];
+  p3.note(
+    [
+      `${chalk9.bold("Mode:")}      ${modeMeta?.name ?? mode} (${mode})`,
+      `${chalk9.bold("Project:")}   ${decision?.projectName ?? "AutoRouted"}`,
+      `${chalk9.bold("Goal:")}      ${decision?.goal ?? text2}`,
+      `${chalk9.bold("Agents:")}    ${agents.join(", ")}`,
+      decision?.rationale ? `${chalk9.bold("Rationale:")} ${decision.rationale}` : ""
+    ].filter(Boolean).join("\n"),
+    "Proposed plan"
+  );
+  if (!opts.yes) {
+    const confirm5 = await p3.confirm({
+      message: "Start this deliberation?",
+      initialValue: true
+    });
+    if (p3.isCancel(confirm5) || !confirm5) {
+      p3.cancel("Cancelled. Re-run with different wording to try again.");
+      return;
+    }
+  }
+  const result = await launchSession({
+    projectName: decision?.projectName ?? "AutoRouted",
+    goal: decision?.goal ?? text2,
+    mode,
+    agents,
+    language: "english",
+    humanParticipation: false,
+    outputDir: opts.output ?? "output/sessions"
+  });
+  if (!result.success) {
+    console.error(chalk9.red(result.error ?? "Session did not start"));
+    process.exitCode = 1;
+  }
+}
+function createAutoCommand() {
+  return new Command10("auto").description("Smart router: natural-language request \u2192 mode + agents + goal").argument("<text...>", "Free-form request, any length").option("-y, --yes", "Skip the confirmation prompt and launch immediately").option("-o, --output <dir>", "Output directory", "output/sessions").action(async (text2, opts) => {
+    try {
+      await run(text2.join(" "), opts);
+    } catch (err2) {
+      if (err2 instanceof Error && /force closed/i.test(err2.message)) return;
+      console.error(chalk9.red("forge auto failed:"), err2 instanceof Error ? err2.message : err2);
+      process.exitCode = 1;
+    }
+  });
+}
+
+// cli/commands/compress.ts
+init_CLIAgentRunner();
+init_ClaudeCodeCLIRunner();
+import { Command as Command11 } from "commander";
+import * as fs16 from "fs/promises";
+import * as path19 from "path";
+import chalk10 from "chalk";
+var SYSTEM_PROMPT = `You are a transcript compressor. Distill the deliberation into a handoff brief a new session could pick up without reading the full transcript.
+
+## Output shape (markdown)
+# Compressed handoff
+
+## Premise
+<1-2 sentences \xB7 what the session was about>
+
+## Key facts established
+- <tight bullets \xB7 research findings, commitments, agreements>
+
+## Decisions reached
+- <each decision on its own bullet \xB7 include the verdict in CAPS>
+
+## Open questions
+- <things the session flagged but did not resolve>
+
+## Next action
+<one sentence \xB7 what the handoff agent should do next>
+
+Keep every section under 300 words. Preserve citations, file paths, and specific numbers verbatim.`;
+async function readInput(inputPath) {
+  if (inputPath) {
+    return fs16.readFile(inputPath, "utf-8");
+  }
+  if (process.stdin.isTTY) {
+    throw new Error("No input \u2014 pass a file or pipe a transcript via stdin");
+  }
+  const chunks = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString("utf-8");
+}
+async function run2(inputPath, opts) {
+  const input = await readInput(inputPath);
+  if (!input.trim()) {
+    throw new Error("Empty input");
+  }
+  const before = Math.round(input.length / 4);
+  const runner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner() : new ClaudeCodeCLIRunner();
+  const result = await runner.query({
+    prompt: `Transcript to compress:
+
+${input}`,
+    systemPrompt: SYSTEM_PROMPT,
+    model: opts.model ?? "claude-sonnet-4-20250514"
+  });
+  if (!result.success || !result.content) {
+    throw new Error(result.error ?? "Compression failed");
+  }
+  const compressed = result.content.trim();
+  const after = Math.round(compressed.length / 4);
+  if (opts.output) {
+    await fs16.mkdir(path19.dirname(opts.output), { recursive: true }).catch(() => {
+    });
+    await fs16.writeFile(opts.output, compressed);
+    console.error(
+      chalk10.green("\u2713"),
+      `${opts.output}  \xB7  ${chalk10.dim(`~${before.toLocaleString()} \u2192 ~${after.toLocaleString()} tokens (${Math.round((1 - after / before) * 100)}% smaller)`)}`
+    );
+  } else {
+    process.stdout.write(compressed);
+    if (!compressed.endsWith("\n")) process.stdout.write("\n");
+    console.error(
+      chalk10.dim(`
+~${before.toLocaleString()} \u2192 ~${after.toLocaleString()} tokens (${Math.round((1 - after / before) * 100)}% smaller)`)
+    );
+  }
+}
+function createCompressCommand() {
+  return new Command11("compress").description("Summarize a transcript into a handoff brief (stdin \u2192 stdout pipe, or file args)").argument("[input]", "Input file (reads stdin if omitted)").option("-o, --output <file>", "Write to a file instead of stdout").option("--model <model>", "Model to use for the compression pass", "claude-sonnet-4-20250514").action(async (input, opts) => {
+    try {
+      await run2(input, opts);
+    } catch (err2) {
+      console.error(chalk10.red("forge compress failed:"), err2 instanceof Error ? err2.message : err2);
+      process.exitCode = 1;
+    }
+  });
+}
+
+// cli/commands/mcp.ts
+import { Command as Command12 } from "commander";
+import * as path20 from "path";
+import * as fs17 from "fs/promises";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema
+} from "@modelcontextprotocol/sdk/types.js";
+init_personas();
+async function listSessions3(outputDir = "output/sessions") {
+  try {
+    const entries = await fs17.readdir(outputDir, { withFileTypes: true });
+    const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name).sort().reverse();
+    const metas = [];
+    for (const name of dirs.slice(0, 50)) {
+      const dir = path20.join(outputDir, name);
+      try {
+        const raw = await fs17.readFile(path20.join(dir, "session.json"), "utf-8");
+        const parsed = JSON.parse(raw);
+        metas.push({
+          name,
+          dir,
+          project: parsed.projectName,
+          goal: parsed.goal,
+          startedAt: parsed.startedAt,
+          messageCount: parsed.messageCount
+        });
+      } catch {
+        metas.push({ name, dir });
+      }
+    }
+    return metas;
+  } catch {
+    return [];
+  }
+}
+async function listConsensusArtifacts(sessionDir) {
+  const dir = path20.join(sessionDir, "consensus");
+  try {
+    const files = await fs17.readdir(dir);
+    const out = [];
+    for (const f of files.sort()) {
+      if (!f.endsWith(".md")) continue;
+      const body = await fs17.readFile(path20.join(dir, f), "utf-8");
+      out.push({ file: f, body });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+async function runMcp() {
+  const server = new Server(
+    { name: "forge", version: "0.2.0" },
+    { capabilities: { tools: {} } }
+  );
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [
+      {
+        name: "list_modes",
+        description: "List Forge deliberation modes (copywrite, will-it-work, vc-pitch, tech-review, red-team, \u2026). Each mode has its own phase machine and required outputs.",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "list_agents",
+        description: "List available personas the operator can assign to a session (skeptic, pragmatist, architect, vc-partner, attack-planner, \u2026).",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "list_sessions",
+        description: "List past Forge sessions (newest first, up to 50). Each entry has name, project, goal, messageCount.",
+        inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "get_consensus",
+        description: "Return every consensus artifact captured in a session (files under <session>/consensus/).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            session: { type: "string", description: "Session directory name (as returned by list_sessions)." }
+          },
+          required: ["session"]
+        }
+      },
+      {
+        name: "get_transcript",
+        description: "Return the full markdown transcript of a Forge session.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            session: { type: "string", description: "Session directory name." }
+          },
+          required: ["session"]
+        }
+      },
+      {
+        name: "route",
+        description: 'Smart-router: take a natural-language request, return a proposed (mode, agents, goal) plan without running a session. The caller can then invoke `forge auto "..."` or `forge start -m ...` with the suggestion.',
+        inputSchema: {
+          type: "object",
+          properties: {
+            request: { type: "string", description: "Free-form request." }
+          },
+          required: ["request"]
+        }
+      }
+    ]
+  }));
+  server.setRequestHandler(CallToolRequestSchema, async (req) => {
+    const name = req.params.name;
+    const args = req.params.arguments ?? {};
+    if (name === "list_modes") {
+      const modes = getAllModes().map((m) => ({
+        id: m.id,
+        name: m.name,
+        description: m.description,
+        phases: m.phases.map((p5) => p5.id),
+        requiredOutputs: m.successCriteria?.requiredOutputs ?? []
+      }));
+      return { content: [{ type: "text", text: JSON.stringify(modes, null, 2) }] };
+    }
+    if (name === "list_agents") {
+      const agents = AGENT_PERSONAS.map((a) => ({
+        id: a.id,
+        name: a.name,
+        role: a.role,
+        strengths: a.strengths?.slice(0, 3) ?? []
+      }));
+      return { content: [{ type: "text", text: JSON.stringify(agents, null, 2) }] };
+    }
+    if (name === "list_sessions") {
+      const sessions = await listSessions3();
+      return { content: [{ type: "text", text: JSON.stringify(sessions, null, 2) }] };
+    }
+    if (name === "get_consensus") {
+      const session = String(args.session ?? "");
+      const dir = path20.join("output/sessions", session);
+      const artifacts = await listConsensusArtifacts(dir);
+      return { content: [{ type: "text", text: JSON.stringify(artifacts, null, 2) }] };
+    }
+    if (name === "get_transcript") {
+      const session = String(args.session ?? "");
+      try {
+        const body = await fs17.readFile(
+          path20.join("output/sessions", session, "transcript.md"),
+          "utf-8"
+        );
+        return { content: [{ type: "text", text: body }] };
+      } catch (err2) {
+        return {
+          content: [{ type: "text", text: `Transcript not found: ${String(err2)}` }],
+          isError: true
+        };
+      }
+    }
+    if (name === "route") {
+      const request = String(args.request ?? "");
+      const { CLIAgentRunner: CLIAgentRunner2 } = await Promise.resolve().then(() => (init_CLIAgentRunner(), CLIAgentRunner_exports));
+      const { ClaudeCodeCLIRunner: ClaudeCodeCLIRunner2 } = await Promise.resolve().then(() => (init_ClaudeCodeCLIRunner(), ClaudeCodeCLIRunner_exports));
+      const runner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner2() : new ClaudeCodeCLIRunner2();
+      const modes = getAllModes();
+      const system = `You are a router. Pick the right Forge mode and 3-4 agents.
+
+## Modes
+${modes.map((m2) => `- ${m2.id}: ${m2.description}`).join("\n")}
+
+## Personas
+${AGENT_PERSONAS.map((a) => `- ${a.id}: ${a.role}`).join("\n")}
+
+Output JSON only: {"mode":"...", "agents":[...], "goal":"...", "projectName":"...", "rationale":"..."}`;
+      const r = await runner.query({
+        prompt: `Request: ${request}
+Return JSON only.`,
+        systemPrompt: system,
+        model: "claude-sonnet-4-20250514"
+      });
+      if (!r.success || !r.content) {
+        return {
+          content: [{ type: "text", text: r.error ?? "Router failed" }],
+          isError: true
+        };
+      }
+      const m = r.content.match(/\{[\s\S]*\}/);
+      return {
+        content: [{ type: "text", text: m ? m[0] : r.content }]
+      };
+    }
+    return {
+      content: [{ type: "text", text: `Unknown tool: ${name}` }],
+      isError: true
+    };
+  });
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  process.stderr.write("forge mcp \xB7 ready \xB7 tools: list_modes, list_agents, list_sessions, get_consensus, get_transcript, route\n");
+}
+function createMcpCommand() {
+  return new Command12("mcp").description("Run Forge as an MCP server over stdio (for Cursor, Claude Code, etc.)").action(async () => {
+    try {
+      await runMcp();
+    } catch (err2) {
+      process.stderr.write(`forge mcp failed: ${err2 instanceof Error ? err2.message : err2}
+`);
+      process.exit(1);
+    }
+  });
+}
+
+// cli/commands/parallel.ts
+import { Command as Command13 } from "commander";
+import * as p4 from "@clack/prompts";
+import * as path21 from "path";
+import * as fs18 from "fs/promises";
+import chalk11 from "chalk";
+init_personas();
+init_CLIAgentRunner();
+init_ClaudeCodeCLIRunner();
+async function splitSpec(spec, n) {
+  const runner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner() : new ClaudeCodeCLIRunner();
+  const modes = getAllModes();
+  const system = `You split a large request into ${n} independent sub-deliberations.
+Each sub-deliberation has a distinct angle \xB7 they should NOT be the
+same question rephrased. Pick the right Forge mode + 3-4 agents for
+each sub-question.
+
+## Modes
+${modes.map((m2) => `- ${m2.id}: ${m2.description}`).join("\n")}
+
+## Personas
+${AGENT_PERSONAS.map((a) => `- ${a.id}: ${a.role}`).join("\n")}
+
+## Output (JSON array of length ${n})
+[
+  {
+    "projectName": "<3-5 word pascal/kebab>",
+    "goal": "<one sentence, distinct from the others>",
+    "mode": "<mode id>",
+    "agents": ["<persona id>", ...],
+    "rationale": "<one sentence>"
+  },
+  ...
+]`;
+  const r = await runner.query({
+    prompt: `Request: ${spec}
+Return the JSON array only.`,
+    systemPrompt: system,
+    model: "claude-sonnet-4-20250514"
+  });
+  if (!r.success || !r.content) return [];
+  const m = r.content.match(/\[[\s\S]*\]/);
+  if (!m) return [];
+  try {
+    const parsed = JSON.parse(m[0]);
+    return parsed.filter(
+      (x) => typeof x?.projectName === "string" && typeof x?.goal === "string" && typeof x?.mode === "string" && Array.isArray(x.agents)
+    ).slice(0, n);
+  } catch {
+    return [];
+  }
+}
+async function aggregate(parallelDir, runs) {
+  const lines = [
+    `# Forge parallel run`,
+    ``,
+    `${runs.length} sub-deliberation${runs.length === 1 ? "" : "s"}.`,
+    ``
+  ];
+  for (const { plan, sessionDir } of runs) {
+    lines.push(`## ${plan.projectName} \xB7 ${plan.mode}`);
+    lines.push(``);
+    lines.push(`**Goal:** ${plan.goal}`);
+    lines.push(`**Agents:** ${plan.agents.join(", ")}`);
+    if (plan.rationale) lines.push(`**Why this split:** ${plan.rationale}`);
+    lines.push(``);
+    if (sessionDir) {
+      lines.push(`**Session:** \`${sessionDir}\``);
+      lines.push(``);
+      try {
+        const consensusDir = path21.join(sessionDir, "consensus");
+        const files = await fs18.readdir(consensusDir);
+        for (const f of files.sort()) {
+          if (!f.endsWith(".md")) continue;
+          const body = await fs18.readFile(path21.join(consensusDir, f), "utf-8");
+          lines.push(`### ${f}`);
+          lines.push("");
+          lines.push(body.trim());
+          lines.push("");
+        }
+      } catch {
+        lines.push(`_No consensus artifacts captured._`);
+        lines.push("");
+      }
+    } else {
+      lines.push(`_Run did not complete successfully._`);
+      lines.push("");
+    }
+    lines.push(`---`);
+    lines.push(``);
+  }
+  const out = path21.join(parallelDir, "AGGREGATE.md");
+  await fs18.writeFile(out, lines.join("\n"));
+  return out;
+}
+async function run3(spec, opts) {
+  const n = Math.max(2, Math.min(8, parseInt(opts.count ?? "3", 10) || 3));
+  p4.intro(chalk11.bold(`\u2692  forge parallel \xB7 ${n} sub-deliberations`));
+  const spin = p4.spinner();
+  spin.start("Splitting the spec into sub-questions");
+  const plans = await splitSpec(spec, n);
+  spin.stop(plans.length > 0 ? `Split into ${plans.length} plans` : "Router failed to produce a valid split");
+  if (plans.length === 0) {
+    p4.cancel("Nothing to run.");
+    return;
+  }
+  p4.note(
+    plans.map(
+      (pl, i) => `${chalk11.bold(`[${i + 1}] ${pl.projectName}`)} \xB7 ${pl.mode}
+    ${pl.goal}
+    ${chalk11.dim(pl.agents.join(", "))}`
+    ).join("\n\n"),
+    "Proposed splits"
+  );
+  const ok2 = await p4.confirm({
+    message: `Run all ${plans.length} sessions now? (sequential \xB7 each ~2-4 minutes)`,
+    initialValue: true
+  });
+  if (p4.isCancel(ok2) || !ok2) {
+    p4.cancel("Cancelled.");
+    return;
+  }
+  const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
+  const parallelDir = path21.join(opts.output ?? "output/sessions", `parallel-${ts}`);
+  await fs18.mkdir(parallelDir, { recursive: true });
+  const runs = [];
+  for (let i = 0; i < plans.length; i++) {
+    const plan = plans[i];
+    const subDir = path21.join(parallelDir, `${String(i + 1).padStart(2, "0")}-${plan.projectName.replace(/[^a-z0-9]+/gi, "-")}`);
+    p4.note(`Starting ${i + 1}/${plans.length}: ${plan.projectName}`, "Running");
+    const result = await launchSession({
+      projectName: plan.projectName,
+      goal: plan.goal,
+      mode: plan.mode,
+      agents: plan.agents,
+      language: "english",
+      humanParticipation: false,
+      outputDir: subDir
+    });
+    runs.push({ plan, sessionDir: result.sessionDir });
+  }
+  const aggPath = await aggregate(parallelDir, runs);
+  p4.outro(chalk11.green(`Aggregate report: ${aggPath}`));
+}
+function createParallelCommand() {
+  return new Command13("parallel").description("Split one spec into N parallel sub-deliberations, run them, aggregate results").argument("<spec...>", "The overall request").option("-n, --count <n>", "Number of sub-sessions (2-8)", "3").option("-o, --output <dir>", "Output directory root", "output/sessions").action(async (spec, opts) => {
+    try {
+      await run3(spec.join(" "), opts);
+    } catch (err2) {
+      if (err2 instanceof Error && /force closed/i.test(err2.message)) return;
+      console.error(chalk11.red("forge parallel failed:"), err2 instanceof Error ? err2.message : err2);
+      process.exitCode = 1;
+    }
+  });
+}
+
+// cli/commands/login.ts
+import { Command as Command14 } from "commander";
 import * as readline from "readline";
 
 // src/lib/render/progress.ts
@@ -11858,7 +12744,7 @@ var printIdentity = (state) => {
   console.log("");
 };
 var createLoginCommand = () => {
-  const cmd = new Command10("login").description("Create or restore your decentralized DID identity").option("--new", "Force create a new identity (replaces existing)").action(async (opts) => {
+  const cmd = new Command14("login").description("Create or restore your decentralized DID identity").option("--new", "Force create a new identity (replaces existing)").action(async (opts) => {
     if (!opts.new) {
       const restoreResult = await repo.restoreSession();
       const restored = restoreResult.match(
@@ -11889,9 +12775,9 @@ var createLoginCommand = () => {
     if (wantAttestation && wantAttestation !== "skip" && wantAttestation !== "n") {
       const platforms = ["mastodon", "github", "bluesky"];
       let platform = null;
-      for (const p3 of platforms) {
-        if (wantAttestation.toLowerCase().includes(p3)) {
-          platform = p3;
+      for (const p5 of platforms) {
+        if (wantAttestation.toLowerCase().includes(p5)) {
+          platform = p5;
           break;
         }
       }
@@ -11922,7 +12808,7 @@ var createLoginCommand = () => {
     }
   });
   cmd.addCommand(
-    new Command10("status").description("Show current identity status").action(async () => {
+    new Command14("status").description("Show current identity status").action(async () => {
       const result = await repo.restoreSession();
       result.match(
         (s) => {
@@ -11939,7 +12825,7 @@ var createLoginCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command10("logout").description("Remove stored identity").action(async () => {
+    new Command14("logout").description("Remove stored identity").action(async () => {
       await repo.logout();
       console.log(style(forgeTheme.status.success, "  \u2714 Identity cleared"));
     })
@@ -11948,7 +12834,7 @@ var createLoginCommand = () => {
 };
 
 // cli/commands/community.ts
-import { Command as Command11 } from "commander";
+import { Command as Command15 } from "commander";
 import * as readline2 from "readline";
 
 // src/lib/p2p/errors.ts
@@ -12033,7 +12919,7 @@ var fetchAll = () => ResultAsync.fromPromise(
 });
 
 // cli/adapters/services.ts
-import * as path22 from "path";
+import * as path25 from "path";
 
 // src/lib/connections/errors.ts
 var bridgeUnavailable3 = makeError("BridgeUnavailable");
@@ -12064,7 +12950,7 @@ var started = false;
 async function ensureServices() {
   if (started) return;
   started = true;
-  const p2pDataDir = path22.join(forgeDataDir, "p2p");
+  const p2pDataDir = path25.join(forgeDataDir, "p2p");
   try {
     const { peerId } = await startP2P(p2pDataDir);
     console.log(`\x1B[2m[p2p] peer: ${peerId.slice(0, 12)}\u2026\x1B[0m`);
@@ -12105,13 +12991,13 @@ var repo2 = createSessionRepository(
 );
 var isContribution = (payload) => {
   if (!payload || typeof payload !== "object") return false;
-  const p3 = payload;
-  return typeof p3.kind === "string" && typeof p3.v === "number" && typeof p3.title === "string" && ["persona", "insight", "template", "prompt"].includes(p3.kind) && typeof p3.content === "object";
+  const p5 = payload;
+  return typeof p5.kind === "string" && typeof p5.v === "number" && typeof p5.title === "string" && ["persona", "insight", "template", "prompt"].includes(p5.kind) && typeof p5.content === "object";
 };
 var isReaction = (payload) => {
   if (!payload || typeof payload !== "object") return false;
-  const p3 = payload;
-  return p3.kind === "reaction" && typeof p3.targetId === "string";
+  const p5 = payload;
+  return p5.kind === "reaction" && typeof p5.targetId === "string";
 };
 var shortenDid = (did) => did.length > 24 ? `${did.slice(0, 12)}\u2026${did.slice(-8)}` : did;
 var ask2 = (question) => {
@@ -12124,9 +13010,9 @@ var ask2 = (question) => {
   });
 };
 var createCommunityCommand = () => {
-  const cmd = new Command11("community").description("Browse and publish community contributions (P2P)");
+  const cmd = new Command15("community").description("Browse and publish community contributions (P2P)");
   cmd.addCommand(
-    new Command11("list").description("List contributions from connected peers").option("-k, --kind <kind>", "Filter by kind (persona|insight|template|prompt)").action(async (opts) => {
+    new Command15("list").description("List contributions from connected peers").option("-k, --kind <kind>", "Filter by kind (persona|insight|template|prompt)").action(async (opts) => {
       await ensureServices();
       const result = await fetchAll();
       result.match(
@@ -12169,7 +13055,7 @@ var createCommunityCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command11("publish").description("Publish a new contribution").requiredOption("-k, --kind <kind>", "Contribution kind (persona|insight|template|prompt)").requiredOption("-t, --title <title>", "Title").requiredOption("-d, --description <desc>", "One-line description").option("-b, --body <body>", "Body content (or will prompt)").option("--tags <tags>", "Comma-separated tags").action(async (opts) => {
+    new Command15("publish").description("Publish a new contribution").requiredOption("-k, --kind <kind>", "Contribution kind (persona|insight|template|prompt)").requiredOption("-t, --title <title>", "Title").requiredOption("-d, --description <desc>", "One-line description").option("-b, --body <body>", "Body content (or will prompt)").option("--tags <tags>", "Comma-separated tags").action(async (opts) => {
       await ensureServices();
       const session = await repo2.restoreSession();
       const authState = session.match((s) => s, () => null);
@@ -12229,7 +13115,7 @@ var createCommunityCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command11("vote").description("Upvote or downvote a contribution").argument("<id>", "Contribution ID (or prefix)").option("--down", "Downvote instead of upvote").action(async (idOrPrefix, opts) => {
+    new Command15("vote").description("Upvote or downvote a contribution").argument("<id>", "Contribution ID (or prefix)").option("--down", "Downvote instead of upvote").action(async (idOrPrefix, opts) => {
       await ensureServices();
       const session = await repo2.restoreSession();
       const authState = session.match((s) => s, () => null);
@@ -12280,7 +13166,7 @@ var YELLOW2 = forgeTheme.status.warning;
 var CYAN2 = forgeTheme.status.info;
 var RED2 = forgeTheme.status.error;
 var MAGENTA = forgeTheme.text.emphasis;
-var program = new Command12();
+var program = new Command16();
 program.name("forge").description("Multi-agent deliberation engine - reach consensus through structured debate").version("1.0.0");
 program.command("start", { hidden: true }).description("[power-user] Launch a session directly from flags (regular use: run `forge` for the menu)").option("-b, --brief <name>", "Brief name to load (from briefs/ directory)").option("-p, --project <name>", "Project name", "New Project").option("-g, --goal <goal>", "Project goal").option("-a, --agents <ids>", "Comma-separated agent IDs (from default or custom personas)").option("-m, --mode <mode>", "Deliberation mode (see `forge --help`)", "will-it-work").option("--personas <name>", "Use custom persona set (from personas/ directory)").option("-l, --language <lang>", "Language: hebrew, english, mixed", "english").option("--human", "Enable human participation", true).option("--no-human", "Disable human participation").option("-o, --output <dir>", "Output directory for sessions", "output/sessions").action(async (options) => {
   const agents = options.agents ? String(options.agents).split(",").map((s) => s.trim()).filter(Boolean) : ["skeptic", "pragmatist", "analyst"];
@@ -12337,6 +13223,10 @@ program.addCommand(createCompletionsCommand());
 program.addCommand(createConfigCommand());
 program.addCommand(createSkillsCommand());
 program.addCommand(createInitCommand());
+program.addCommand(createAutoCommand());
+program.addCommand(createCompressCommand());
+program.addCommand(createMcpCommand());
+program.addCommand(createParallelCommand());
 program.addCommand(createLoginCommand());
 program.addCommand(createCommunityCommand());
 program.action(createMenuCommand());

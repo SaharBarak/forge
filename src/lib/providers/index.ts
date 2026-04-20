@@ -9,3 +9,5 @@ export { AnthropicProvider } from './AnthropicProvider';
 export { GeminiProvider } from './GeminiProvider';
 export { OpenAIProvider } from './OpenAIProvider';
 export { OllamaProvider } from './OllamaProvider';
+export { OpenRouterProvider } from './OpenRouterProvider';
+export { PerplexityProvider } from './PerplexityProvider';

@@ -68,9 +68,17 @@ export async function launchSession(
     ? new CLIAgentRunner()
     : new ClaudeCodeCLIRunner();
 
-  // Provider registry — Anthropic always; Gemini/OpenAI/Ollama per config.
-  const { ProviderRegistry, AnthropicProvider, GeminiProvider, OpenAIProvider, OllamaProvider } =
-    await import('../../src/lib/providers');
+  // Provider registry — Anthropic always; the rest activate when their
+  // credentials are available (either env var or saved config).
+  const {
+    ProviderRegistry,
+    AnthropicProvider,
+    GeminiProvider,
+    OpenAIProvider,
+    OllamaProvider,
+    OpenRouterProvider,
+    PerplexityProvider,
+  } = await import('../../src/lib/providers');
   const forgeSettings = await loadConfig();
 
   const providers = new ProviderRegistry();
@@ -85,6 +93,14 @@ export async function launchSession(
   const openaiKey = resolveProviderKey(forgeSettings, 'openai', 'OPENAI_API_KEY');
   const openai = new OpenAIProvider(openaiKey);
   if (openai.isAvailable()) providers.register(openai);
+
+  const openrouterKey = resolveProviderKey(forgeSettings, 'openrouter', 'OPENROUTER_API_KEY');
+  const openrouter = new OpenRouterProvider(openrouterKey);
+  if (openrouter.isAvailable()) providers.register(openrouter);
+
+  const perplexityKey = resolveProviderKey(forgeSettings, 'perplexity', 'PERPLEXITY_API_KEY');
+  const perplexity = new PerplexityProvider(perplexityKey);
+  if (perplexity.isAvailable()) providers.register(perplexity);
 
   const ollamaCfg = forgeSettings.providers.ollama;
   if (ollamaCfg?.enabled !== false) {
