@@ -244,7 +244,7 @@ function CouncilPanel({ agents, currentSpeaker }: CouncilPanelProps): React.Reac
   const maxContribs = Math.max(1, ...agents.map((a) => a.contributions));
 
   return (
-    <box flexDirection="column" width={30} flexShrink={0}>
+    <box flexDirection="column" width={30} flexShrink={0} backgroundColor="#0a0a0b">
       <box border borderColor="#ffbf00" padding={1} flexDirection="column">
         <text fg="#ffbf00">COUNCIL</text>
         <text fg="#6b6b76">{agents.length} in the room</text>
@@ -300,7 +300,7 @@ function DiscussionPane({ messages, maxRows = 20 }: DiscussionPaneProps): React.
   })();
 
   return (
-    <box border borderColor="#2a2a32" padding={1} flexGrow={1} flexDirection="column">
+    <box border borderColor="#2a2a32" padding={1} flexGrow={1} flexDirection="column" backgroundColor="#0a0a0b">
       <box flexDirection="row">
         <text fg="#00e5ff">DISCUSSION</text>
         <text fg="#6b6b76"> · {messages.length} messages</text>
@@ -315,9 +315,9 @@ function DiscussionPane({ messages, maxRows = 20 }: DiscussionPaneProps): React.
               // Grab the first non-empty line, then clean markdown/emoji
               // artifacts the orchestrator emits (**PHASE 1/4**, 🎙️, etc.).
               const firstLine = msg.content.split('\n').find((l) => l.trim()) || '';
-              const line = cleanMessageBody(firstLine).slice(0, 140);
+              const line = cleanMessageBody(firstLine).slice(0, 140).padEnd(140, ' ');
               return (
-                <text key={msg.id} fg="#6b6b76">
+                <text key={msg.id} fg="#6b6b76" bg="#0a0a0b">
                   ◎ {line}
                 </text>
               );
@@ -325,7 +325,12 @@ function DiscussionPane({ messages, maxRows = 20 }: DiscussionPaneProps): React.
             const isCurrent = i === lastAgentIdx;
             const color = agentColor(msg.agentId);
             const badge = TYPE_COLOR[msg.type];
-            const body = cleanMessageBody(msg.content).slice(0, 420);
+            // Cap at 420 chars AND pad with trailing spaces to the same
+            // width every render. Without the pad, OpenTUI reuses cells
+            // from the previous (longer) message and the text-buffer diff
+            // leaves the tail chars in place — exactly the artifact the
+            // user saw as half-words bleeding into new messages.
+            const body = cleanMessageBody(msg.content).slice(0, 420).padEnd(420, ' ');
 
             return (
               <box
@@ -335,18 +340,19 @@ function DiscussionPane({ messages, maxRows = 20 }: DiscussionPaneProps): React.
                 border={isCurrent}
                 borderColor={isCurrent ? '#00e5ff' : undefined}
                 padding={isCurrent ? 1 : 0}
+                backgroundColor="#0a0a0b"
               >
                 <box flexDirection="row">
-                  {isCurrent ? <text fg="#00e5ff">● NOW </text> : null}
-                  <text fg={color}>{msg.agentId}</text>
+                  {isCurrent ? <text fg="#00e5ff" bg="#0a0a0b">● NOW </text> : null}
+                  <text fg={color} bg="#0a0a0b">{(getAgentById(msg.agentId)?.name || msg.agentId).slice(0, 32)}</text>
                   {badge ? (
                     <>
-                      <text fg="#6b6b76"> · </text>
-                      <text fg={badge}>[{msg.type.toUpperCase()}]</text>
+                      <text fg="#6b6b76" bg="#0a0a0b"> · </text>
+                      <text fg={badge} bg="#0a0a0b">[{msg.type.toUpperCase()}]</text>
                     </>
                   ) : null}
                 </box>
-                <text fg="#f5e6ff">{body}</text>
+                <text fg="#f5e6ff" bg="#0a0a0b">{body}</text>
               </box>
             );
           })
@@ -386,7 +392,7 @@ function OrchestratorPanel(props: OrchestratorPanelProps): React.ReactElement {
   const consensusRatio = consensusTotal > 0 ? props.consensusPoints / consensusTotal : 0.5;
 
   return (
-    <box flexDirection="column" width={28} flexShrink={0}>
+    <box flexDirection="column" width={28} flexShrink={0} backgroundColor="#0a0a0b">
       <box border borderColor="#e879f9" padding={1} flexDirection="column">
         <text fg="#e879f9">ORCHESTRATOR</text>
         <text fg="#6b6b76">phase machine</text>
@@ -519,10 +525,16 @@ export function OpenTuiApp({
       setAgentStates(new Map(orchestrator.getAgentStates()));
       setModeProgress(orchestrator.getModeController().getProgress());
     };
+    // Debounce renders to ~8fps — multiple agent_message events (stream
+    // chunks during a long provider response) coalesce into one render,
+    // which lets OpenTUI's text buffer settle between paints instead of
+    // chasing every chunk and leaving torn half-painted cells on the way.
+    let scheduleTimer: ReturnType<typeof setTimeout> | null = null;
     const schedule = (): void => {
       if (pending) return;
       pending = true;
-      queueMicrotask(flush);
+      if (scheduleTimer) clearTimeout(scheduleTimer);
+      scheduleTimer = setTimeout(flush, 120);
     };
 
     const unsubscribe = orchestrator.on((event: EDAEvent) => {
@@ -598,7 +610,7 @@ export function OpenTuiApp({
   }
 
   return (
-    <box flexDirection="column" height="100%">
+    <box flexDirection="column" height="100%" backgroundColor="#0a0a0b">
       <HeaderBar
         projectName={session.config.projectName}
         goal={session.config.goal}

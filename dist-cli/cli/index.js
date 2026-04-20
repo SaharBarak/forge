@@ -3144,7 +3144,7 @@ function HeaderBar({
 }
 function CouncilPanel({ agents, currentSpeaker }) {
   const maxContribs = Math.max(1, ...agents.map((a) => a.contributions));
-  return /* @__PURE__ */ jsxs3("box", { flexDirection: "column", width: 30, flexShrink: 0, children: [
+  return /* @__PURE__ */ jsxs3("box", { flexDirection: "column", width: 30, flexShrink: 0, backgroundColor: "#0a0a0b", children: [
     /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#ffbf00", padding: 1, flexDirection: "column", children: [
       /* @__PURE__ */ jsx3("text", { fg: "#ffbf00", children: "COUNCIL" }),
       /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
@@ -3196,7 +3196,7 @@ function DiscussionPane({ messages, maxRows = 20 }) {
     }
     return -1;
   })();
-  return /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#2a2a32", padding: 1, flexGrow: 1, flexDirection: "column", children: [
+  return /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#2a2a32", padding: 1, flexGrow: 1, flexDirection: "column", backgroundColor: "#0a0a0b", children: [
     /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
       /* @__PURE__ */ jsx3("text", { fg: "#00e5ff", children: "DISCUSSION" }),
       /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
@@ -3208,8 +3208,8 @@ function DiscussionPane({ messages, maxRows = 20 }) {
     /* @__PURE__ */ jsx3("box", { marginTop: 1, flexDirection: "column", children: visible.length === 0 ? /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "Waiting for the orchestrator to open the floor\u2026" }) : visible.map((msg, i) => {
       if (msg.agentId === "system") {
         const firstLine = msg.content.split("\n").find((l) => l.trim()) || "";
-        const line = cleanMessageBody(firstLine).slice(0, 140);
-        return /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", children: [
+        const line = cleanMessageBody(firstLine).slice(0, 140).padEnd(140, " ");
+        return /* @__PURE__ */ jsxs3("text", { fg: "#6b6b76", bg: "#0a0a0b", children: [
           "\u25CE ",
           line
         ] }, msg.id);
@@ -3217,7 +3217,7 @@ function DiscussionPane({ messages, maxRows = 20 }) {
       const isCurrent = i === lastAgentIdx;
       const color = agentColor(msg.agentId);
       const badge = TYPE_COLOR[msg.type];
-      const body = cleanMessageBody(msg.content).slice(0, 420);
+      const body = cleanMessageBody(msg.content).slice(0, 420).padEnd(420, " ");
       return /* @__PURE__ */ jsxs3(
         "box",
         {
@@ -3226,20 +3226,21 @@ function DiscussionPane({ messages, maxRows = 20 }) {
           border: isCurrent,
           borderColor: isCurrent ? "#00e5ff" : void 0,
           padding: isCurrent ? 1 : 0,
+          backgroundColor: "#0a0a0b",
           children: [
             /* @__PURE__ */ jsxs3("box", { flexDirection: "row", children: [
-              isCurrent ? /* @__PURE__ */ jsx3("text", { fg: "#00e5ff", children: "\u25CF NOW " }) : null,
-              /* @__PURE__ */ jsx3("text", { fg: color, children: msg.agentId }),
+              isCurrent ? /* @__PURE__ */ jsx3("text", { fg: "#00e5ff", bg: "#0a0a0b", children: "\u25CF NOW " }) : null,
+              /* @__PURE__ */ jsx3("text", { fg: color, bg: "#0a0a0b", children: (getAgentById(msg.agentId)?.name || msg.agentId).slice(0, 32) }),
               badge ? /* @__PURE__ */ jsxs3(Fragment, { children: [
-                /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: " \xB7 " }),
-                /* @__PURE__ */ jsxs3("text", { fg: badge, children: [
+                /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", bg: "#0a0a0b", children: " \xB7 " }),
+                /* @__PURE__ */ jsxs3("text", { fg: badge, bg: "#0a0a0b", children: [
                   "[",
                   msg.type.toUpperCase(),
                   "]"
                 ] })
               ] }) : null
             ] }),
-            /* @__PURE__ */ jsx3("text", { fg: "#f5e6ff", children: body })
+            /* @__PURE__ */ jsx3("text", { fg: "#f5e6ff", bg: "#0a0a0b", children: body })
           ]
         },
         msg.id
@@ -3251,7 +3252,7 @@ function OrchestratorPanel(props) {
   const phaseRatio = props.phaseCount > 0 ? (props.phaseIdx + 1) / props.phaseCount : 0;
   const consensusTotal = props.consensusPoints + props.conflictPoints;
   const consensusRatio = consensusTotal > 0 ? props.consensusPoints / consensusTotal : 0.5;
-  return /* @__PURE__ */ jsxs3("box", { flexDirection: "column", width: 28, flexShrink: 0, children: [
+  return /* @__PURE__ */ jsxs3("box", { flexDirection: "column", width: 28, flexShrink: 0, backgroundColor: "#0a0a0b", children: [
     /* @__PURE__ */ jsxs3("box", { border: true, borderColor: "#e879f9", padding: 1, flexDirection: "column", children: [
       /* @__PURE__ */ jsx3("text", { fg: "#e879f9", children: "ORCHESTRATOR" }),
       /* @__PURE__ */ jsx3("text", { fg: "#6b6b76", children: "phase machine" })
@@ -3376,10 +3377,12 @@ function OpenTuiApp({
       setAgentStates(new Map(orchestrator.getAgentStates()));
       setModeProgress(orchestrator.getModeController().getProgress());
     };
+    let scheduleTimer = null;
     const schedule = () => {
       if (pending) return;
       pending = true;
-      queueMicrotask(flush);
+      if (scheduleTimer) clearTimeout(scheduleTimer);
+      scheduleTimer = setTimeout(flush, 120);
     };
     const unsubscribe = orchestrator.on((event) => {
       switch (event.type) {
@@ -3446,7 +3449,7 @@ function OpenTuiApp({
       }
     );
   }
-  return /* @__PURE__ */ jsxs3("box", { flexDirection: "column", height: "100%", children: [
+  return /* @__PURE__ */ jsxs3("box", { flexDirection: "column", height: "100%", backgroundColor: "#0a0a0b", children: [
     /* @__PURE__ */ jsx3(
       HeaderBar,
       {
@@ -12557,7 +12560,11 @@ async function launchSession(req) {
   const { createCliRenderer } = await import("@opentui/core");
   const { createRoot } = await import("@opentui/react");
   const { OpenTuiApp: OpenTuiApp2 } = await Promise.resolve().then(() => (init_App(), App_exports));
-  const renderer = await createCliRenderer({ exitOnCtrlC: true });
+  const renderer = await createCliRenderer({
+    exitOnCtrlC: true,
+    backgroundColor: "#0a0a0b",
+    targetFps: 15
+  });
   const root = createRoot(renderer);
   const done = new Promise((resolve4) => {
     renderer.on("destroy", () => resolve4());

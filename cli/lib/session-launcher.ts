@@ -295,7 +295,16 @@ export async function launchSession(
   const { createRoot } = await import('@opentui/react');
   const { OpenTuiApp } = await import('../otui/App');
 
-  const renderer = await createCliRenderer({ exitOnCtrlC: true });
+  // backgroundColor forces the renderer to clear cells with a known bg every
+  // frame — without it, OpenTUI's diff algorithm can skip overwriting cells
+  // where a new space matches the fg-only comparison, leaving old letters
+  // from previous messages visible (root cause of the "IvappreciateAthe"
+  // word-collision artifacts the user saw in the debate.gif).
+  const renderer = await createCliRenderer({
+    exitOnCtrlC: true,
+    backgroundColor: '#0a0a0b',
+    targetFps: 15,
+  });
   const root = createRoot(renderer);
   const done = new Promise<void>((resolve) => {
     renderer.on('destroy', () => resolve());
