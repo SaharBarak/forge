@@ -48,6 +48,12 @@ export interface SessionLaunchRequest {
   personaSet?: string | null;
   /** Optional path hint for brief-based flows. Leave undefined otherwise. */
   brief?: string;
+  /**
+   * When set · avatar-i is pinned to slots[i-1].providerId/modelId and a
+   * RoleRotator rotates debate roles across phases. Used by
+   * `forge debate`.
+   */
+  debateSlots?: ReadonlyArray<{ providerId: string; modelId: string; label: string }>;
 }
 
 /**
@@ -185,6 +191,18 @@ export async function launchSession(
   });
   const skillCatalog = await discoverSkills({ cwd });
 
+  // If this is a debate-mode session, seed each avatar's runtime config
+  // to pin it to its designated provider+model from turn 1.
+  const initialAgentConfigs: Record<string, { providerId: string; modelId: string }> = {};
+  if (req.debateSlots) {
+    for (let i = 0; i < req.debateSlots.length; i++) {
+      initialAgentConfigs[`avatar-${i + 1}`] = {
+        providerId: req.debateSlots[i].providerId,
+        modelId: req.debateSlots[i].modelId,
+      };
+    }
+  }
+
   const orchestrator = new EDAOrchestrator(session, undefined, domainSkills, {
     agentRunner,
     fileSystem: fsAdapter,
@@ -193,7 +211,16 @@ export async function launchSession(
     sessionWorkdir: persistence.getSessionDir(),
     perAgentSkills: resolvedSkills.perAgent,
     skillCatalog,
+    initialAgentConfigs: Object.keys(initialAgentConfigs).length > 0 ? initialAgentConfigs : undefined,
   });
+
+  // Debate mode · start the role rotator so each phase shuffles who
+  // plays skeptic / pragmatist / analyst / advocate / contrarian.
+  if (req.debateSlots) {
+    const { RoleRotator } = await import('../../src/lib/eda/RoleRotator');
+    const rotator = new RoleRotator(orchestrator, validAgents);
+    rotator.start();
+  }
 
   orchestrator.on((event) => {
     if (event.type === 'agent_message') {

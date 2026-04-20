@@ -1981,6 +1981,22 @@ ${draft}
     return this.workdir;
   }
 
+  /**
+   * Public helper for external services (RoleRotator, ReactionEngine,
+   * CLI commands) to drop a system message onto the bus without
+   * reaching into private fields.
+   */
+  addSystemMessage(content: string): void {
+    const msg: Message = {
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+      agentId: 'system',
+      type: 'system',
+      content,
+    };
+    this.bus.addMessage(msg, 'system');
+  }
+
   // ─── Live skill control ──────────────────────────────────────────────
 
   /** Skill catalog exposed to the UI skill picker. */

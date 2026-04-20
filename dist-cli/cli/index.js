@@ -1038,17 +1038,17 @@ import * as path11 from "path";
 import * as os from "os";
 import * as fs9 from "fs/promises";
 import { spawnSync } from "child_process";
-async function readIfExists(p6) {
+async function readIfExists(p7) {
   try {
-    const content = await fs9.readFile(p6, "utf-8");
+    const content = await fs9.readFile(p7, "utf-8");
     return content.trim() ? content : null;
   } catch {
     return null;
   }
 }
-async function isExecutable(p6) {
+async function isExecutable(p7) {
   try {
-    const stat3 = await fs9.stat(p6);
+    const stat3 = await fs9.stat(p7);
     return stat3.isFile() && (stat3.mode & 73) !== 0;
   } catch {
     return false;
@@ -1233,6 +1233,14 @@ var init_skills = __esm({
 });
 
 // src/lib/config/ForgeConfig.ts
+var ForgeConfig_exports = {};
+__export(ForgeConfig_exports, {
+  configDir: () => configDir,
+  configPath: () => configPath,
+  loadConfig: () => loadConfig2,
+  resolveProviderKey: () => resolveProviderKey,
+  saveConfig: () => saveConfig2
+});
 import * as path13 from "path";
 import * as os2 from "os";
 import * as fs11 from "fs/promises";
@@ -1729,13 +1737,13 @@ var init_registry = __esm({
         }
       }
       get(id) {
-        const p6 = this.providers.get(id);
-        if (!p6) {
+        const p7 = this.providers.get(id);
+        if (!p7) {
           throw new Error(
             `Unknown provider '${id}'. Available: ${Array.from(this.providers.keys()).join(", ") || "none"}`
           );
         }
-        return p6;
+        return p7;
       }
       tryGet(id) {
         return this.providers.get(id);
@@ -1744,7 +1752,7 @@ var init_registry = __esm({
         return Array.from(this.providers.values());
       }
       listAvailable() {
-        return this.list().filter((p6) => p6.isAvailable());
+        return this.list().filter((p7) => p7.isAvailable());
       }
       getDefault() {
         if (!this.defaultId) {
@@ -2292,8 +2300,8 @@ ${cites.slice(0, 5).map((u, i) => `[${i + 1}] ${u}`).join("\n")}` : content;
           "sonar-reasoning-pro": { in: 2, out: 8 },
           "sonar-deep-research": { in: 2, out: 8 }
         };
-        const p6 = price[model] ?? { in: 1, out: 5 };
-        return inTokens / 1e6 * p6.in + outTokens / 1e6 * p6.out;
+        const p7 = price[model] ?? { in: 1, out: 5 };
+        return inTokens / 1e6 * p7.in + outTokens / 1e6 * p7.out;
       }
     };
   }
@@ -2320,6 +2328,153 @@ var init_providers = __esm({
     init_OllamaProvider();
     init_OpenRouterProvider();
     init_PerplexityProvider();
+  }
+});
+
+// src/lib/roles/index.ts
+function getRoleById(id) {
+  return DEBATE_ROLES.find((r) => r.id === id);
+}
+function buildRotationDirective(role, previousRoleId) {
+  const prefix = previousRoleId ? `\u293A ROLE CHANGE. You were just the ${getRoleById(previousRoleId)?.name ?? previousRoleId}. Drop that stance. ` : `\u27F6 ROLE ASSIGNED. `;
+  return prefix + role.stanceDirective;
+}
+var DEBATE_ROLES;
+var init_roles = __esm({
+  "src/lib/roles/index.ts"() {
+    "use strict";
+    DEBATE_ROLES = [
+      {
+        id: "skeptic",
+        name: "Skeptic",
+        short: "evidence-demander",
+        stanceDirective: `You are THE SKEPTIC this round.
+Your job: demand evidence for every claim. Challenge weak reasoning.
+Ask "what would falsify this?". If the room is converging too fast,
+introduce doubt. Prefer one sharp question over many soft ones.
+Do not hedge. Tag your opening line [SKEPTIC].`
+      },
+      {
+        id: "pragmatist",
+        name: "Pragmatist",
+        short: "ship-it builder",
+        stanceDirective: `You are THE PRAGMATIST this round.
+Your job: cut through paralysis. Trade perfect for shipped. Name the
+smallest version that works. Call out over-engineering and
+bikeshedding. Respect real constraints (time, budget, complexity).
+Tag your opening line [PRAGMATIST].`
+      },
+      {
+        id: "analyst",
+        name: "Analyst",
+        short: "systems thinker",
+        stanceDirective: `You are THE ANALYST this round.
+Your job: reason from first principles. Identify leverage points and
+second-order effects. Map the pieces and how they interact. When
+others argue vibes, you produce structure. Tag your opening line [ANALYST].`
+      },
+      {
+        id: "advocate",
+        name: "Advocate",
+        short: "stakeholder voice",
+        stanceDirective: `You are THE ADVOCATE this round.
+Your job: speak for the people affected who aren't in the room \u2014
+users, long-term impact, ethical implications. When the group
+optimises only for what's measurable, remind them what else matters.
+Tag your opening line [ADVOCATE].`
+      },
+      {
+        id: "contrarian",
+        name: "Contrarian",
+        short: "devil's advocate",
+        stanceDirective: `You are THE CONTRARIAN this round.
+Your job: take the opposing position, even if you don't fully hold it.
+If the room is agreeing, invert the frame. Prevent premature
+consensus. Force the others to articulate why they're right.
+Tag your opening line [CONTRARIAN].`
+      }
+    ];
+  }
+});
+
+// src/lib/eda/RoleRotator.ts
+var RoleRotator_exports = {};
+__export(RoleRotator_exports, {
+  RoleRotator: () => RoleRotator
+});
+var RoleRotator;
+var init_RoleRotator = __esm({
+  "src/lib/eda/RoleRotator.ts"() {
+    "use strict";
+    init_roles();
+    RoleRotator = class {
+      orchestrator;
+      agentIds;
+      assignments;
+      previous = /* @__PURE__ */ new Map();
+      unsubscribe;
+      constructor(orchestrator, agentIds) {
+        this.orchestrator = orchestrator;
+        this.agentIds = [...agentIds];
+        this.assignments = this.agentIds.map((id, i) => ({
+          agentId: id,
+          roleIndex: i % DEBATE_ROLES.length
+        }));
+      }
+      /** Apply the current assignment set and subscribe to phase_change. */
+      start() {
+        this.applyAssignments(
+          /* initial = */
+          true
+        );
+        this.unsubscribe = this.orchestrator.on((event) => this.handleEvent(event));
+      }
+      stop() {
+        this.unsubscribe?.();
+        this.unsubscribe = void 0;
+      }
+      /** Current role (by id) each agent is playing — for TUI to show a badge. */
+      snapshot() {
+        const out = /* @__PURE__ */ new Map();
+        for (const { agentId, roleIndex } of this.assignments) {
+          out.set(agentId, DEBATE_ROLES[roleIndex]);
+        }
+        return out;
+      }
+      handleEvent(event) {
+        if (event.type !== "phase_change") return;
+        this.assignments = this.assignments.map(({ agentId, roleIndex }) => ({
+          agentId,
+          roleIndex: (roleIndex + 1) % DEBATE_ROLES.length
+        }));
+        this.applyAssignments(false);
+      }
+      applyAssignments(initial) {
+        for (const { agentId, roleIndex } of this.assignments) {
+          const role = DEBATE_ROLES[roleIndex];
+          const prevId = this.previous.get(agentId);
+          const directive = buildRotationDirective(role, initial ? void 0 : prevId);
+          this.orchestrator.injectSystemSuffix(agentId, directive);
+          this.previous.set(agentId, role.id);
+          const announcement = initial ? `${this.labelFor(agentId)} starts as the ${role.name}.` : `${this.labelFor(agentId)} is now the ${role.name}. (was ${prevId ? this.capitalise(prevId) : "unassigned"})`;
+          this.orchestrator.addSystemMessage(announcement);
+        }
+      }
+      labelFor(agentId) {
+        try {
+          const cfg = this.orchestrator.getAgentConfig(agentId);
+          const providers = this.orchestrator.getProviders();
+          const provider = providers?.tryGet(cfg.providerId);
+          const model = provider?.listModels().find((m) => m.id === cfg.modelId);
+          return `${provider?.name ?? cfg.providerId} \xB7 ${model?.label ?? cfg.modelId}`;
+        } catch {
+          return agentId;
+        }
+      }
+      capitalise(s) {
+        return s.charAt(0).toUpperCase() + s.slice(1);
+      }
+    };
   }
 });
 
@@ -2682,7 +2837,7 @@ function AgentControlPanel({
   const [, forceTick] = useState2(0);
   const [skillPickerFor, setSkillPickerFor] = useState2(null);
   const providers = orchestrator.getProviders();
-  const availableProviders = useMemo2(
+  const availableProviders2 = useMemo2(
     () => providers?.listAvailable() ?? [],
     [providers]
   );
@@ -2745,11 +2900,11 @@ function AgentControlPanel({
       return;
     }
     if (key === "p") {
-      if (availableProviders.length < 2) return;
+      if (availableProviders2.length < 2) return;
       const next = cycle(
-        availableProviders,
-        availableProviders[0],
-        (p6) => p6.id === selected.config.providerId
+        availableProviders2,
+        availableProviders2[0],
+        (p7) => p7.id === selected.config.providerId
       );
       orchestrator.updateAgentConfig(selected.id, {
         providerId: next.id,
@@ -2802,7 +2957,7 @@ function AgentControlPanel({
           ] }),
           /* @__PURE__ */ jsx2("text", { fg: COLOR_DIM2, children: "\u2191\u2193 select \xB7 \u2190\u2192 model \xB7 p provider \xB7 k skills \xB7 space pause \xB7 s speak \xB7 esc close" })
         ] }),
-        availableProviders.length === 0 ? /* @__PURE__ */ jsx2("box", { marginTop: 1, children: /* @__PURE__ */ jsx2("text", { fg: COLOR_PAUSED, children: "No providers available. Set ANTHROPIC_API_KEY or GEMINI_API_KEY." }) }) : null,
+        availableProviders2.length === 0 ? /* @__PURE__ */ jsx2("box", { marginTop: 1, children: /* @__PURE__ */ jsx2("text", { fg: COLOR_PAUSED, children: "No providers available. Set ANTHROPIC_API_KEY or GEMINI_API_KEY." }) }) : null,
         /* @__PURE__ */ jsx2("box", { marginTop: 1, flexDirection: "column", children: rows.map((row, idx) => {
           const isSelected = idx === clampedIdx;
           const isSpeaking = row.id === currentSpeaker;
@@ -2888,7 +3043,7 @@ function HeaderBar({
   currentPhaseId,
   elapsedSeconds
 }) {
-  const currentIdx = Math.max(0, phases.findIndex((p6) => p6.id === currentPhaseId));
+  const currentIdx = Math.max(0, phases.findIndex((p7) => p7.id === currentPhaseId));
   return /* @__PURE__ */ jsxs3(
     "box",
     {
@@ -3202,13 +3357,13 @@ function OpenTuiApp({
   }, [orchestrator]);
   const mode = orchestrator.getModeController().getMode();
   const modePhases = useMemo3(
-    () => mode.phases.map((p6) => ({ id: p6.id, name: p6.name || p6.id })),
+    () => mode.phases.map((p7) => ({ id: p7.id, name: p7.name || p7.id })),
     [mode]
   );
   const currentModePhase = modeProgress.currentPhase;
   const currentPhaseIdx = Math.max(
     0,
-    modePhases.findIndex((p6) => p6.id === currentModePhase)
+    modePhases.findIndex((p7) => p7.id === currentModePhase)
   );
   const currentPhaseConfig = mode.phases[currentPhaseIdx];
   const phaseMaxMessages = currentPhaseConfig?.maxMessages ?? 0;
@@ -3468,11 +3623,11 @@ var init_embeddings = __esm({
       if (pipelineInstance) return pipelineInstance;
       if (pipelinePromise) return pipelinePromise;
       loading = true;
-      pipelinePromise = loadPipeline().then((p6) => {
-        pipelineInstance = p6;
+      pipelinePromise = loadPipeline().then((p7) => {
+        pipelineInstance = p7;
         loading = false;
         console.log("[embeddings] model loaded:", MODEL_ID);
-        return p6;
+        return p7;
       }).catch((err2) => {
         loading = false;
         pipelinePromise = null;
@@ -3683,7 +3838,7 @@ var init_service = __esm({
 });
 
 // cli/index.ts
-import { Command as Command17 } from "commander";
+import { Command as Command18 } from "commander";
 
 // cli/adapters/FileSystemAdapter.ts
 import * as fs from "fs/promises";
@@ -3952,9 +4107,9 @@ Generate exactly ${options.count} personas.`;
         personas2 = parsed.personas;
         expertise = parsed.expertise || "";
       }
-      for (const p6 of personas2) {
-        if (!p6.id || !p6.name || !p6.role) {
-          console.error("Invalid persona structure:", p6);
+      for (const p7 of personas2) {
+        if (!p7.id || !p7.name || !p7.role) {
+          console.error("Invalid persona structure:", p7);
           process.exit(1);
         }
       }
@@ -3969,11 +4124,11 @@ Generate exactly ${options.count} personas.`;
       }
       console.log(`\u2705 Generated ${personas2.length} personas:
 `);
-      for (const p6 of personas2) {
-        console.log(`  \u2022 ${p6.name} (${p6.nameHe}) - ${p6.role}`);
-        console.log(`    ${p6.background.slice(0, 80)}...`);
-        if (p6.expertise) {
-          console.log(`    Expertise: ${p6.expertise.slice(0, 3).join(", ")}`);
+      for (const p7 of personas2) {
+        console.log(`  \u2022 ${p7.name} (${p7.nameHe}) - ${p7.role}`);
+        console.log(`    ${p7.background.slice(0, 80)}...`);
+        if (p7.expertise) {
+          console.log(`    Expertise: ${p7.expertise.slice(0, 3).join(", ")}`);
         }
         console.log("");
       }
@@ -4002,8 +4157,8 @@ Use with: forge start --personas ${options.name}`);
         const content = await fs2.readFile(path2.join(personasDir, file), "utf-8");
         const personas2 = JSON.parse(content);
         console.log(`  \u2022 ${name} (${personas2.length} personas)`);
-        for (const p6 of personas2) {
-          console.log(`    - ${p6.name}: ${p6.role}`);
+        for (const p7 of personas2) {
+          console.log(`    - ${p7.name}: ${p7.role}`);
         }
         console.log("");
       }
@@ -4022,27 +4177,27 @@ Use with: forge start --personas ${options.name}`);
 \u{1F4CB} Persona Set: ${name}
 `);
       console.log("\u2500".repeat(60));
-      for (const p6 of personas2) {
+      for (const p7 of personas2) {
         console.log(`
-### ${p6.name} (${p6.nameHe}) - ${p6.role}`);
-        console.log(`Age: ${p6.age} | Color: ${p6.color}`);
+### ${p7.name} (${p7.nameHe}) - ${p7.role}`);
+        console.log(`Age: ${p7.age} | Color: ${p7.color}`);
         console.log(`
 Background:
-${p6.background}`);
+${p7.background}`);
         console.log(`
 Personality:`);
-        p6.personality.forEach((t) => console.log(`  \u2022 ${t}`));
+        p7.personality.forEach((t) => console.log(`  \u2022 ${t}`));
         console.log(`
 Biases:`);
-        p6.biases.forEach((b) => console.log(`  \u2022 ${b}`));
+        p7.biases.forEach((b) => console.log(`  \u2022 ${b}`));
         console.log(`
 Strengths:`);
-        p6.strengths.forEach((s) => console.log(`  \u2022 ${s}`));
+        p7.strengths.forEach((s) => console.log(`  \u2022 ${s}`));
         console.log(`
 Weaknesses:`);
-        p6.weaknesses.forEach((w) => console.log(`  \u2022 ${w}`));
+        p7.weaknesses.forEach((w) => console.log(`  \u2022 ${w}`));
         console.log(`
-Speaking Style: ${p6.speakingStyle}`);
+Speaking Style: ${p7.speakingStyle}`);
         console.log("\n" + "\u2500".repeat(60));
       }
     } catch {
@@ -4292,9 +4447,9 @@ function generateSummary(metadata, messages, format) {
   if (summary.keyMoments.topProposals.length > 0) {
     lines.push("## Recent Proposals");
     lines.push("");
-    for (const p6 of summary.keyMoments.topProposals) {
-      lines.push(`### From ${p6.from}`);
-      lines.push(p6.preview + "...");
+    for (const p7 of summary.keyMoments.topProposals) {
+      lines.push(`### From ${p7.from}`);
+      lines.push(p7.preview + "...");
       lines.push("");
     }
   }
@@ -4777,8 +4932,8 @@ var ConversationMemory = class _ConversationMemory {
       this.decisions = this.decisions.slice(toRemove);
     }
     if (this.proposals.length > this.config.maxProposals * threshold) {
-      const active = this.proposals.filter((p6) => p6.status === "active");
-      const resolved = this.proposals.filter((p6) => p6.status !== "active");
+      const active = this.proposals.filter((p7) => p7.status === "active");
+      const resolved = this.proposals.filter((p7) => p7.status !== "active");
       const targetTotal = this.config.maxProposals;
       if (active.length >= targetTotal) {
         this.proposals = active.slice(-targetTotal);
@@ -4904,7 +5059,7 @@ var ConversationMemory = class _ConversationMemory {
     const state = this.agentStates.get(agentId);
     state.messageCount++;
     const content = message.content;
-    const isProposal = message.type === "proposal" || PROPOSAL_PATTERNS.some((p6) => p6.test(content));
+    const isProposal = message.type === "proposal" || PROPOSAL_PATTERNS.some((p7) => p7.test(content));
     if (isProposal) {
       this.proposals.push({
         id: generateMemoryId(),
@@ -4920,7 +5075,7 @@ var ConversationMemory = class _ConversationMemory {
       });
       state.keyPoints.push(this.extractFirstSentence(content));
     }
-    const isDecision = DECISION_PATTERNS.some((p6) => p6.test(content));
+    const isDecision = DECISION_PATTERNS.some((p7) => p7.test(content));
     if (isDecision) {
       this.decisions.push({
         id: generateMemoryId(),
@@ -5047,8 +5202,8 @@ ${keyPoints.join("\n")}`,
     }
     if (this.proposals.length > 0) {
       parts.push("\n## Active Proposals");
-      this.proposals.slice(-5).forEach((p6) => {
-        parts.push(`- [${p6.agentId}] ${p6.content}`);
+      this.proposals.slice(-5).forEach((p7) => {
+        parts.push(`- [${p7.agentId}] ${p7.content}`);
       });
     }
     if (forAgentId && this.agentStates.has(forAgentId)) {
@@ -5057,7 +5212,7 @@ ${keyPoints.join("\n")}`,
 ## Your Previous Contributions (${forAgentId})`);
       if (state.keyPoints.length > 0) {
         parts.push("Key points you made:");
-        state.keyPoints.slice(-3).forEach((p6) => parts.push(`- ${p6}`));
+        state.keyPoints.slice(-3).forEach((p7) => parts.push(`- ${p7}`));
       }
       if (state.agreements.length > 0) {
         parts.push("You agreed with:");
@@ -5172,7 +5327,7 @@ ${keyPoints.join("\n")}`,
    * @returns true if proposal was found and updated, false otherwise
    */
   updateProposalStatus(proposalId, status2) {
-    const proposal = this.proposals.find((p6) => p6.id === proposalId);
+    const proposal = this.proposals.find((p7) => p7.id === proposalId);
     if (proposal) {
       proposal.status = status2;
       return true;
@@ -5186,7 +5341,7 @@ ${keyPoints.join("\n")}`,
    * @returns true if proposal was found and reaction added, false otherwise
    */
   addProposalReaction(proposalId, reaction) {
-    const proposal = this.proposals.find((p6) => p6.id === proposalId);
+    const proposal = this.proposals.find((p7) => p7.id === proposalId);
     if (proposal) {
       if (!proposal.reactions) {
         proposal.reactions = [];
@@ -5207,14 +5362,14 @@ ${keyPoints.join("\n")}`,
    * @returns The proposal if found, undefined otherwise
    */
   getProposal(proposalId) {
-    return this.proposals.find((p6) => p6.id === proposalId);
+    return this.proposals.find((p7) => p7.id === proposalId);
   }
   /**
    * Get all active proposals
    * @returns Array of proposals with status 'active'
    */
   getActiveProposals() {
-    return this.proposals.filter((p6) => p6.status === "active");
+    return this.proposals.filter((p7) => p7.status === "active");
   }
   /**
    * Get the most recent proposal for reaction tracking
@@ -5694,7 +5849,7 @@ function generateAgentSystemPrompt(agent, config, context, skills) {
 - **Speaking Style**: ${agent.speakingStyle}
 
 ## Your Personality Traits
-${agent.personality.map((p6) => `- ${p6}`).join("\n")}
+${agent.personality.map((p7) => `- ${p7}`).join("\n")}
 
 ## Your Known Biases (be aware of these)
 ${agent.biases.map((b) => `- ${b}`).join("\n")}
@@ -7781,13 +7936,13 @@ Move on. Use what we have. Repeated research on the same topic suggests we're av
    * Per MODE_SYSTEM.md: Enforces requiredBeforeSynthesis and phase exit criteria
    */
   checkPhaseTransition() {
-    const currentPhaseConfig = this.mode.phases.find((p6) => p6.id === this.progress.currentPhase);
+    const currentPhaseConfig = this.mode.phases.find((p7) => p7.id === this.progress.currentPhase);
     if (!currentPhaseConfig) return null;
     if (!currentPhaseConfig.autoTransition) return null;
     const maxMessagesReached = this.progress.messagesInPhase >= currentPhaseConfig.maxMessages;
     const exitCriteriaMet = this.checkExitCriteria(currentPhaseConfig.exitCriteria);
     if (maxMessagesReached || exitCriteriaMet.met) {
-      const nextPhase = this.mode.phases.find((p6) => p6.order === currentPhaseConfig.order + 1);
+      const nextPhase = this.mode.phases.find((p7) => p7.order === currentPhaseConfig.order + 1);
       if (nextPhase) {
         if (this.isSynthesisPhase(nextPhase.id)) {
           const researchCheck = this.checkRequiredResearch();
@@ -7902,7 +8057,7 @@ Previous phase complete. Carry forward what we learned, but shift focus.`
     const maxMessages = this.mode.successCriteria.maxMessages;
     const atLimit = this.progress.totalMessages >= maxMessages;
     const neverSynthesized = !this.mode.phases.some(
-      (p6) => p6.id === "synthesis" && this.progress.currentPhase === "synthesis"
+      (p7) => p7.id === "synthesis" && this.progress.currentPhase === "synthesis"
     );
     return atLimit && neverSynthesized;
   }
@@ -7989,7 +8144,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
    * Manually transition to a phase
    */
   transitionToPhase(phaseId) {
-    const phase = this.mode.phases.find((p6) => p6.id === phaseId);
+    const phase = this.mode.phases.find((p7) => p7.id === phaseId);
     if (phase) {
       this.progress.currentPhase = phaseId;
       this.progress.messagesInPhase = 0;
@@ -8001,7 +8156,7 @@ The session can now be finalized. Review the outputs and confirm completion.`
    * Get current phase config
    */
   getCurrentPhase() {
-    return this.mode.phases.find((p6) => p6.id === this.progress.currentPhase);
+    return this.mode.phases.find((p7) => p7.id === this.progress.currentPhase);
   }
   /**
    * Get mode-specific agent instructions
@@ -8389,8 +8544,8 @@ var WorkdirManager = class {
     await this.init();
     for (const [agentId, content] of perAgent) {
       if (!content.trim()) continue;
-      const p6 = path6.join(this.skillsDir, `${agentId}.md`);
-      await this.fs.writeFile(p6, content);
+      const p7 = path6.join(this.skillsDir, `${agentId}.md`);
+      await this.fs.writeFile(p7, content);
     }
   }
   getAgentPaths(agentId) {
@@ -8424,7 +8579,7 @@ var WorkdirManager = class {
     const ts = new Date(message.timestamp).toISOString().replace(/[:.]/g, "-");
     const safePhase = opts.phaseId.replace(/[^a-z0-9_-]+/gi, "_");
     const filename = `${safePhase}-${ts}-${message.agentId}.md`;
-    const p6 = path6.join(this.consensusDir, filename);
+    const p7 = path6.join(this.consensusDir, filename);
     const body = [
       `# ${opts.phaseId} \xB7 consensus \xB7 ${message.agentId}`,
       "",
@@ -8437,8 +8592,8 @@ var WorkdirManager = class {
       message.content,
       ""
     ].filter((l) => l !== null).join("\n");
-    await this.fs.writeFile(p6, body);
-    return p6;
+    await this.fs.writeFile(p7, body);
+    return p7;
   }
 };
 
@@ -9044,7 +9199,7 @@ Discussion continues without research results.`
     const fileList = result.filesRead.length > 0 ? `
 
 **\u{1F4C1} Files read (${result.filesRead.length}):**
-${result.filesRead.slice(0, 12).map((p6) => `- \`${p6}\``).join("\n")}${result.filesRead.length > 12 ? `
+${result.filesRead.slice(0, 12).map((p7) => `- \`${p7}\``).join("\n")}${result.filesRead.length > 12 ? `
 - \u2026and ${result.filesRead.length - 12} more` : ""}` : "";
     return [
       `**\u{1F50D} Local project introspection**`,
@@ -9958,6 +10113,21 @@ ${modeInstructions}`);
   getWorkdir() {
     return this.workdir;
   }
+  /**
+   * Public helper for external services (RoleRotator, ReactionEngine,
+   * CLI commands) to drop a system message onto the bus without
+   * reaching into private fields.
+   */
+  addSystemMessage(content) {
+    const msg = {
+      id: crypto.randomUUID(),
+      timestamp: /* @__PURE__ */ new Date(),
+      agentId: "system",
+      type: "system",
+      content
+    };
+    this.bus.addMessage(msg, "system");
+  }
   // ─── Live skill control ──────────────────────────────────────────────
   /** Skill catalog exposed to the UI skill picker. */
   getSkillCatalog() {
@@ -10039,8 +10209,8 @@ async function runBatch(pattern, options) {
     console.log("");
   }
   if (options.dryRun) {
-    const dryRunResults = briefPaths.map((p6) => ({
-      brief: path7.relative(cwd, p6),
+    const dryRunResults = briefPaths.map((p7) => ({
+      brief: path7.relative(cwd, p7),
       wouldProcess: true
     }));
     if (options.json) {
@@ -10055,7 +10225,7 @@ async function runBatch(pattern, options) {
   let toProcess = briefPaths;
   if (options.resume) {
     const processed = await getProcessedBriefs(outputDir);
-    toProcess = briefPaths.filter((p6) => !processed.has(path7.basename(p6, ".md")));
+    toProcess = briefPaths.filter((p7) => !processed.has(path7.basename(p7, ".md")));
     if (!options.json && toProcess.length < briefPaths.length) {
       console.log(`Skipping ${briefPaths.length - toProcess.length} already processed briefs.`);
     }
@@ -12253,6 +12423,15 @@ async function launchSession(req) {
     goal: req.goal
   });
   const skillCatalog = await discoverSkills2({ cwd });
+  const initialAgentConfigs = {};
+  if (req.debateSlots) {
+    for (let i = 0; i < req.debateSlots.length; i++) {
+      initialAgentConfigs[`avatar-${i + 1}`] = {
+        providerId: req.debateSlots[i].providerId,
+        modelId: req.debateSlots[i].modelId
+      };
+    }
+  }
   const orchestrator = new EDAOrchestrator(session, void 0, domainSkills, {
     agentRunner,
     fileSystem: fsAdapter,
@@ -12260,8 +12439,14 @@ async function launchSession(req) {
     providers,
     sessionWorkdir: persistence.getSessionDir(),
     perAgentSkills: resolvedSkills.perAgent,
-    skillCatalog
+    skillCatalog,
+    initialAgentConfigs: Object.keys(initialAgentConfigs).length > 0 ? initialAgentConfigs : void 0
   });
+  if (req.debateSlots) {
+    const { RoleRotator: RoleRotator2 } = await Promise.resolve().then(() => (init_RoleRotator(), RoleRotator_exports));
+    const rotator = new RoleRotator2(orchestrator, validAgents);
+    rotator.start();
+  }
   orchestrator.on((event) => {
     if (event.type === "agent_message") {
       persistence.updateSession(orchestrator.getSession());
@@ -12270,9 +12455,9 @@ async function launchSession(req) {
   const { ReactionEngine: ReactionEngine2, DEFAULT_RULES: DEFAULT_RULES2 } = await Promise.resolve().then(() => (init_ReactionEngine(), ReactionEngine_exports));
   let reactionConfig = DEFAULT_RULES2;
   for (const candidate of ["reactions.json"]) {
-    const p6 = path17.join(cwd, candidate);
+    const p7 = path17.join(cwd, candidate);
     try {
-      const raw = await fs14.readFile(p6, "utf-8");
+      const raw = await fs14.readFile(p7, "utf-8");
       reactionConfig = JSON.parse(raw);
       console.error(chalk7.dim(`  \xB7 reactions loaded from ${candidate}`));
       break;
@@ -12451,11 +12636,11 @@ async function newSessionWizard(defaults) {
     ].join("\n"),
     "Ready to run"
   );
-  const confirm6 = await p2.confirm({
+  const confirm7 = await p2.confirm({
     message: "Start the deliberation?",
     initialValue: true
   });
-  if (p2.isCancel(confirm6) || !confirm6) return null;
+  if (p2.isCancel(confirm7) || !confirm7) return null;
   return {
     projectName: String(projectName).trim(),
     goal: String(goal).trim(),
@@ -12489,7 +12674,7 @@ async function runMenu() {
   const settings = await loadConfig2();
   const defaultMode = settings.defaults?.mode;
   const providersConfigured = Object.values(settings.providers ?? {}).some(
-    (p6) => p6?.enabled
+    (p7) => p7?.enabled
   );
   let keepGoing = true;
   let firstRender = true;
@@ -12666,11 +12851,11 @@ async function run(text2, opts) {
     "Proposed plan"
   );
   if (!opts.yes) {
-    const confirm6 = await p3.confirm({
+    const confirm7 = await p3.confirm({
       message: "Start this deliberation?",
       initialValue: true
     });
-    if (p3.isCancel(confirm6) || !confirm6) {
+    if (p3.isCancel(confirm7) || !confirm7) {
       p3.cancel("Cancelled. Re-run with different wording to try again.");
       return;
     }
@@ -12907,7 +13092,7 @@ async function runMcp() {
         id: m.id,
         name: m.name,
         description: m.description,
-        phases: m.phases.map((p6) => p6.id),
+        phases: m.phases.map((p7) => p7.id),
         requiredOutputs: m.successCriteria?.requiredOutputs ?? []
       }));
       return { content: [{ type: "text", text: JSON.stringify(modes, null, 2) }] };
@@ -13314,8 +13499,179 @@ function createPipelineCommand() {
   });
 }
 
-// cli/commands/login.ts
+// cli/commands/debate.ts
 import { Command as Command15 } from "commander";
+import * as p6 from "@clack/prompts";
+import chalk13 from "chalk";
+init_ForgeConfig();
+
+// src/agents/provider-avatars.ts
+var PALETTE = ["#ff5454", "#4ade80", "#00e5ff", "#e879f9", "#fb923c", "#facc15", "#60a5fa", "#b4ff3d"];
+function generateProviderAvatars(slots) {
+  return slots.map((s, i) => ({
+    id: `avatar-${i + 1}`,
+    name: s.label,
+    nameHe: s.label,
+    role: `${s.providerId} \xB7 ${s.modelId}`,
+    age: 0,
+    background: `This agent speaks as ${s.label}. In a cross-provider debate, this
+    avatar takes on a different stance each round \u2014 skeptic, pragmatist, analyst,
+    advocate, or contrarian \u2014 and adopts that role's directive for the duration.
+    Identity stays with the model; the stance rotates.`,
+    personality: [
+      "Thoughtful, adaptable reasoner",
+      "Listens to previous speakers before responding",
+      "Adopts the round's assigned role fully",
+      "Cites sources when available",
+      "Respects the phase machine's structure"
+    ],
+    biases: [
+      "Underlying model biases are inherited from the provider"
+    ],
+    strengths: [
+      "Adapts stance per round without mixing",
+      "Brings the provider's distinctive reasoning style"
+    ],
+    weaknesses: [
+      "Role changes mid-session require a fresh context commitment"
+    ],
+    speakingStyle: `Per-round stance set by the role directive; underlying voice is ${s.label}'s default.`,
+    color: PALETTE[i % PALETTE.length]
+  }));
+}
+
+// cli/commands/debate.ts
+init_personas();
+async function availableProviders() {
+  const { ProviderRegistry: ProviderRegistry2, AnthropicProvider: AnthropicProvider2, GeminiProvider: GeminiProvider2, OpenAIProvider: OpenAIProvider2, OllamaProvider: OllamaProvider2, OpenRouterProvider: OpenRouterProvider2, PerplexityProvider: PerplexityProvider2 } = await Promise.resolve().then(() => (init_providers(), providers_exports));
+  const { CLIAgentRunner: CLIAgentRunner2 } = await Promise.resolve().then(() => (init_CLIAgentRunner(), CLIAgentRunner_exports));
+  const { ClaudeCodeCLIRunner: ClaudeCodeCLIRunner2 } = await Promise.resolve().then(() => (init_ClaudeCodeCLIRunner(), ClaudeCodeCLIRunner_exports));
+  const { resolveProviderKey: resolveProviderKey2 } = await Promise.resolve().then(() => (init_ForgeConfig(), ForgeConfig_exports));
+  const settings = await loadConfig2();
+  const reg = new ProviderRegistry2();
+  const runner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner2() : new ClaudeCodeCLIRunner2();
+  reg.register(new AnthropicProvider2(runner, true), { asDefault: true });
+  const gemini = new GeminiProvider2(resolveProviderKey2(settings, "gemini", "GEMINI_API_KEY"));
+  if (gemini.isAvailable()) reg.register(gemini);
+  const openai = new OpenAIProvider2(resolveProviderKey2(settings, "openai", "OPENAI_API_KEY"));
+  if (openai.isAvailable()) reg.register(openai);
+  const openrouter = new OpenRouterProvider2(resolveProviderKey2(settings, "openrouter", "OPENROUTER_API_KEY"));
+  if (openrouter.isAvailable()) reg.register(openrouter);
+  const perplexity = new PerplexityProvider2(resolveProviderKey2(settings, "perplexity", "PERPLEXITY_API_KEY"));
+  if (perplexity.isAvailable()) reg.register(perplexity);
+  const ollamaCfg = settings.providers.ollama;
+  if (ollamaCfg?.enabled !== false) {
+    const ollama = new OllamaProvider2({ baseUrl: ollamaCfg?.baseUrl });
+    if (await ollama.probe()) reg.register(ollama);
+  }
+  return reg.listAvailable().map((prov) => ({
+    id: prov.id,
+    label: prov.name,
+    models: prov.listModels().map((m) => ({ id: m.id, label: m.label }))
+  }));
+}
+async function pickProviderSlots() {
+  const providers = await availableProviders();
+  if (providers.length < 2) {
+    p6.note(
+      `Only ${providers.length} provider${providers.length === 1 ? "" : "s"} available. Run ` + chalk13.bold("forge init") + " to enable Gemini / OpenAI / OpenRouter / Perplexity / Ollama.",
+      "Not enough providers for a debate"
+    );
+    return null;
+  }
+  const picked = await p6.multiselect({
+    message: "Which providers step into the ring? (space to toggle \xB7 2\u20135)",
+    options: providers.map((pr) => ({
+      value: pr.id,
+      label: pr.label,
+      hint: `${pr.models.length} model${pr.models.length === 1 ? "" : "s"}`
+    })),
+    initialValues: providers.slice(0, Math.min(4, providers.length)).map((pr) => pr.id),
+    required: true
+  });
+  if (p6.isCancel(picked)) return null;
+  const slots = [];
+  for (const providerId of picked) {
+    const prov = providers.find((pr) => pr.id === providerId);
+    if (!prov) continue;
+    const modelId = await p6.select({
+      message: `${prov.label} \xB7 which model?`,
+      options: prov.models.map((m) => ({ value: m.id, label: m.label })),
+      initialValue: prov.models[0]?.id
+    });
+    if (p6.isCancel(modelId)) return null;
+    const modelLabel = prov.models.find((m) => m.id === modelId)?.label ?? String(modelId);
+    slots.push({
+      providerId,
+      modelId: String(modelId),
+      label: `${prov.label} \xB7 ${modelLabel}`
+    });
+  }
+  return slots;
+}
+async function run5(question, opts) {
+  p6.intro(chalk13.bold("\u2692  forge debate \xB7 cross-provider with rotating roles"));
+  const slots = await pickProviderSlots();
+  if (!slots || slots.length < 2) {
+    p6.cancel("Cancelled \xB7 debate needs at least 2 providers.");
+    return;
+  }
+  const avatars = generateProviderAvatars(slots);
+  registerCustomPersonas(avatars);
+  const humanChoice = opts.yes ? false : await p6.confirm({ message: "Human participation? (can interject between turns)", initialValue: false });
+  if (p6.isCancel(humanChoice)) {
+    clearCustomPersonas();
+    return;
+  }
+  p6.note(
+    [
+      `${chalk13.bold("Question:")} ${question}`,
+      `${chalk13.bold("Ring:")}`,
+      ...slots.map((s, i) => `  ${i + 1}. ${s.label}`),
+      ``,
+      chalk13.dim("Mode: will-it-work (define \u2192 evidence \u2192 debate \u2192 verdict)"),
+      chalk13.dim("Each phase rotates the skeptic/pragmatist/analyst/advocate/contrarian roles.")
+    ].join("\n"),
+    "Plan"
+  );
+  if (!opts.yes) {
+    const go = await p6.confirm({ message: "Start the debate?", initialValue: true });
+    if (p6.isCancel(go) || !go) {
+      clearCustomPersonas();
+      p6.cancel("Cancelled.");
+      return;
+    }
+  }
+  const result = await launchSession({
+    projectName: "DebateRing",
+    goal: question,
+    mode: "will-it-work",
+    agents: avatars.map((a) => a.id),
+    language: "english",
+    humanParticipation: !!humanChoice,
+    outputDir: opts.output ?? "output/sessions",
+    debateSlots: slots
+  });
+  clearCustomPersonas();
+  if (!result.success) {
+    console.error(chalk13.red(result.error ?? "Debate did not start"));
+    process.exitCode = 1;
+  }
+}
+function createDebateCommand() {
+  return new Command15("debate").description("Cross-provider debate \xB7 agents named by provider, roles rotate each phase").argument("<question...>", "The question to put in the ring").option("-y, --yes", "Skip confirmations").option("-o, --output <dir>", "Output directory", "output/sessions").action(async (question, opts) => {
+    try {
+      await run5(question.join(" "), opts);
+    } catch (err2) {
+      if (err2 instanceof Error && /force closed/i.test(err2.message)) return;
+      console.error(chalk13.red("forge debate failed:"), err2 instanceof Error ? err2.message : err2);
+      process.exitCode = 1;
+    }
+  });
+}
+
+// cli/commands/login.ts
+import { Command as Command16 } from "commander";
 import * as readline from "readline";
 
 // src/lib/render/progress.ts
@@ -13352,7 +13708,7 @@ var printIdentity = (state) => {
   console.log("");
 };
 var createLoginCommand = () => {
-  const cmd = new Command15("login").description("Create or restore your decentralized DID identity").option("--new", "Force create a new identity (replaces existing)").action(async (opts) => {
+  const cmd = new Command16("login").description("Create or restore your decentralized DID identity").option("--new", "Force create a new identity (replaces existing)").action(async (opts) => {
     if (!opts.new) {
       const restoreResult = await repo.restoreSession();
       const restored = restoreResult.match(
@@ -13383,9 +13739,9 @@ var createLoginCommand = () => {
     if (wantAttestation && wantAttestation !== "skip" && wantAttestation !== "n") {
       const platforms = ["mastodon", "github", "bluesky"];
       let platform = null;
-      for (const p6 of platforms) {
-        if (wantAttestation.toLowerCase().includes(p6)) {
-          platform = p6;
+      for (const p7 of platforms) {
+        if (wantAttestation.toLowerCase().includes(p7)) {
+          platform = p7;
           break;
         }
       }
@@ -13416,7 +13772,7 @@ var createLoginCommand = () => {
     }
   });
   cmd.addCommand(
-    new Command15("status").description("Show current identity status").action(async () => {
+    new Command16("status").description("Show current identity status").action(async () => {
       const result = await repo.restoreSession();
       result.match(
         (s) => {
@@ -13433,7 +13789,7 @@ var createLoginCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command15("logout").description("Remove stored identity").action(async () => {
+    new Command16("logout").description("Remove stored identity").action(async () => {
       await repo.logout();
       console.log(style(forgeTheme.status.success, "  \u2714 Identity cleared"));
     })
@@ -13442,7 +13798,7 @@ var createLoginCommand = () => {
 };
 
 // cli/commands/community.ts
-import { Command as Command16 } from "commander";
+import { Command as Command17 } from "commander";
 import * as readline2 from "readline";
 
 // src/lib/p2p/errors.ts
@@ -13599,13 +13955,13 @@ var repo2 = createSessionRepository(
 );
 var isContribution = (payload) => {
   if (!payload || typeof payload !== "object") return false;
-  const p6 = payload;
-  return typeof p6.kind === "string" && typeof p6.v === "number" && typeof p6.title === "string" && ["persona", "insight", "template", "prompt"].includes(p6.kind) && typeof p6.content === "object";
+  const p7 = payload;
+  return typeof p7.kind === "string" && typeof p7.v === "number" && typeof p7.title === "string" && ["persona", "insight", "template", "prompt"].includes(p7.kind) && typeof p7.content === "object";
 };
 var isReaction = (payload) => {
   if (!payload || typeof payload !== "object") return false;
-  const p6 = payload;
-  return p6.kind === "reaction" && typeof p6.targetId === "string";
+  const p7 = payload;
+  return p7.kind === "reaction" && typeof p7.targetId === "string";
 };
 var shortenDid = (did) => did.length > 24 ? `${did.slice(0, 12)}\u2026${did.slice(-8)}` : did;
 var ask2 = (question) => {
@@ -13618,9 +13974,9 @@ var ask2 = (question) => {
   });
 };
 var createCommunityCommand = () => {
-  const cmd = new Command16("community").description("Browse and publish community contributions (P2P)");
+  const cmd = new Command17("community").description("Browse and publish community contributions (P2P)");
   cmd.addCommand(
-    new Command16("list").description("List contributions from connected peers").option("-k, --kind <kind>", "Filter by kind (persona|insight|template|prompt)").action(async (opts) => {
+    new Command17("list").description("List contributions from connected peers").option("-k, --kind <kind>", "Filter by kind (persona|insight|template|prompt)").action(async (opts) => {
       await ensureServices();
       const result = await fetchAll();
       result.match(
@@ -13663,7 +14019,7 @@ var createCommunityCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command16("publish").description("Publish a new contribution").requiredOption("-k, --kind <kind>", "Contribution kind (persona|insight|template|prompt)").requiredOption("-t, --title <title>", "Title").requiredOption("-d, --description <desc>", "One-line description").option("-b, --body <body>", "Body content (or will prompt)").option("--tags <tags>", "Comma-separated tags").action(async (opts) => {
+    new Command17("publish").description("Publish a new contribution").requiredOption("-k, --kind <kind>", "Contribution kind (persona|insight|template|prompt)").requiredOption("-t, --title <title>", "Title").requiredOption("-d, --description <desc>", "One-line description").option("-b, --body <body>", "Body content (or will prompt)").option("--tags <tags>", "Comma-separated tags").action(async (opts) => {
       await ensureServices();
       const session = await repo2.restoreSession();
       const authState = session.match((s) => s, () => null);
@@ -13723,7 +14079,7 @@ var createCommunityCommand = () => {
     })
   );
   cmd.addCommand(
-    new Command16("vote").description("Upvote or downvote a contribution").argument("<id>", "Contribution ID (or prefix)").option("--down", "Downvote instead of upvote").action(async (idOrPrefix, opts) => {
+    new Command17("vote").description("Upvote or downvote a contribution").argument("<id>", "Contribution ID (or prefix)").option("--down", "Downvote instead of upvote").action(async (idOrPrefix, opts) => {
       await ensureServices();
       const session = await repo2.restoreSession();
       const authState = session.match((s) => s, () => null);
@@ -13774,7 +14130,7 @@ var YELLOW2 = forgeTheme.status.warning;
 var CYAN2 = forgeTheme.status.info;
 var RED2 = forgeTheme.status.error;
 var MAGENTA = forgeTheme.text.emphasis;
-var program = new Command17();
+var program = new Command18();
 program.name("forge").description("Multi-agent deliberation engine - reach consensus through structured debate").version("1.0.0");
 program.command("start", { hidden: true }).description("[power-user] Launch a session directly from flags (regular use: run `forge` for the menu)").option("-b, --brief <name>", "Brief name to load (from briefs/ directory)").option("-p, --project <name>", "Project name", "New Project").option("-g, --goal <goal>", "Project goal").option("-a, --agents <ids>", "Comma-separated agent IDs (from default or custom personas)").option("-m, --mode <mode>", "Deliberation mode (see `forge --help`)", "will-it-work").option("--personas <name>", "Use custom persona set (from personas/ directory)").option("-l, --language <lang>", "Language: hebrew, english, mixed", "english").option("--human", "Enable human participation", true).option("--no-human", "Disable human participation").option("-o, --output <dir>", "Output directory for sessions", "output/sessions").action(async (options) => {
   const agents = options.agents ? String(options.agents).split(",").map((s) => s.trim()).filter(Boolean) : ["skeptic", "pragmatist", "analyst"];
@@ -13836,6 +14192,7 @@ program.addCommand(createCompressCommand());
 program.addCommand(createMcpCommand());
 program.addCommand(createParallelCommand());
 program.addCommand(createPipelineCommand());
+program.addCommand(createDebateCommand());
 program.addCommand(createLoginCommand());
 program.addCommand(createCommunityCommand());
 program.action(createMenuCommand());

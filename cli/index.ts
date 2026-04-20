@@ -37,6 +37,7 @@ import { createCompressCommand } from './commands/compress';
 import { createMcpCommand } from './commands/mcp';
 import { createParallelCommand } from './commands/parallel';
 import { createPipelineCommand } from './commands/pipeline';
+import { createDebateCommand } from './commands/debate';
 import { launchSession } from './lib/session-launcher';
 import { createLoginCommand } from './commands/login';
 import { createCommunityCommand } from './commands/community';
@@ -452,6 +453,9 @@ program.addCommand(createParallelCommand());
 
 // Pipeline — chain modes so each phase's consensus feeds the next.
 program.addCommand(createPipelineCommand());
+
+// Debate — cross-provider agents with rotating roles (signature demo).
+program.addCommand(createDebateCommand());
 
 // Decentralized identity + community (Phases 1-4)
 program.addCommand(createLoginCommand());
