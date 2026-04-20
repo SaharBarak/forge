@@ -10,7 +10,7 @@
 set -e
 cd "$(dirname "$0")/../.."
 
-OVERLAYS=(agent-control skill-picker)
+OVERLAYS=(agent-control skill-picker debate)
 SPEED="${SPEED:-3}"     # 3x speedup — overlays are already short
 FPS="${FPS:-20}"
 

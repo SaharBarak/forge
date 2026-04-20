@@ -29,10 +29,8 @@ import { launchSession } from '../lib/session-launcher';
 import { loadConfig } from '../../src/lib/config/ForgeConfig';
 import {
   generateProviderAvatars,
-  avatarRuntimeConfigs,
   type ProviderSlot,
 } from '../../src/agents/provider-avatars';
-import { registerCustomPersonas, clearCustomPersonas } from '../../src/agents/personas';
 import type { IProvider } from '../../src/lib/providers';
 
 interface AvailableProvider {
@@ -82,14 +80,44 @@ async function availableProviders(): Promise<AvailableProvider[]> {
 
 async function pickProviderSlots(): Promise<ProviderSlot[] | null> {
   const providers = await availableProviders();
-  if (providers.length < 2) {
+  if (providers.length === 0) {
     p.note(
-      `Only ${providers.length} provider${providers.length === 1 ? '' : 's'} available. Run ` +
-        chalk.bold('forge init') +
-        ' to enable Gemini / OpenAI / OpenRouter / Perplexity / Ollama.',
-      'Not enough providers for a debate'
+      'No providers available. Run ' + chalk.bold('forge init') + ' first.',
+      'No providers'
     );
     return null;
+  }
+
+  // When only one provider is configured, run a single-provider debate
+  // with multiple MODELS from that provider. The role rotation still
+  // produces a meaningful cross-perspective debate — agents rotate
+  // through skeptic/pragmatist/analyst/advocate/contrarian stances.
+  if (providers.length === 1) {
+    const only = providers[0];
+    if (only.models.length < 2) {
+      p.note(
+        `Only one provider (${only.label}) with one model is available. A debate needs at least 2 participants — add another provider via ` +
+          chalk.bold('forge init') +
+          ' or a provider with more models.',
+        'Not enough participants'
+      );
+      return null;
+    }
+    p.note(
+      `Only ${only.label} is configured. The debate will put ${only.label}'s own models in the ring — the role rotation still produces distinct perspectives.`,
+      'Single-provider debate'
+    );
+    const picked = await p.multiselect({
+      message: `Which ${only.label} models step into the ring? (space to toggle · 2–5)`,
+      options: only.models.map((m) => ({ value: m.id, label: m.label })),
+      initialValues: only.models.slice(0, Math.min(4, only.models.length)).map((m) => m.id),
+      required: true,
+    });
+    if (p.isCancel(picked)) return null;
+    return (picked as string[]).map((modelId) => {
+      const modelLabel = only.models.find((m) => m.id === modelId)?.label ?? modelId;
+      return { providerId: only.id, modelId, label: `${only.label} · ${modelLabel}` };
+    });
   }
 
   const picked = await p.multiselect({
@@ -133,18 +161,14 @@ async function run(question: string, opts: { yes?: boolean; output?: string }): 
     return;
   }
 
-  // Generate one blank avatar per slot and register as custom personas
-  // so the orchestrator's persona lookup finds them.
+  // Generate the avatars here purely to preview them in the plan note;
+  // launchSession re-generates + registers the real ones internally.
   const avatars = generateProviderAvatars(slots);
-  registerCustomPersonas(avatars);
 
   const humanChoice = opts.yes
     ? false
     : await p.confirm({ message: 'Human participation? (can interject between turns)', initialValue: false });
-  if (p.isCancel(humanChoice)) {
-    clearCustomPersonas();
-    return;
-  }
+  if (p.isCancel(humanChoice)) return;
 
   p.note(
     [
@@ -161,7 +185,6 @@ async function run(question: string, opts: { yes?: boolean; output?: string }): 
   if (!opts.yes) {
     const go = await p.confirm({ message: 'Start the debate?', initialValue: true });
     if (p.isCancel(go) || !go) {
-      clearCustomPersonas();
       p.cancel('Cancelled.');
       return;
     }
@@ -180,7 +203,6 @@ async function run(question: string, opts: { yes?: boolean; output?: string }): 
     debateSlots: slots,
   });
 
-  clearCustomPersonas();
   if (!result.success) {
     console.error(chalk.red(result.error ?? 'Debate did not start'));
     process.exitCode = 1;

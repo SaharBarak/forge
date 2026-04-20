@@ -114,7 +114,8 @@ export async function launchSession(
     if (await ollama.probe()) providers.register(ollama);
   }
 
-  // Personas: default council, or a named custom set from personas/<name>.json.
+  // Personas: default council, or a named custom set from personas/<name>.json,
+  // or generated provider-avatars for debate sessions.
   let availablePersonas: AgentPersona[] = AGENT_PERSONAS;
   let domainSkills: string | undefined;
   if (req.personaSet) {
@@ -135,6 +136,13 @@ export async function launchSession(
       // Missing .skills.md is fine.
     }
     registerCustomPersonas(availablePersonas);
+  } else if (req.debateSlots) {
+    // Debate mode · generate one provider-avatar per slot and register
+    // them as custom personas so the orchestrator lookup finds them.
+    const { generateProviderAvatars } = await import('../../src/agents/provider-avatars');
+    const avatars = generateProviderAvatars(req.debateSlots);
+    registerCustomPersonas(avatars);
+    availablePersonas = [...AGENT_PERSONAS, ...avatars];
   } else {
     clearCustomPersonas();
   }

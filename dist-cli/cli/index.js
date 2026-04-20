@@ -2331,6 +2331,59 @@ var init_providers = __esm({
   }
 });
 
+// src/agents/provider-avatars.ts
+var provider_avatars_exports = {};
+__export(provider_avatars_exports, {
+  avatarRuntimeConfigs: () => avatarRuntimeConfigs,
+  generateProviderAvatars: () => generateProviderAvatars
+});
+function generateProviderAvatars(slots) {
+  return slots.map((s, i) => ({
+    id: `avatar-${i + 1}`,
+    name: s.label,
+    nameHe: s.label,
+    role: `${s.providerId} \xB7 ${s.modelId}`,
+    age: 0,
+    background: `This agent speaks as ${s.label}. In a cross-provider debate, this
+    avatar takes on a different stance each round \u2014 skeptic, pragmatist, analyst,
+    advocate, or contrarian \u2014 and adopts that role's directive for the duration.
+    Identity stays with the model; the stance rotates.`,
+    personality: [
+      "Thoughtful, adaptable reasoner",
+      "Listens to previous speakers before responding",
+      "Adopts the round's assigned role fully",
+      "Cites sources when available",
+      "Respects the phase machine's structure"
+    ],
+    biases: [
+      "Underlying model biases are inherited from the provider"
+    ],
+    strengths: [
+      "Adapts stance per round without mixing",
+      "Brings the provider's distinctive reasoning style"
+    ],
+    weaknesses: [
+      "Role changes mid-session require a fresh context commitment"
+    ],
+    speakingStyle: `Per-round stance set by the role directive; underlying voice is ${s.label}'s default.`,
+    color: PALETTE[i % PALETTE.length]
+  }));
+}
+function avatarRuntimeConfigs(slots) {
+  const out = {};
+  for (let i = 0; i < slots.length; i++) {
+    out[`avatar-${i + 1}`] = { providerId: slots[i].providerId, modelId: slots[i].modelId };
+  }
+  return out;
+}
+var PALETTE;
+var init_provider_avatars = __esm({
+  "src/agents/provider-avatars.ts"() {
+    "use strict";
+    PALETTE = ["#ff5454", "#4ade80", "#00e5ff", "#e879f9", "#fb923c", "#facc15", "#60a5fa", "#b4ff3d"];
+  }
+});
+
 // src/lib/roles/index.ts
 function getRoleById(id) {
   return DEBATE_ROLES.find((r) => r.id === id);
@@ -12373,6 +12426,11 @@ async function launchSession(req) {
     } catch {
     }
     registerCustomPersonas(availablePersonas);
+  } else if (req.debateSlots) {
+    const { generateProviderAvatars: generateProviderAvatars2 } = await Promise.resolve().then(() => (init_provider_avatars(), provider_avatars_exports));
+    const avatars = generateProviderAvatars2(req.debateSlots);
+    registerCustomPersonas(avatars);
+    availablePersonas = [...AGENT_PERSONAS, ...avatars];
   } else {
     clearCustomPersonas();
   }
@@ -13504,44 +13562,7 @@ import { Command as Command15 } from "commander";
 import * as p6 from "@clack/prompts";
 import chalk13 from "chalk";
 init_ForgeConfig();
-
-// src/agents/provider-avatars.ts
-var PALETTE = ["#ff5454", "#4ade80", "#00e5ff", "#e879f9", "#fb923c", "#facc15", "#60a5fa", "#b4ff3d"];
-function generateProviderAvatars(slots) {
-  return slots.map((s, i) => ({
-    id: `avatar-${i + 1}`,
-    name: s.label,
-    nameHe: s.label,
-    role: `${s.providerId} \xB7 ${s.modelId}`,
-    age: 0,
-    background: `This agent speaks as ${s.label}. In a cross-provider debate, this
-    avatar takes on a different stance each round \u2014 skeptic, pragmatist, analyst,
-    advocate, or contrarian \u2014 and adopts that role's directive for the duration.
-    Identity stays with the model; the stance rotates.`,
-    personality: [
-      "Thoughtful, adaptable reasoner",
-      "Listens to previous speakers before responding",
-      "Adopts the round's assigned role fully",
-      "Cites sources when available",
-      "Respects the phase machine's structure"
-    ],
-    biases: [
-      "Underlying model biases are inherited from the provider"
-    ],
-    strengths: [
-      "Adapts stance per round without mixing",
-      "Brings the provider's distinctive reasoning style"
-    ],
-    weaknesses: [
-      "Role changes mid-session require a fresh context commitment"
-    ],
-    speakingStyle: `Per-round stance set by the role directive; underlying voice is ${s.label}'s default.`,
-    color: PALETTE[i % PALETTE.length]
-  }));
-}
-
-// cli/commands/debate.ts
-init_personas();
+init_provider_avatars();
 async function availableProviders() {
   const { ProviderRegistry: ProviderRegistry2, AnthropicProvider: AnthropicProvider2, GeminiProvider: GeminiProvider2, OpenAIProvider: OpenAIProvider2, OllamaProvider: OllamaProvider2, OpenRouterProvider: OpenRouterProvider2, PerplexityProvider: PerplexityProvider2 } = await Promise.resolve().then(() => (init_providers(), providers_exports));
   const { CLIAgentRunner: CLIAgentRunner2 } = await Promise.resolve().then(() => (init_CLIAgentRunner(), CLIAgentRunner_exports));
@@ -13572,12 +13593,37 @@ async function availableProviders() {
 }
 async function pickProviderSlots() {
   const providers = await availableProviders();
-  if (providers.length < 2) {
+  if (providers.length === 0) {
     p6.note(
-      `Only ${providers.length} provider${providers.length === 1 ? "" : "s"} available. Run ` + chalk13.bold("forge init") + " to enable Gemini / OpenAI / OpenRouter / Perplexity / Ollama.",
-      "Not enough providers for a debate"
+      "No providers available. Run " + chalk13.bold("forge init") + " first.",
+      "No providers"
     );
     return null;
+  }
+  if (providers.length === 1) {
+    const only = providers[0];
+    if (only.models.length < 2) {
+      p6.note(
+        `Only one provider (${only.label}) with one model is available. A debate needs at least 2 participants \u2014 add another provider via ` + chalk13.bold("forge init") + " or a provider with more models.",
+        "Not enough participants"
+      );
+      return null;
+    }
+    p6.note(
+      `Only ${only.label} is configured. The debate will put ${only.label}'s own models in the ring \u2014 the role rotation still produces distinct perspectives.`,
+      "Single-provider debate"
+    );
+    const picked2 = await p6.multiselect({
+      message: `Which ${only.label} models step into the ring? (space to toggle \xB7 2\u20135)`,
+      options: only.models.map((m) => ({ value: m.id, label: m.label })),
+      initialValues: only.models.slice(0, Math.min(4, only.models.length)).map((m) => m.id),
+      required: true
+    });
+    if (p6.isCancel(picked2)) return null;
+    return picked2.map((modelId) => {
+      const modelLabel = only.models.find((m) => m.id === modelId)?.label ?? modelId;
+      return { providerId: only.id, modelId, label: `${only.label} \xB7 ${modelLabel}` };
+    });
   }
   const picked = await p6.multiselect({
     message: "Which providers step into the ring? (space to toggle \xB7 2\u20135)",
@@ -13617,12 +13663,8 @@ async function run5(question, opts) {
     return;
   }
   const avatars = generateProviderAvatars(slots);
-  registerCustomPersonas(avatars);
   const humanChoice = opts.yes ? false : await p6.confirm({ message: "Human participation? (can interject between turns)", initialValue: false });
-  if (p6.isCancel(humanChoice)) {
-    clearCustomPersonas();
-    return;
-  }
+  if (p6.isCancel(humanChoice)) return;
   p6.note(
     [
       `${chalk13.bold("Question:")} ${question}`,
@@ -13637,7 +13679,6 @@ async function run5(question, opts) {
   if (!opts.yes) {
     const go = await p6.confirm({ message: "Start the debate?", initialValue: true });
     if (p6.isCancel(go) || !go) {
-      clearCustomPersonas();
       p6.cancel("Cancelled.");
       return;
     }
@@ -13652,7 +13693,6 @@ async function run5(question, opts) {
     outputDir: opts.output ?? "output/sessions",
     debateSlots: slots
   });
-  clearCustomPersonas();
   if (!result.success) {
     console.error(chalk13.red(result.error ?? "Debate did not start"));
     process.exitCode = 1;
