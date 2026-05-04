@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 
-type View = 'chat' | 'drafts' | 'decisions' | 'context' | 'settings';
+type View = 'chat' | 'drafts' | 'decisions' | 'context' | 'canvas' | 'settings';
 
 interface UIStore {
   // State
