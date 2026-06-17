@@ -16,6 +16,7 @@ export function Sidebar() {
     drafts: hebrewMode ? 'טיוטות' : 'Drafts',
     decisions: hebrewMode ? 'החלטות' : 'Decisions',
     context: hebrewMode ? 'הקשר' : 'Context',
+    canvas: hebrewMode ? 'לוח ציור' : 'Canvas',
     controls: hebrewMode ? 'בקרה' : 'Controls',
     pause: hebrewMode ? 'השהה' : 'Pause',
     resume: hebrewMode ? 'המשך' : 'Resume',
@@ -42,7 +43,7 @@ export function Sidebar() {
       <div className="p-4 border-b border-dark-800">
         <div className="text-xs text-dark-500 mb-2">{t.views}</div>
         <nav className="space-y-1">
-          {(['chat', 'drafts', 'decisions', 'context'] as const).map((view) => (
+          {(['chat', 'drafts', 'decisions', 'context', 'canvas'] as const).map((view) => (
             <button
               key={view}
               onClick={() => setView(view)}
