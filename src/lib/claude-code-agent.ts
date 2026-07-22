@@ -339,6 +339,16 @@ Respond ONLY with JSON:
     conversationContext: string,
     triggerReason: string
   ): Promise<{ content: string; type: string }> {
+    const responseContract = conversationContext.includes('## CRITICAL CONSENSUS REVIEW')
+      ? `Return ONLY the exact JSON verdict object requested in the discussion context. Do not add an RTC type tag, markdown fence, explanation, or preamble.`
+      : conversationContext.includes('## UNANIMOUS REVISION TASK')
+        ? `Return ONLY the complete replacement draft requested in the discussion context. Do not add an RTC type tag, explanation, or preamble.`
+        : conversationContext.includes('## YOUR TASK') && conversationContext.includes('Draft ONLY')
+          ? `Return ONLY the requested finished section beginning with its exact ## heading. Do not add an RTC type tag, explanation, or preamble.`
+          : `Be concise. Follow RTC protocol (LISTEN → RESPOND → YIELD).
+
+Start with a type tag: [ARGUMENT], [QUESTION], [PROPOSAL], [AGREEMENT], [DISAGREEMENT], or [SYNTHESIS]`;
+
     const prompt = `## Discussion Context
 ${conversationContext}
 
@@ -347,9 +357,7 @@ You raised your hand because: "${triggerReason}"
 
 ## Your Task
 As ${this.persona.name}, respond to the discussion. Address the trigger reason directly.
-Be concise. Follow RTC protocol (LISTEN → RESPOND → YIELD).
-
-Start with a type tag: [ARGUMENT], [QUESTION], [PROPOSAL], [AGREEMENT], [DISAGREEMENT], or [SYNTHESIS]`;
+${responseContract}`;
 
     const response = await this.query(prompt);
 

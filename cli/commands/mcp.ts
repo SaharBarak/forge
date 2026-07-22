@@ -9,6 +9,8 @@
  *   list_sessions       · past sessions with metadata
  *   get_consensus       · consensus dir contents for a session
  *   get_transcript      · full markdown transcript of a session
+ *   run_copywrite_consensus · run copywrite mode to completion and return
+ *                             the finished deliverable
  *   route               · smart-routes a natural-language request to
  *                         a proposed (mode, agents, goal) plan
  *
@@ -19,6 +21,7 @@
 import { Command } from 'commander';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { fileURLToPath } from 'node:url';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -27,6 +30,12 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { getAllModes, getModeById } from '../../src/lib/modes';
 import { AGENT_PERSONAS } from '../../src/agents/personas';
+import {
+  DEFAULT_COPYWRITE_AGENTS,
+  DEFAULT_COPYWRITE_SECTIONS,
+  runHeadlessCopywriteSession,
+} from '../lib/headless-session';
+import { createHostAgentRunner } from '../adapters/HostAgentRunner';
 
 interface SessionMeta {
   name: string;
@@ -81,11 +90,30 @@ async function listConsensusArtifacts(sessionDir: string): Promise<Array<{ file:
   }
 }
 
-async function runMcp(): Promise<void> {
+function sessionDirFromName(session: unknown, workspaceDir = process.cwd()): string | null {
+  const name = String(session ?? '');
+  if (!name || name !== path.basename(name) || name === '.' || name === '..') return null;
+  return path.join(workspaceDir, 'output', 'sessions', name);
+}
+
+export async function runMcp(): Promise<void> {
   const server = new Server(
-    { name: 'forge', version: '0.2.0' },
+    { name: 'forge', version: '0.3.0' },
     { capabilities: { tools: {} } }
   );
+  let consensusRunActive = false;
+
+  const getWorkspaceDir = async (): Promise<string> => {
+    try {
+      const result = await server.listRoots();
+      const fileRoot = result.roots.find((root) => root.uri.startsWith('file:'));
+      if (fileRoot) return fileURLToPath(fileRoot.uri);
+    } catch {
+      // Older/minimal MCP hosts may not advertise roots. stdio servers
+      // conventionally inherit the host workspace as their cwd.
+    }
+    return process.cwd();
+  };
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
@@ -130,6 +158,52 @@ async function runMcp(): Promise<void> {
         },
       },
       {
+        name: 'run_copywrite_consensus',
+        description:
+          'Run a complete, headless Forge copywriting consensus session. The tool blocks through discovery, research, synthesis, drafting, and adversarial review/revision rounds. It returns finished Markdown only after every enabled reviewer approves alignment with the original brief; otherwise it fails closed. Use this when the user asks Forge to write or rewrite copy, not merely to plan it.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            brief: {
+              type: 'string',
+              minLength: 20,
+              description:
+                'The complete copywriting brief: product/offer, audience, goal, differentiators, tone, constraints, and all known proof points.',
+            },
+            project_name: {
+              type: 'string',
+              description: 'Short name used in the output title and session artifacts.',
+            },
+            sections: {
+              type: 'array',
+              minItems: 2,
+              maxItems: 12,
+              items: { type: 'string' },
+              description: `Required final sections. Defaults to: ${DEFAULT_COPYWRITE_SECTIONS.join(', ')}.`,
+            },
+            agents: {
+              type: 'array',
+              minItems: 2,
+              maxItems: 5,
+              items: { type: 'string' },
+              description: `Forge persona IDs. Defaults to: ${DEFAULT_COPYWRITE_AGENTS.join(', ')}.`,
+            },
+            language: {
+              type: 'string',
+              enum: ['english', 'hebrew', 'mixed'],
+              description: 'Language for the final copy. Defaults to english.',
+            },
+          },
+          required: ['brief'],
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: true,
+        },
+      },
+      {
         name: 'route',
         description:
           'Smart-router: take a natural-language request, return a proposed (mode, agents, goal) plan without running a session. The caller can then invoke `forge auto "..."` or `forge start -m ...` with the suggestion.',
@@ -170,24 +244,33 @@ async function runMcp(): Promise<void> {
     }
 
     if (name === 'list_sessions') {
-      const sessions = await listSessions();
+      const workspaceDir = await getWorkspaceDir();
+      const sessions = await listSessions(path.join(workspaceDir, 'output', 'sessions'));
       return { content: [{ type: 'text', text: JSON.stringify(sessions, null, 2) }] };
     }
 
     if (name === 'get_consensus') {
-      const session = String(args.session ?? '');
-      const dir = path.join('output/sessions', session);
+      const dir = sessionDirFromName(args.session, await getWorkspaceDir());
+      if (!dir) {
+        return {
+          content: [{ type: 'text', text: 'Invalid session name.' }],
+          isError: true,
+        };
+      }
       const artifacts = await listConsensusArtifacts(dir);
       return { content: [{ type: 'text', text: JSON.stringify(artifacts, null, 2) }] };
     }
 
     if (name === 'get_transcript') {
-      const session = String(args.session ?? '');
+      const dir = sessionDirFromName(args.session, await getWorkspaceDir());
+      if (!dir) {
+        return {
+          content: [{ type: 'text', text: 'Invalid session name.' }],
+          isError: true,
+        };
+      }
       try {
-        const body = await fs.readFile(
-          path.join('output/sessions', session, 'transcript.md'),
-          'utf-8'
-        );
+        const body = await fs.readFile(path.join(dir, 'transcript.md'), 'utf-8');
         return { content: [{ type: 'text', text: body }] };
       } catch (err) {
         return {
@@ -197,13 +280,69 @@ async function runMcp(): Promise<void> {
       }
     }
 
+    if (name === 'run_copywrite_consensus') {
+      if (consensusRunActive) {
+        return {
+          content: [{ type: 'text', text: 'A Forge consensus run is already active in this MCP server.' }],
+          isError: true,
+        };
+      }
+
+      consensusRunActive = true;
+      try {
+        const workspaceDir = await getWorkspaceDir();
+        const result = await runHeadlessCopywriteSession({
+          brief: String(args.brief ?? ''),
+          projectName: typeof args.project_name === 'string' ? args.project_name : undefined,
+          sections: Array.isArray(args.sections) ? args.sections.map(String) : undefined,
+          agents: Array.isArray(args.agents) ? args.agents.map(String) : undefined,
+          language:
+            args.language === 'hebrew' || args.language === 'mixed'
+              ? args.language
+              : 'english',
+          workspacePath: workspaceDir,
+        });
+        const complete =
+          result.completedSections === result.totalSections &&
+          result.criticalConsensus.approved;
+        const metadata = {
+          sessionId: result.sessionId,
+          sessionDir: result.sessionDir,
+          completedSections: result.completedSections,
+          totalSections: result.totalSections,
+          unanimousApproval: result.criticalConsensus.approved,
+          reviewRounds: result.criticalConsensus.roundsCompleted,
+          reviewerCount: result.criticalConsensus.reviewerCount,
+          durationMs: result.durationMs,
+        };
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `${result.output}\n\n---\n\nForge run metadata:\n${JSON.stringify(metadata, null, 2)}`,
+            },
+          ],
+          structuredContent: { ...metadata, output: result.output },
+          ...(complete ? {} : { isError: true }),
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Forge copywrite consensus failed: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      } finally {
+        consensusRunActive = false;
+      }
+    }
+
     if (name === 'route') {
       const request = String(args.request ?? '');
-      const { CLIAgentRunner } = await import('../adapters/CLIAgentRunner');
-      const { ClaudeCodeCLIRunner } = await import('../adapters/ClaudeCodeCLIRunner');
-      const runner = process.env.ANTHROPIC_API_KEY
-        ? new CLIAgentRunner()
-        : new ClaudeCodeCLIRunner();
+      const runner = createHostAgentRunner();
       const modes = getAllModes();
       const system = `You are a router. Pick the right Forge mode and 3-4 agents.
 
@@ -242,7 +381,7 @@ Output JSON only: {"mode":"...", "agents":[...], "goal":"...", "projectName":"..
 
   // Silent by design — stdout is reserved for the JSON-RPC transport.
   // Log startup to stderr so the host can see it.
-  process.stderr.write('forge mcp · ready · tools: list_modes, list_agents, list_sessions, get_consensus, get_transcript, route\n');
+  process.stderr.write('forge mcp · ready · tools: list_modes, list_agents, list_sessions, get_consensus, get_transcript, run_copywrite_consensus, route\n');
 }
 
 // Unused — used only to check modes import isn't stripped

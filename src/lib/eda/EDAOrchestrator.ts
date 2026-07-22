@@ -32,7 +32,9 @@ export type EDAEventType =
   | 'draft_section'
   | 'intervention' // ModeController interventions (goal_reminder, loop_detected, etc.)
   | 'agent_config_change'
-  | 'agent_skills_change';
+  | 'agent_skills_change'
+  | 'session_end'
+  | 'session_error';
 
 // SessionPhase is imported from types/index.ts (10 phases: initialization, context_loading, research, brainstorming, argumentation, synthesis, drafting, review, consensus, finalization)
 export type { SessionPhase };
@@ -44,6 +46,22 @@ export interface CopySection {
   assignedAgent?: string;
   content?: string;
   status: 'pending' | 'in_progress' | 'complete';
+}
+
+export interface CriticalCopyReview {
+  round: number;
+  agentId: string;
+  verdict: 'approve' | 'revise';
+  alignmentScore: number;
+  criticalIssues: string[];
+  requiredChanges: string[];
+}
+
+export interface CriticalConsensusStatus {
+  approved: boolean;
+  roundsCompleted: number;
+  reviewerCount: number;
+  reviews: CriticalCopyReview[];
 }
 
 const COPY_SECTIONS: Omit<CopySection, 'status'>[] = [
@@ -108,6 +126,8 @@ export interface EDAOrchestratorOptions {
   phaseMachineOptions?: {
     /** Per-agent speak timeout in ms (default 120_000). */
     speakTimeoutMs?: number;
+    /** Maximum adversarial review/revision rounds for copywrite mode (default 3). */
+    criticalReviewRounds?: number;
   };
 }
 
@@ -129,11 +149,18 @@ export class EDAOrchestrator {
   // 180s per turn — drafting with heavy research context can push Sonnet
   // past the default 90s, especially for the first section after Research.
   private speakTimeoutMs = 180_000;
+  private maxCriticalReviewRounds = 3;
   private unsubscribers: (() => void)[] = [];
 
   // Phase management
   private currentPhase: SessionPhase = 'initialization';
   private copySections: CopySection[] = [];
+  private criticalConsensusStatus: CriticalConsensusStatus = {
+    approved: false,
+    roundsCompleted: 0,
+    reviewerCount: 0,
+    reviews: [],
+  };
 
   // Consensus tracking
   private agentContributions: Map<string, number> = new Map();
@@ -205,6 +232,12 @@ export class EDAOrchestrator {
     }
     if (options?.phaseMachineOptions?.speakTimeoutMs !== undefined) {
       this.speakTimeoutMs = options.phaseMachineOptions.speakTimeoutMs;
+    }
+    if (options?.phaseMachineOptions?.criticalReviewRounds !== undefined) {
+      this.maxCriticalReviewRounds = Math.max(
+        1,
+        Math.min(5, Math.floor(options.phaseMachineOptions.criticalReviewRounds)),
+      );
     }
 
     // Initialize mode controller
@@ -349,6 +382,9 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
         this.phaseMachineStarted = true;
         this.runPhaseMachine().catch((err) => {
           console.error('[EDAOrchestrator] Phase machine error:', err);
+          this.emit('session_error', {
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
       }
     }, 1000);
@@ -448,6 +484,18 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
     this.unsubscribers.push(
       this.bus.subscribe('floor:request', (payload) => {
         console.log(`[EDAOrchestrator] Floor request from ${payload.agentId}`);
+      }, 'orchestrator')
+    );
+
+    // Surface completion through the public orchestrator event API. Headless
+    // callers (MCP, CI, batch jobs) should not need access to the private bus
+    // or poll internal phase state to know when the deliverable is ready.
+    this.unsubscribers.push(
+      this.bus.subscribe('session:end', (payload) => {
+        this.session.status = 'completed';
+        this.session.currentPhase = 'finalization';
+        this.session.endedAt = new Date();
+        this.emit('session_end', payload);
       }, 'orchestrator')
     );
   }
@@ -721,6 +769,10 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
    * Check for research requests in message
    */
   private checkForResearchRequests(message: Message): void {
+    // Phase instructions contain example research blocks. System-authored
+    // examples are documentation, never executable requests.
+    if (message.agentId === 'system') return;
+
     const content = message.content;
 
     // Pattern: @researcher-id: query
@@ -729,13 +781,19 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
     const mentionPattern = /@(stats-finder|competitor-analyst|audience-insight|copy-explorer|context-finder|local-context)[:\s]+["']?([^"'\n]+?)["']?(?:\n|$)/gi;
     let match;
 
-    while ((match = mentionPattern.exec(content)) !== null) {
-      let researcherId = match[1].toLowerCase();
-      // Legacy alias: local-context was renamed to context-finder when we
-      // dropped locale-specific researchers.
-      if (researcherId === 'local-context') researcherId = 'context-finder';
-      const query = match[2].trim();
-      this.processResearchRequest(researcherId, query, message.agentId);
+    // Legacy/manual sessions still accept @researcher mentions. Deterministic
+    // runs require the explicit block contract advertised in their prompt so
+    // ordinary prose such as "if @audience-insight has data" cannot trigger
+    // an accidental, concurrent research job.
+    if (!this.autoRunPhaseMachine) {
+      while ((match = mentionPattern.exec(content)) !== null) {
+        let researcherId = match[1].toLowerCase();
+        // Legacy alias: local-context was renamed to context-finder when we
+        // dropped locale-specific researchers.
+        if (researcherId === 'local-context') researcherId = 'context-finder';
+        const query = match[2].trim();
+        this.processResearchRequest(researcherId, query, message.agentId);
+      }
     }
 
     // Pattern: [RESEARCH: researcher-id] query [/RESEARCH]
@@ -1293,7 +1351,15 @@ ${assignments}
   async getConsolidatedDraft(): Promise<string> {
     const sections = this.copySections
       .filter(s => s.content)
-      .map(s => `## ${s.nameHe} (${s.name})\n\n${s.content}`)
+      .map((s) => {
+        const content = s.content!.trim();
+        // The deterministic phase machine asks agents to include their own
+        // Markdown heading. Legacy/manual callers may still provide only a
+        // body, so add a heading only when one is absent.
+        return /^#{1,4}\s+\S/m.test(content)
+          ? content
+          : `## ${s.nameHe} (${s.name})\n\n${content}`;
+      })
       .join('\n\n---\n\n');
 
     return `# ${this.session.config.projectName} - Draft Copy\n\n${sections}`;
@@ -1415,6 +1481,18 @@ ${draft}
     return [...this.copySections];
   }
 
+  /** Audit trail for the unanimous copywrite review gate. */
+  getCriticalConsensusStatus(): CriticalConsensusStatus {
+    return {
+      ...this.criticalConsensusStatus,
+      reviews: this.criticalConsensusStatus.reviews.map((review) => ({
+        ...review,
+        criticalIssues: [...review.criticalIssues],
+        requiredChanges: [...review.requiredChanges],
+      })),
+    };
+  }
+
   // ===========================================================================
   // PHASE EXECUTOR — deterministic Discovery → Synthesis → Drafting → Final
   // ===========================================================================
@@ -1452,6 +1530,11 @@ ${draft}
 
     await this.runDraftingPhase(agentIds, sections, synthesisSummary);
     if (this.isStopped) return;
+
+    if ((this.session.config.mode || 'copywrite') === 'copywrite') {
+      await this.runCriticalConsensusPhase(agentIds, sections);
+      if (this.isStopped) return;
+    }
 
     await this.finalizeByMachine(sections);
   }
@@ -1585,8 +1668,8 @@ ${draft}
         `We will now draft the final deliverable one section at a time. ` +
         `For each section, the assigned agent writes ONLY that section. ` +
         `Output MUST start with \`## <SECTION_NAME>\` on its own line and contain the full, finished copy — no meta-commentary, no evidence notes, no questions to the team.\n\n` +
-        `**GROUNDING RULE (strict):** You may ONLY name features, modes, commands, files, or technical claims that were explicitly verified during the Research phase. If Research found the mode is called \`copywrite\`, you write "Copywrite" — NOT "Architecture Review" or "Copywriting Assistant" or any other plausible-sounding name you might prefer. If Research did not cover a feature, omit it entirely rather than inventing it. Plausible-sounding fabrications (made-up commands, made-up modes, made-up flag names) are the single biggest failure mode — do not commit them.\n\n` +
-        `**Concreteness rule:** every section that describes capability or value must include at least one named, specific example drawn from what Research actually found. Abstract phrasing like "complex decisions" is not acceptable — name the feature, mode, file, or scenario that Research returned. Hero and Footer are exempt from the concreteness rule but NOT from the grounding rule.`,
+        `**GROUNDING RULE (strict):** You may ONLY name features, modes, commands, files, or technical claims that are supported by the ORIGINAL USER BRIEF or explicitly verified during Research. If either source says the mode is called \`copywrite\`, you write "Copywrite" — NOT "Architecture Review" or "Copywriting Assistant". If neither source supports a claim, omit it rather than inventing it. Plausible-sounding fabrications (made-up commands, made-up modes, made-up flag names) are forbidden.\n\n` +
+        `**Concreteness rule:** every section that describes capability or value must include at least one named, specific example supported by the Brief or Research. Abstract phrasing like "complex decisions" is not acceptable. Hero and Footer are exempt from the example requirement but NOT from the grounding rule.`,
     );
 
     // Build drafting state with per-section agent assignment
@@ -1613,9 +1696,9 @@ ${draft}
         section.id === 'hero' || section.id === 'footer' || section.id === 'final_cta';
 
       // Pull every research_result message from the bus — this is the
-      // authoritative "ground truth" the agents discovered about the subject.
-      // It's the ONLY material the drafting agent is allowed to cite for
-      // technical/feature claims.
+      // authoritative ground truth the agents discovered about the subject.
+      // Together with the original brief, this bounds every technical or
+      // feature claim the drafting agent may make.
       const researchFindings = this.bus
         .getAllMessages()
         .filter((m) => m.type === 'research_result')
@@ -1628,8 +1711,8 @@ ${draft}
         this.session.config.goal.slice(0, 2000),
         ``,
         researchFindings
-          ? `## RESEARCH FINDINGS (authoritative — cite ONLY from here for technical facts)\n\n${researchFindings}`
-          : `## RESEARCH FINDINGS\n\n_(no research was conducted — do not make specific technical claims)_`,
+          ? `## RESEARCH FINDINGS (authoritative alongside the original brief)\n\n${researchFindings}`
+          : `## RESEARCH FINDINGS\n\n_(no research was conducted — use only facts explicitly supplied in the original brief)_`,
         ``,
         `## SYNTHESIS (what the team agreed on)`,
         synthesisSummary.slice(0, 2000),
@@ -1644,10 +1727,10 @@ ${draft}
         `- Start your response with: \`## ${section.name}\``,
         `- Follow with the FULL, finished copy for this section — ready to ship.`,
         `- No meta-commentary, no outlines, no evidence notes, no "here is my draft" preambles, no questions to the team.`,
-        `- **GROUNDING RULE (strict):** every feature, mode name, command, file, or technical claim in this section MUST appear verbatim (or as a direct paraphrase) in the RESEARCH FINDINGS above. If Research says the mode is \`copywrite\`, write "Copywrite" — NOT "Copywriting Assistant". If Research didn't cover something, do not mention it. Plausible-sounding fabrications are forbidden.`,
+        `- **GROUNDING RULE (strict):** every feature, mode name, command, file, or technical claim in this section MUST be directly supported by the ORIGINAL USER BRIEF or the RESEARCH FINDINGS above. If a source says the mode is \`copywrite\`, write "Copywrite" — NOT "Copywriting Assistant". If neither source covers something, do not mention it. Plausible-sounding fabrications are forbidden.`,
         exemptFromExamples
           ? `- This section is short-form — no example needed, just punchy copy grounded in Research.`
-          : `- **Concreteness rule:** include at least one named, specific example drawn from Research. Name the user ("a 20-person eng team choosing between monolith and microservices"), the decision, or the workflow. The example must be consistent with what Research actually returned — don't invent scenarios.`,
+          : `- **Concreteness rule:** include at least one named, specific example supported by the Brief or Research. Name the audience, decision, workflow, or situation without adding facts that neither source supplied.`,
         `- Keep it concise but complete — the reader should not need a second pass.`,
       ]
         .filter(Boolean)
@@ -1666,6 +1749,235 @@ ${draft}
         section.content = `## ${section.name}\n\n_(agent did not respond in time)_`;
       }
       section.status = 'complete';
+    }
+  }
+
+  /**
+   * Copywrite quality gate: every enabled agent independently audits the
+   * complete draft against the original user brief. Any dissent triggers a
+   * full revision and another independent vote. The run only finalizes after
+   * unanimous approval; exhausting the review budget fails closed.
+   */
+  private async runCriticalConsensusPhase(
+    agentIds: string[],
+    sections: RequiredSection[],
+  ): Promise<void> {
+    this.currentPhase = 'review';
+    this.emit('phase_change', { phase: 'review' });
+
+    this.criticalConsensusStatus = {
+      approved: false,
+      roundsCompleted: 0,
+      reviewerCount: agentIds.length,
+      reviews: [],
+    };
+
+    for (let round = 1; round <= this.maxCriticalReviewRounds; round++) {
+      if (this.isStopped) return;
+      const draft = await this.getConsolidatedDraft();
+      const reviews: CriticalCopyReview[] = [];
+
+      this.pushSystemMessage(
+        `🧪 **CRITICAL CONSENSUS REVIEW — ROUND ${round}/${this.maxCriticalReviewRounds}**\n\n` +
+          `Every agent must independently challenge the complete draft against the user's original brief. ` +
+          `Approval is unanimous: one blocking objection sends the draft back for revision.`,
+      );
+
+      for (const agentId of agentIds) {
+        if (this.isStopped) return;
+        const reviewContext = [
+          '## CRITICAL CONSENSUS REVIEW',
+          '',
+          'Act as an independent, adversarial copy chief. Question the draft instead of defending prior work.',
+          'Approve only when the copy is specific, credible, useful, and fully aligned with the user’s core ask.',
+          '',
+          'Treat any of these as blocking:',
+          '- generic AI-sounding filler, clichés, empty superlatives, or repetitive cadence',
+          '- unsupported claims, invented proof, or capabilities absent from the brief/research',
+          '- drift from the requested audience, action, tone, constraints, or required sections',
+          '- copy that sounds polished but does not make a concrete, persuasive case',
+          '- contradictions, missing context, weak transitions, or a CTA disconnected from the offer',
+          '',
+          'Do not defer to the other agents and do not approve merely because the draft is complete.',
+          'Set verdict to "approve" only when there are no blocking issues and alignment_score is at least 85.',
+          '',
+          'Return exactly one JSON object with this schema:',
+          '{"verdict":"approve|revise","alignment_score":0,"critical_issues":["..."],"required_changes":["..."]}',
+          '',
+          '## ORIGINAL USER BRIEF AND REQUIRED OUTPUT',
+          this.session.config.goal.slice(0, 8000),
+          '',
+          '## COMPLETE DRAFT UNDER REVIEW',
+          draft.slice(0, 24_000),
+        ].join('\n');
+
+        const message = await this.forceSpeakAndWait(
+          agentId,
+          `Critical review round ${round}`,
+          reviewContext,
+        );
+        const review = this.parseCriticalCopyReview(message?.content, agentId, round);
+        reviews.push(review);
+        this.criticalConsensusStatus.reviews.push(review);
+      }
+
+      this.criticalConsensusStatus.roundsCompleted = round;
+      const unanimous =
+        reviews.length === agentIds.length &&
+        reviews.every(
+          (review) => review.verdict === 'approve' && review.alignmentScore >= 85,
+        );
+
+      if (unanimous) {
+        this.criticalConsensusStatus.approved = true;
+        this.currentPhase = 'consensus';
+        this.emit('phase_change', { phase: 'consensus' });
+        this.pushSystemMessage(
+          `[CONSENSUS] **UNANIMOUS COPY APPROVAL** — ${agentIds.length}/${agentIds.length} agents approved ` +
+            `the final draft against the original brief in review round ${round}.`,
+        );
+        return;
+      }
+
+      const blockingFeedback = reviews
+        .filter((review) => review.verdict === 'revise' || review.alignmentScore < 85)
+        .map((review) => {
+          const issues = review.criticalIssues.length
+            ? review.criticalIssues.join('; ')
+            : 'Reviewer withheld approval.';
+          const changes = review.requiredChanges.length
+            ? review.requiredChanges.join('; ')
+            : 'Resolve the blocking issues and realign with the brief.';
+          return `- ${review.agentId} (${review.alignmentScore}/100): ${issues}\n  Required: ${changes}`;
+        })
+        .join('\n');
+
+      this.pushSystemMessage(
+        `⚠️ **CONSENSUS WITHHELD — ROUND ${round}**\n\n${blockingFeedback}`,
+      );
+
+      if (round < this.maxCriticalReviewRounds) {
+        await this.reviseDraftForConsensus(
+          agentIds[(round - 1) % agentIds.length],
+          sections,
+          draft,
+          blockingFeedback,
+          round,
+        );
+      }
+    }
+
+    const lastRound = this.criticalConsensusStatus.reviews.filter(
+      (review) => review.round === this.criticalConsensusStatus.roundsCompleted,
+    );
+    const dissenters = lastRound
+      .filter((review) => review.verdict !== 'approve' || review.alignmentScore < 85)
+      .map((review) => review.agentId)
+      .join(', ');
+    this.pushSystemMessage(
+      `🛑 **COPYWRITE RUN STOPPED** — unanimous approval was not reached. ` +
+        `Dissenting reviewers: ${dissenters || 'unknown'}. No final deliverable will be presented as consensus.`,
+    );
+    throw new Error(
+      `Unanimous copy approval was not reached after ${this.maxCriticalReviewRounds} review rounds` +
+        (dissenters ? ` (${dissenters} withheld approval).` : '.'),
+    );
+  }
+
+  private parseCriticalCopyReview(
+    content: string | undefined,
+    agentId: string,
+    round: number,
+  ): CriticalCopyReview {
+    const fallback = (issue: string): CriticalCopyReview => ({
+      round,
+      agentId,
+      verdict: 'revise',
+      alignmentScore: 0,
+      criticalIssues: [issue],
+      requiredChanges: ['Return a valid critical review before the draft can pass.'],
+    });
+
+    if (!content) return fallback('Reviewer did not respond.');
+    const match = content.match(/\{[\s\S]*\}/);
+    if (!match) return fallback('Reviewer did not return the required JSON verdict.');
+
+    try {
+      const parsed = JSON.parse(match[0]) as {
+        verdict?: unknown;
+        alignment_score?: unknown;
+        critical_issues?: unknown;
+        required_changes?: unknown;
+      };
+      const score = Number(parsed.alignment_score);
+      const toStrings = (value: unknown): string[] =>
+        Array.isArray(value)
+          ? value.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 12)
+          : [];
+      const alignmentScore = Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
+      const criticalIssues = toStrings(parsed.critical_issues);
+      const requiredChanges = toStrings(parsed.required_changes);
+      // A reviewer cannot approve while simultaneously asking for changes.
+      // Treat contradictory JSON and sub-threshold approvals as dissent so
+      // the audit receipt always matches the actual quality gate.
+      const verdict =
+        parsed.verdict === 'approve' &&
+        alignmentScore >= 85 &&
+        criticalIssues.length === 0 &&
+        requiredChanges.length === 0
+          ? 'approve'
+          : 'revise';
+      return {
+        round,
+        agentId,
+        verdict,
+        alignmentScore,
+        criticalIssues,
+        requiredChanges,
+      };
+    } catch {
+      return fallback('Reviewer returned malformed JSON.');
+    }
+  }
+
+  private async reviseDraftForConsensus(
+    reviserId: string,
+    sections: RequiredSection[],
+    draft: string,
+    blockingFeedback: string,
+    round: number,
+  ): Promise<void> {
+    const requiredHeadings = sections.map((section) => `## ${section.name}`).join('\n');
+    const revisionContext = [
+      '## UNANIMOUS REVISION TASK',
+      '',
+      `The draft failed critical consensus review round ${round}. Rewrite the complete deliverable so every blocking concern is resolved.`,
+      'Preserve strong, specific material, but do not defend the old draft or explain your edits.',
+      'Do not invent proof, metrics, customers, guarantees, or capabilities.',
+      '',
+      'Output the full replacement draft only, using every required heading exactly once and in this order:',
+      requiredHeadings,
+      '',
+      '## ORIGINAL USER BRIEF AND REQUIRED OUTPUT',
+      this.session.config.goal.slice(0, 8000),
+      '',
+      '## BLOCKING REVIEW FEEDBACK',
+      blockingFeedback.slice(0, 8000),
+      '',
+      '## DRAFT TO REVISE',
+      draft.slice(0, 24_000),
+    ].join('\n');
+
+    const message = await this.forceSpeakAndWait(
+      reviserId,
+      `Consensus revision after round ${round}`,
+      revisionContext,
+    );
+    if (!message?.content) return;
+
+    for (const section of this.copySections) {
+      const replacement = extractSection(message.content, section.name);
+      if (replacement) section.content = replacement.trim();
     }
   }
 
@@ -1694,17 +2006,18 @@ ${draft}
 
   /**
    * Drive one agent to speak with an optional focused context, waiting up to
-   * `speakTimeoutMs` for the message. Returns the produced Message or null.
+   * `speakTimeoutMs` for the message. Automated phase-machine runs fail loud
+   * when a worker is missing, errors, times out, or returns an empty answer;
+   * they must never drift forward with placeholder copy and claim consensus.
    */
   private async forceSpeakAndWait(
     agentId: string,
     reason: string,
     contextOverride?: string,
-  ): Promise<Message | null> {
+  ): Promise<Message> {
     const listener = this.agentListeners.get(agentId);
     if (!listener) {
-      console.warn(`[EDAOrchestrator] forceSpeakAndWait: ${agentId} not found`);
-      return null;
+      throw new Error(`Required Forge worker "${agentId}" was not found during ${reason}.`);
     }
 
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -1717,10 +2030,15 @@ ${draft}
         listener.speakNow(reason, contextOverride),
         timeout,
       ]);
+      if (!result?.content.trim()) {
+        throw new Error(
+          `Required Forge worker "${agentId}" returned no response during ${reason}.`,
+        );
+      }
       return result;
     } catch (err) {
       console.error(`[EDAOrchestrator] forceSpeakAndWait error for ${agentId}:`, err);
-      return null;
+      throw err;
     } finally {
       if (timer) clearTimeout(timer);
     }

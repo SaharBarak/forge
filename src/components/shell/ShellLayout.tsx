@@ -233,6 +233,8 @@ export function ShellLayout() {
     agents: string[];
     contextDir: string;
     language?: string;
+    mode: string;
+    autoRunConsensus: boolean;
   }) => {
     // Initialize Claude client
     initializeClient(config.apiKey);
@@ -248,12 +250,17 @@ export function ShellLayout() {
     }
 
     // Create session config
+    const goal =
+      config.mode === 'copywrite' && config.autoRunConsensus
+        ? `${config.goal}\n\n## Required sections\n\n1. **HERO**\n2. **PROBLEM**\n3. **SOLUTION**\n4. **BENEFITS**\n5. **HOW IT WORKS**\n6. **FAQ**\n7. **FINAL CTA**`
+        : config.goal;
+
     const sessionConfig: SessionConfig = {
       id: uuidv4(),
       projectName: config.projectName,
-      goal: config.goal,
+      goal,
       enabledAgents: config.agents,
-      humanParticipation: true,
+      humanParticipation: !config.autoRunConsensus,
       maxRounds: 10,
       consensusThreshold: 0.7,
       methodology: {
@@ -267,6 +274,7 @@ export function ShellLayout() {
       outputDir: 'output',
       apiKey: config.apiKey,
       language: config.language || 'hebrew',
+      mode: config.mode,
     };
 
     const session: Session = {
@@ -290,7 +298,9 @@ export function ShellLayout() {
     }
 
     // Create orchestrator with skills
-    const orchestrator = new EDAOrchestrator(session, undefined, skills);
+    const orchestrator = new EDAOrchestrator(session, undefined, skills, {
+      autoRunPhaseMachine: config.autoRunConsensus,
+    });
     orchestratorRef.current = orchestrator;
 
     // Set active agents and personas

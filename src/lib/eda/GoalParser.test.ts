@@ -150,6 +150,11 @@ Another section.
     expect(extracted).toBeTruthy();
     expect(extracted).toContain('All rights reserved');
   });
+
+  it('removes an agent-authored separator at a section boundary', () => {
+    const content = `## HERO\nFinished hero copy.\n\n---\n\n## FINAL CTA\nFinished CTA.`;
+    expect(extractSection(content, 'HERO')).toBe('## HERO\nFinished hero copy.');
+  });
 });
 
 describe('findProducedSections', () => {

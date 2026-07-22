@@ -5,6 +5,11 @@ node_modules/
 dist/
 dist-electron/
 
+# Forge's Claude Code plugin is installed from this repository and must carry
+# its self-contained MCP runtime with it.
+!plugins/forge/dist/
+!plugins/forge/dist/mcp.cjs
+
 # Environment
 .env
 .env.local

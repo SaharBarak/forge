@@ -185,6 +185,9 @@ export function WelcomeScreen() {
     }
 
     // Create the goal from the inputs
+    const requiredSections = !humanParticipation
+      ? `\n\n## Required sections\n\n1. **HERO**\n2. **PROBLEM**\n3. **SOLUTION**\n4. **BENEFITS**\n5. **HOW IT WORKS**\n6. **FAQ**\n7. **FINAL CTA**`
+      : '';
     const goal = `Create website copy for: ${websiteName}
 
 ${websiteDescription}
@@ -194,7 +197,7 @@ ${brief ? `Additional context:\n${brief}` : ''}
 ## Agent Personas:
 ${enabledAgents.map((a) => `- ${a.name} (${a.nameHe}): ${a.role} - ${a.background}`).join('\n')}
 
-${domainSkills ? `## Domain Expertise:\n${domainSkills}` : ''}`;
+${domainSkills ? `## Domain Expertise:\n${domainSkills}` : ''}${requiredSections}`;
 
     createSession({
       projectName: websiteName.trim(),

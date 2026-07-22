@@ -19,6 +19,7 @@ interface SessionConfig {
   contextDir: string;
   language: string;
   mode: string;
+  autoRunConsensus: boolean;
 }
 
 type PhaseCallback = (force?: boolean) => Promise<{ success: boolean; message: string } | void>;
@@ -153,6 +154,7 @@ export class MainShell {
         agents: this.config.agents,
         language: this.config.language,
         contextDir: this.config.contextDir,
+        autoRunConsensus: this.config.autoRunConsensus,
       };
       await window.electronAPI?.setSetting?.('lastSession', sessionToSave);
     } catch {
@@ -394,7 +396,8 @@ export class MainShell {
 
   /**
    * Handle configuration input
-   * Steps: 0=Project name, 1=Goal, 2=Agents, 3=Language, 4=Context dir
+   * Steps: 0=Project name, 1=Goal, 2=Agents, 3=Language, 4=Mode,
+   * 5=Context dir, 6=automatic unanimous-consensus run
    * Note: API key is set separately via 'token' command and persisted
    */
   private handleConfigInput(input: string): void {
@@ -565,8 +568,33 @@ export class MainShell {
       case 5: // Context directory
         this.config.contextDir = input || 'context';
         this.writeLine(`${GREEN}Context: ${this.config.contextDir}${RESET}`);
+        this.configStep++;
+        this.writeLine(`${CYAN}Run automatically until every agent approves the final output?${RESET}`);
+        this.writeLine(`${DIM}Press Enter for yes, or type no to keep the session interactive.${RESET}`);
+        this.write('> ');
+        break;
+
+      case 6: { // Automatic critical-consensus run
+        const choice = input.toLowerCase().trim();
+        this.config.autoRunConsensus = !['n', 'no', 'interactive'].includes(choice);
+        if (this.config.autoRunConsensus && (this.config.agents?.length ?? 0) < 2) {
+          this.writeLine(`${RED}Automatic consensus requires at least two agents.${RESET}`);
+          this.configStep = 2;
+          this.showAgentSelection();
+          return;
+        }
+        if (this.config.autoRunConsensus && (this.config.agents?.length ?? 0) > 5) {
+          this.config.agents = this.config.agents?.slice(0, 5);
+          this.writeLine(`${YELLOW}Automatic consensus uses the first five selected agents.${RESET}`);
+        }
+        this.writeLine(
+          this.config.autoRunConsensus
+            ? `${GREEN}Automatic unanimous-consensus run enabled${RESET}`
+            : `${YELLOW}Interactive session enabled${RESET}`,
+        );
         this.finishConfiguration();
         break;
+      }
     }
   }
 
@@ -627,9 +655,9 @@ export class MainShell {
    * Show agent selection options
    */
   private showAgentSelection(): void {
-    // Initialize all agents as selected by default
+    // Start with a focused five-seat council; users can still choose `a` for all.
     if (this.selectedAgentIds.size === 0) {
-      this.currentPersonas.forEach(a => this.selectedAgentIds.add(a.id));
+      this.currentPersonas.slice(0, 5).forEach(a => this.selectedAgentIds.add(a.id));
     }
 
     this.writeLine('');
@@ -731,6 +759,7 @@ export class MainShell {
     this.writeLine(`${DIM}Goal: ${this.config.goal}${RESET}`);
     this.writeLine(`${DIM}Agents: ${this.config.agents?.join(', ')}${RESET}`);
     this.writeLine(`${DIM}Mode: ${modeNames[this.config.mode || 'copywrite'] || this.config.mode}${RESET}`);
+    this.writeLine(`${DIM}Run: ${this.config.autoRunConsensus ? 'automatic · unanimous gate' : 'interactive'}${RESET}`);
     this.writeLine(`${DIM}Language: ${this.config.language}${RESET}`);
     this.writeLine('');
     this.writeLine(`${YELLOW}Type 'start' to begin the session, or 'new' for new project.${RESET}`);
@@ -793,7 +822,7 @@ export class MainShell {
       const result = await window.electronAPI?.claudeAgentQuery?.({
         prompt: 'Say "Hello! API connection successful." in exactly those words.',
         systemPrompt: 'You are a helpful assistant. Respond concisely.',
-        model: 'claude-opus-4-6',
+        model: 'claude-3-5-haiku-20241022',
       });
 
       if (!result) {

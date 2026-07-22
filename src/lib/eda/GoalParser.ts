@@ -151,7 +151,13 @@ export function extractSection(content: string, sectionName: string): string | n
   const blocks = walkSections(content);
   for (const block of blocks) {
     if (sectionNameMatches(block.header, sectionName)) {
-      return `## ${block.header}\n${block.body}`.trim();
+      // Agents often insert a Markdown horizontal rule between sections.
+      // Forge adds its own separator when consolidating, so remove a trailing
+      // agent-authored rule from the extracted block to avoid doubled `---`.
+      const body = block.body
+        .replace(/(?:^|\n)\s*(?:-{3,}|\*{3,}|_{3,})\s*$/, '')
+        .trim();
+      return `## ${block.header}\n${body}`.trim();
     }
   }
   return null;

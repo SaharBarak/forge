@@ -689,12 +689,54 @@ function getAgentById(id) {
 function getResearcherById(id) {
   return RESEARCHER_AGENTS.find((r) => r.id === id);
 }
-var AGENT_PERSONAS, RESEARCHER_AGENTS, customPersonas;
+var COPYWRITING_EXPERTISE, AGENT_PERSONAS, RESEARCHER_AGENTS, customPersonas;
 var init_personas = __esm({
   "src/agents/personas.ts"() {
     "use strict";
     init_personas_specialist();
     init_personas_extended();
+    COPYWRITING_EXPERTISE = `
+## MASTER COPYWRITER KNOWLEDGE
+
+You are a master copywriter with deep expertise in:
+
+### Web Copywriting Principles
+- **Clarity over cleverness**: Every word must earn its place
+- **Benefits > Features**: What's in it for the reader?
+- **One idea per section**: Don't dilute the message
+- **Scannable hierarchy**: Headers, bullets, short paragraphs
+- **Action-oriented language**: Active verbs, direct address
+- **Social proof integration**: Testimonials, stats, trust signals
+
+### UI/UX Writing Best Practices
+- **F-pattern and Z-pattern**: Place key info where eyes go
+- **Progressive disclosure**: Reveal complexity gradually
+- **Microcopy matters**: Buttons, labels, error messages
+- **Reduce cognitive load**: Simple words, familiar patterns
+- **Mobile-first thinking**: Thumb-friendly, concise
+
+### Visual Hierarchy & Typography
+- **Size = Importance**: Larger text = more important
+- **Contrast guides attention**: Bold, color, whitespace
+- **Line length**: 50-75 characters for readability
+- **Heading levels**: H1 \u2192 H2 \u2192 H3 create clear structure
+- **Whitespace is content**: Give elements room to breathe
+
+### Conversion Psychology
+- **Loss aversion**: What they'll miss > what they'll gain
+- **Specificity builds trust**: "3,247 users" > "thousands of users"
+- **Objection handling**: Address doubts before they arise
+- **Urgency vs. pressure**: Create genuine FOMO, not manipulation
+- **The rule of one**: One reader, one big idea, one CTA per section
+
+### Website Structure Best Practices
+- **Hero section**: Clear value prop + primary CTA in viewport
+- **Problem \u2192 Solution flow**: Acknowledge pain before presenting answer
+- **Trust signals**: Logos, testimonials, credentials early
+- **Features/Benefits**: Group into scannable sections
+- **Objection handling**: FAQ or dedicated section
+- **Final CTA**: Strong close with risk reversal
+`;
     AGENT_PERSONAS = [
       {
         id: "skeptic",
@@ -1617,32 +1659,100 @@ __export(ClaudeCodeCLIRunner_exports, {
 });
 import * as path14 from "path";
 import * as os3 from "os";
+import * as fs12 from "fs";
+import { execFileSync } from "node:child_process";
 import { query as claudeQuery } from "@anthropic-ai/claude-agent-sdk";
-var CLAUDE_CODE_PATH, ClaudeCodeCLIRunner;
+function resolveClaudeCodePath() {
+  if (process.env.CLAUDE_CODE_PATH) return process.env.CLAUDE_CODE_PATH;
+  const candidates = [
+    path14.join(os3.homedir(), ".local", "bin", "claude"),
+    "/opt/homebrew/bin/claude",
+    "/usr/local/bin/claude"
+  ];
+  for (const candidate of candidates) {
+    if (fs12.existsSync(candidate)) return candidate;
+  }
+  try {
+    const locator = process.platform === "win32" ? "where" : "which";
+    const located = execFileSync(locator, ["claude"], { encoding: "utf8" }).split(/\r?\n/).find(Boolean);
+    if (located) return located;
+  } catch {
+  }
+  return "claude";
+}
+function stableModelAlias(model) {
+  if (model === "sonnet" || model === "haiku" || model === "opus" || model === "fable") {
+    return void 0;
+  }
+  if (model.includes("haiku")) return "haiku";
+  if (model.includes("opus")) return "opus";
+  if (model.includes("fable")) return "fable";
+  if (model.includes("sonnet")) return "sonnet";
+  return void 0;
+}
+function isUnavailableModelResult(result) {
+  const text2 = `${result.error || ""}
+${result.content || ""}`;
+  return /selected model|model.+(?:may not exist|not exist|not available)|do not have access/i.test(text2);
+}
+var CLAUDE_CODE_PATH, CLAUDE_DEBUG_LOG_FILE, ClaudeCodeCLIRunner;
 var init_ClaudeCodeCLIRunner = __esm({
   "cli/adapters/ClaudeCodeCLIRunner.ts"() {
     "use strict";
-    CLAUDE_CODE_PATH = path14.join(os3.homedir(), ".local", "bin", "claude");
+    CLAUDE_CODE_PATH = resolveClaudeCodePath();
+    CLAUDE_DEBUG_LOG_FILE = process.env.CLAUDE_CODE_DEBUG_LOGS_DIR || path14.join(os3.tmpdir(), "forge-claude-debug", `claude-sdk-${process.pid}.log`);
+    fs12.mkdirSync(path14.dirname(CLAUDE_DEBUG_LOG_FILE), { recursive: true });
+    process.env.CLAUDE_CODE_DEBUG_LOGS_DIR = CLAUDE_DEBUG_LOG_FILE;
     ClaudeCodeCLIRunner = class {
       defaultModel;
       evalModel;
-      constructor(defaultModel = "claude-sonnet-4-20250514", evalModel = "claude-opus-4-6") {
+      unavailableModels = /* @__PURE__ */ new Set();
+      constructor(defaultModel = "claude-sonnet-4-20250514", evalModel = "claude-3-5-haiku-20241022") {
         this.defaultModel = defaultModel;
         this.evalModel = evalModel;
       }
       async query(params) {
+        const requestedModel = params.model || this.defaultModel;
+        const knownFallback = this.unavailableModels.has(requestedModel) ? stableModelAlias(requestedModel) : void 0;
+        if (knownFallback) return this.queryWithTransientRetry(params, knownFallback);
+        const first = await this.queryWithTransientRetry(params, requestedModel);
+        if (!isUnavailableModelResult(first)) return first;
+        const fallback = stableModelAlias(requestedModel);
+        if (!fallback) return first;
+        this.unavailableModels.add(requestedModel);
+        console.warn(
+          `[ClaudeCodeCLIRunner] Model ${requestedModel} is unavailable; retrying with the stable ${fallback} alias.`
+        );
+        return this.queryWithTransientRetry(params, fallback);
+      }
+      async queryWithTransientRetry(params, model) {
+        const first = await this.queryWithModel(params, model);
+        if (first.success || isUnavailableModelResult(first) || !/process exited with code 1|terminated by signal/i.test(first.error || "")) {
+          return first;
+        }
+        console.warn(
+          `[ClaudeCodeCLIRunner] Claude worker exited before returning content; retrying ${model} once.`
+        );
+        return this.queryWithModel(params, model);
+      }
+      async queryWithModel(params, model) {
         let content = "";
         let sessionId;
         let usage;
         try {
+          const childEnv = { ...process.env };
+          delete childEnv.CLAUDECODE;
+          childEnv.CLAUDE_CODE_DEBUG_LOGS_DIR = CLAUDE_DEBUG_LOG_FILE;
           const q = claudeQuery({
             prompt: params.prompt,
             options: {
               systemPrompt: params.systemPrompt || void 0,
-              model: params.model || this.defaultModel,
+              model,
               permissionMode: "bypassPermissions",
               maxTurns: 1,
               pathToClaudeCodeExecutable: CLAUDE_CODE_PATH,
+              env: childEnv,
+              allowDangerouslySkipPermissions: true,
               stderr: (data) => {
                 const text2 = typeof data === "string" ? data : String(data);
                 if (!text2.trim()) return;
@@ -1667,18 +1777,21 @@ var init_ClaudeCodeCLIRunner = __esm({
               }
             }
             if (message.type === "result") {
-              const result = message;
-              if (result.usage) {
+              const result2 = message;
+              if (result2.usage) {
                 usage = {
-                  inputTokens: result.usage.input_tokens || 0,
-                  outputTokens: result.usage.output_tokens || 0,
-                  costUsd: result.total_cost_usd || 0
+                  inputTokens: result2.usage.input_tokens || 0,
+                  outputTokens: result2.usage.output_tokens || 0,
+                  costUsd: result2.total_cost_usd || 0
                 };
               }
             }
           }
         } catch (error) {
           if (content) {
+            if (isUnavailableModelResult({ success: true, content })) {
+              return { success: false, error: content, sessionId, usage };
+            }
             return { success: true, content, sessionId, usage };
           }
           return {
@@ -1686,7 +1799,16 @@ var init_ClaudeCodeCLIRunner = __esm({
             error: error instanceof Error ? error.message : "Unknown error"
           };
         }
-        return { success: true, content, sessionId, usage };
+        const result = { success: true, content, sessionId, usage };
+        if (isUnavailableModelResult(result)) {
+          return {
+            success: false,
+            error: content || `Claude model ${model} is unavailable.`,
+            sessionId,
+            usage
+          };
+        }
+        return result;
       }
       async evaluate(params) {
         const queryResult = await this.query({
@@ -2677,15 +2799,15 @@ var console_capture_exports = {};
 __export(console_capture_exports, {
   captureConsoleToFile: () => captureConsoleToFile
 });
-import * as fs13 from "fs";
+import * as fs14 from "fs";
 import * as path16 from "path";
 function captureConsoleToFile(logDir) {
   try {
-    fs13.mkdirSync(logDir, { recursive: true });
+    fs14.mkdirSync(logDir, { recursive: true });
   } catch {
   }
   const logPath = path16.join(logDir, "session.log");
-  const stream = fs13.createWriteStream(logPath, { flags: "a" });
+  const stream = fs14.createWriteStream(logPath, { flags: "a" });
   const originals = {};
   const writeLine = (level, args) => {
     try {
@@ -3566,13 +3688,13 @@ __export(node_exports, {
   startNode: () => startNode,
   stopNode: () => stopNode
 });
-import path23 from "path";
-import fs20 from "fs/promises";
+import path24 from "path";
+import fs22 from "fs/promises";
 async function startNode({ dataDir: dataDir2 }) {
-  storePath = path23.join(dataDir2, "store.jsonl");
-  await fs20.mkdir(dataDir2, { recursive: true });
+  storePath = path24.join(dataDir2, "store.jsonl");
+  await fs22.mkdir(dataDir2, { recursive: true });
   try {
-    const content = await fs20.readFile(storePath, "utf-8");
+    const content = await fs22.readFile(storePath, "utf-8");
     for (const line of content.split("\n")) {
       if (!line.trim()) continue;
       try {
@@ -3605,7 +3727,7 @@ async function putDoc(doc) {
   requireStarted();
   if (!doc || !doc._id) throw new Error("putDoc requires _id");
   docs.set(doc._id, doc);
-  await fs20.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
+  await fs22.appendFile(storePath, JSON.stringify(doc) + "\n", "utf-8");
   for (const cb of updateListeners) {
     try {
       cb({ hash: doc._id, id: doc._id, op: "PUT" });
@@ -3628,7 +3750,7 @@ async function allDocs() {
 async function deleteDoc(id) {
   requireStarted();
   docs.delete(id);
-  await fs20.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
+  await fs22.appendFile(storePath, JSON.stringify({ _id: id, _tombstone: true }) + "\n", "utf-8");
   return id;
 }
 async function getStatus() {
@@ -3708,8 +3830,8 @@ var init_embeddings = __esm({
 });
 
 // electron/connections/vector-index.js
-import path24 from "path";
-import fs21 from "fs/promises";
+import path25 from "path";
+import fs23 from "fs/promises";
 var Index, MetricKind, index, idMap, dataDir, indexPath, mapPath, dimensions, dirty, loadUsearch, loadIdMap, saveIdMap, load, requireOpen, addVector, hasId, removeVector, searchSimilar, size, save, close;
 var init_vector_index = __esm({
   "electron/connections/vector-index.js"() {
@@ -3732,27 +3854,27 @@ var init_vector_index = __esm({
     };
     loadIdMap = async () => {
       try {
-        const raw = await fs21.readFile(mapPath, "utf-8");
+        const raw = await fs23.readFile(mapPath, "utf-8");
         idMap = JSON.parse(raw);
       } catch {
         idMap = { nextKey: 1, strToNum: {}, numToStr: {} };
       }
     };
     saveIdMap = async () => {
-      await fs21.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
+      await fs23.writeFile(mapPath, JSON.stringify(idMap), "utf-8");
     };
     load = async ({ dir, dims = 384 }) => {
       if (index) return;
       await loadUsearch();
       dataDir = dir;
       dimensions = dims;
-      indexPath = path24.join(dir, "index.usearch");
-      mapPath = path24.join(dir, "id-map.json");
-      await fs21.mkdir(dir, { recursive: true });
+      indexPath = path25.join(dir, "index.usearch");
+      mapPath = path25.join(dir, "id-map.json");
+      await fs23.mkdir(dir, { recursive: true });
       await loadIdMap();
       index = new Index(dimensions, MetricKind.Cos);
       try {
-        await fs21.access(indexPath);
+        await fs23.access(indexPath);
         index.load(indexPath);
         console.log(`[vector-index] loaded ${index.size()} vectors from ${indexPath}`);
       } catch {
@@ -3836,7 +3958,7 @@ __export(service_exports, {
   status: () => status,
   stopService: () => stopService
 });
-import path25 from "path";
+import path26 from "path";
 var serviceDataDir, startService, stopService, indexContribution, deindexContribution, findSimilarByText, status;
 var init_service = __esm({
   "electron/connections/service.js"() {
@@ -3845,7 +3967,7 @@ var init_service = __esm({
     init_vector_index();
     serviceDataDir = null;
     startService = async ({ dataDir: dataDir2 }) => {
-      serviceDataDir = path25.join(dataDir2, "connections");
+      serviceDataDir = path26.join(dataDir2, "connections");
       await load({ dir: serviceDataDir, dims: EMBEDDING_DIMENSIONS });
       ensureReady().catch(
         (err2) => console.error("[connections] model warmup failed:", err2)
@@ -4636,8 +4758,8 @@ var SessionPersistence = class {
   autoSaveTimer = null;
   lastSavedMessageCount = 0;
   session = null;
-  constructor(fs22, config = {}) {
-    this.fs = fs22;
+  constructor(fs24, config = {}) {
+    this.fs = fs24;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
   /**
@@ -6145,6 +6267,9 @@ Respond ONLY with JSON:
    * Generate a full response when given the floor
    */
   async generateResponse(conversationContext, triggerReason) {
+    const responseContract = conversationContext.includes("## CRITICAL CONSENSUS REVIEW") ? `Return ONLY the exact JSON verdict object requested in the discussion context. Do not add an RTC type tag, markdown fence, explanation, or preamble.` : conversationContext.includes("## UNANIMOUS REVISION TASK") ? `Return ONLY the complete replacement draft requested in the discussion context. Do not add an RTC type tag, explanation, or preamble.` : conversationContext.includes("## YOUR TASK") && conversationContext.includes("Draft ONLY") ? `Return ONLY the requested finished section beginning with its exact ## heading. Do not add an RTC type tag, explanation, or preamble.` : `Be concise. Follow RTC protocol (LISTEN \u2192 RESPOND \u2192 YIELD).
+
+Start with a type tag: [ARGUMENT], [QUESTION], [PROPOSAL], [AGREEMENT], [DISAGREEMENT], or [SYNTHESIS]`;
     const prompt = `## Discussion Context
 ${conversationContext}
 
@@ -6153,9 +6278,7 @@ You raised your hand because: "${triggerReason}"
 
 ## Your Task
 As ${this.persona.name}, respond to the discussion. Address the trigger reason directly.
-Be concise. Follow RTC protocol (LISTEN \u2192 RESPOND \u2192 YIELD).
-
-Start with a type tag: [ARGUMENT], [QUESTION], [PROPOSAL], [AGREEMENT], [DISAGREEMENT], or [SYNTHESIS]`;
+${responseContract}`;
     const response = await this.query(prompt);
     const typeMatch = response.content.match(/\[(?:TYPE:\s*)?(ARGUMENT|QUESTION|PROPOSAL|AGREEMENT|DISAGREEMENT|SYNTHESIS)\]/i);
     const type = typeMatch ? typeMatch[1].toLowerCase() : "argument";
@@ -6271,7 +6394,7 @@ var AgentListener = class {
     this.unsubscribers.push(
       this.bus.subscribe("session:resume", () => {
         console.log(`[AgentListener:${this.id}] Resumed`);
-        if (this.messagesSinceSpoke > 0 && this.state === "listening") {
+        if (!this.config.skipAutonomousEval && this.messagesSinceSpoke > 0 && this.state === "listening") {
           this.pendingEvaluation = setTimeout(() => {
             this.evaluateAndReact();
           }, this.config.evaluationDebounce + Math.random() * 100);
@@ -7771,8 +7894,9 @@ function extractSection(content, sectionName) {
   const blocks = walkSections(content);
   for (const block of blocks) {
     if (sectionNameMatches(block.header, sectionName)) {
+      const body = block.body.replace(/(?:^|\n)\s*(?:-{3,}|\*{3,}|_{3,})\s*$/, "").trim();
       return `## ${block.header}
-${block.body}`.trim();
+${body}`.trim();
     }
   }
   return null;
@@ -8567,8 +8691,8 @@ var WorkdirManager = class {
   consensusDir;
   skillsDir;
   initialized = false;
-  constructor(fs22, opts) {
-    this.fs = fs22;
+  constructor(fs24, opts) {
+    this.fs = fs24;
     this.sessionDir = opts.sessionDir;
     this.consensusDir = path6.join(opts.sessionDir, "consensus");
     this.skillsDir = path6.join(opts.sessionDir, "skills");
@@ -8678,10 +8802,17 @@ var EDAOrchestrator = class {
   // 180s per turn — drafting with heavy research context can push Sonnet
   // past the default 90s, especially for the first section after Research.
   speakTimeoutMs = 18e4;
+  maxCriticalReviewRounds = 3;
   unsubscribers = [];
   // Phase management
   currentPhase = "initialization";
   copySections = [];
+  criticalConsensusStatus = {
+    approved: false,
+    roundsCompleted: 0,
+    reviewerCount: 0,
+    reviews: []
+  };
   // Consensus tracking
   agentContributions = /* @__PURE__ */ new Map();
   keyInsights = /* @__PURE__ */ new Map();
@@ -8739,6 +8870,12 @@ var EDAOrchestrator = class {
     }
     if (options?.phaseMachineOptions?.speakTimeoutMs !== void 0) {
       this.speakTimeoutMs = options.phaseMachineOptions.speakTimeoutMs;
+    }
+    if (options?.phaseMachineOptions?.criticalReviewRounds !== void 0) {
+      this.maxCriticalReviewRounds = Math.max(
+        1,
+        Math.min(5, Math.floor(options.phaseMachineOptions.criticalReviewRounds))
+      );
     }
     const mode = getModeById(session.config.mode || "copywrite") || getDefaultMode();
     this.modeController = new ModeController(mode);
@@ -8846,6 +8983,9 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
         this.phaseMachineStarted = true;
         this.runPhaseMachine().catch((err2) => {
           console.error("[EDAOrchestrator] Phase machine error:", err2);
+          this.emit("session_error", {
+            error: err2 instanceof Error ? err2.message : String(err2)
+          });
         });
       }
     }, 1e3);
@@ -8913,6 +9053,14 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
     this.unsubscribers.push(
       this.bus.subscribe("floor:request", (payload) => {
         console.log(`[EDAOrchestrator] Floor request from ${payload.agentId}`);
+      }, "orchestrator")
+    );
+    this.unsubscribers.push(
+      this.bus.subscribe("session:end", (payload) => {
+        this.session.status = "completed";
+        this.session.currentPhase = "finalization";
+        this.session.endedAt = /* @__PURE__ */ new Date();
+        this.emit("session_end", payload);
       }, "orchestrator")
     );
   }
@@ -9133,14 +9281,17 @@ We will work through three phases: Discovery (share perspectives), Synthesis (ag
    * Check for research requests in message
    */
   checkForResearchRequests(message) {
+    if (message.agentId === "system") return;
     const content = message.content;
     const mentionPattern = /@(stats-finder|competitor-analyst|audience-insight|copy-explorer|context-finder|local-context)[:\s]+["']?([^"'\n]+?)["']?(?:\n|$)/gi;
     let match;
-    while ((match = mentionPattern.exec(content)) !== null) {
-      let researcherId = match[1].toLowerCase();
-      if (researcherId === "local-context") researcherId = "context-finder";
-      const query = match[2].trim();
-      this.processResearchRequest(researcherId, query, message.agentId);
+    if (!this.autoRunPhaseMachine) {
+      while ((match = mentionPattern.exec(content)) !== null) {
+        let researcherId = match[1].toLowerCase();
+        if (researcherId === "local-context") researcherId = "context-finder";
+        const query = match[2].trim();
+        this.processResearchRequest(researcherId, query, message.agentId);
+      }
     }
     const blockPattern = /\[RESEARCH:\s*([a-z-]+)\]([\s\S]*?)\[\/RESEARCH\]/gi;
     while ((match = blockPattern.exec(content)) !== null) {
@@ -9592,9 +9743,12 @@ ${assignments}
    * Get a consolidated draft of all sections
    */
   async getConsolidatedDraft() {
-    const sections = this.copySections.filter((s) => s.content).map((s) => `## ${s.nameHe} (${s.name})
+    const sections = this.copySections.filter((s) => s.content).map((s) => {
+      const content = s.content.trim();
+      return /^#{1,4}\s+\S/m.test(content) ? content : `## ${s.nameHe} (${s.name})
 
-${s.content}`).join("\n\n---\n\n");
+${content}`;
+    }).join("\n\n---\n\n");
     return `# ${this.session.config.projectName} - Draft Copy
 
 ${sections}`;
@@ -9697,6 +9851,17 @@ ${draft}
   getCopySections() {
     return [...this.copySections];
   }
+  /** Audit trail for the unanimous copywrite review gate. */
+  getCriticalConsensusStatus() {
+    return {
+      ...this.criticalConsensusStatus,
+      reviews: this.criticalConsensusStatus.reviews.map((review) => ({
+        ...review,
+        criticalIssues: [...review.criticalIssues],
+        requiredChanges: [...review.requiredChanges]
+      }))
+    };
+  }
   // ===========================================================================
   // PHASE EXECUTOR — deterministic Discovery → Synthesis → Drafting → Final
   // ===========================================================================
@@ -9726,6 +9891,10 @@ ${draft}
     if (this.isStopped) return;
     await this.runDraftingPhase(agentIds, sections, synthesisSummary);
     if (this.isStopped) return;
+    if ((this.session.config.mode || "copywrite") === "copywrite") {
+      await this.runCriticalConsensusPhase(agentIds, sections);
+      if (this.isStopped) return;
+    }
     await this.finalizeByMachine(sections);
   }
   /**
@@ -9840,9 +10009,9 @@ Each agent: propose the structure, tone, and key messages for the final delivera
 
 We will now draft the final deliverable one section at a time. For each section, the assigned agent writes ONLY that section. Output MUST start with \`## <SECTION_NAME>\` on its own line and contain the full, finished copy \u2014 no meta-commentary, no evidence notes, no questions to the team.
 
-**GROUNDING RULE (strict):** You may ONLY name features, modes, commands, files, or technical claims that were explicitly verified during the Research phase. If Research found the mode is called \`copywrite\`, you write "Copywrite" \u2014 NOT "Architecture Review" or "Copywriting Assistant" or any other plausible-sounding name you might prefer. If Research did not cover a feature, omit it entirely rather than inventing it. Plausible-sounding fabrications (made-up commands, made-up modes, made-up flag names) are the single biggest failure mode \u2014 do not commit them.
+**GROUNDING RULE (strict):** You may ONLY name features, modes, commands, files, or technical claims that are supported by the ORIGINAL USER BRIEF or explicitly verified during Research. If either source says the mode is called \`copywrite\`, you write "Copywrite" \u2014 NOT "Architecture Review" or "Copywriting Assistant". If neither source supports a claim, omit it rather than inventing it. Plausible-sounding fabrications (made-up commands, made-up modes, made-up flag names) are forbidden.
 
-**Concreteness rule:** every section that describes capability or value must include at least one named, specific example drawn from what Research actually found. Abstract phrasing like "complex decisions" is not acceptable \u2014 name the feature, mode, file, or scenario that Research returned. Hero and Footer are exempt from the concreteness rule but NOT from the grounding rule.`
+**Concreteness rule:** every section that describes capability or value must include at least one named, specific example supported by the Brief or Research. Abstract phrasing like "complex decisions" is not acceptable. Hero and Footer are exempt from the example requirement but NOT from the grounding rule.`
     );
     this.copySections = sections.map((s, i) => ({
       id: s.id,
@@ -9864,11 +10033,11 @@ ${s.content}`).join("\n\n");
         `## GOAL`,
         this.session.config.goal.slice(0, 2e3),
         ``,
-        researchFindings ? `## RESEARCH FINDINGS (authoritative \u2014 cite ONLY from here for technical facts)
+        researchFindings ? `## RESEARCH FINDINGS (authoritative alongside the original brief)
 
 ${researchFindings}` : `## RESEARCH FINDINGS
 
-_(no research was conducted \u2014 do not make specific technical claims)_`,
+_(no research was conducted \u2014 use only facts explicitly supplied in the original brief)_`,
         ``,
         `## SYNTHESIS (what the team agreed on)`,
         synthesisSummary.slice(0, 2e3),
@@ -9884,8 +10053,8 @@ ${alreadyDrafted.slice(0, 2500)}` : "",
         `- Start your response with: \`## ${section.name}\``,
         `- Follow with the FULL, finished copy for this section \u2014 ready to ship.`,
         `- No meta-commentary, no outlines, no evidence notes, no "here is my draft" preambles, no questions to the team.`,
-        `- **GROUNDING RULE (strict):** every feature, mode name, command, file, or technical claim in this section MUST appear verbatim (or as a direct paraphrase) in the RESEARCH FINDINGS above. If Research says the mode is \`copywrite\`, write "Copywrite" \u2014 NOT "Copywriting Assistant". If Research didn't cover something, do not mention it. Plausible-sounding fabrications are forbidden.`,
-        exemptFromExamples ? `- This section is short-form \u2014 no example needed, just punchy copy grounded in Research.` : `- **Concreteness rule:** include at least one named, specific example drawn from Research. Name the user ("a 20-person eng team choosing between monolith and microservices"), the decision, or the workflow. The example must be consistent with what Research actually returned \u2014 don't invent scenarios.`,
+        `- **GROUNDING RULE (strict):** every feature, mode name, command, file, or technical claim in this section MUST be directly supported by the ORIGINAL USER BRIEF or the RESEARCH FINDINGS above. If a source says the mode is \`copywrite\`, write "Copywrite" \u2014 NOT "Copywriting Assistant". If neither source covers something, do not mention it. Plausible-sounding fabrications are forbidden.`,
+        exemptFromExamples ? `- This section is short-form \u2014 no example needed, just punchy copy grounded in Research.` : `- **Concreteness rule:** include at least one named, specific example supported by the Brief or Research. Name the audience, decision, workflow, or situation without adding facts that neither source supplied.`,
         `- Keep it concise but complete \u2014 the reader should not need a second pass.`
       ].filter(Boolean).join("\n");
       const msg = await this.forceSpeakAndWait(
@@ -9902,6 +10071,175 @@ ${alreadyDrafted.slice(0, 2500)}` : "",
 _(agent did not respond in time)_`;
       }
       section.status = "complete";
+    }
+  }
+  /**
+   * Copywrite quality gate: every enabled agent independently audits the
+   * complete draft against the original user brief. Any dissent triggers a
+   * full revision and another independent vote. The run only finalizes after
+   * unanimous approval; exhausting the review budget fails closed.
+   */
+  async runCriticalConsensusPhase(agentIds, sections) {
+    this.currentPhase = "review";
+    this.emit("phase_change", { phase: "review" });
+    this.criticalConsensusStatus = {
+      approved: false,
+      roundsCompleted: 0,
+      reviewerCount: agentIds.length,
+      reviews: []
+    };
+    for (let round = 1; round <= this.maxCriticalReviewRounds; round++) {
+      if (this.isStopped) return;
+      const draft = await this.getConsolidatedDraft();
+      const reviews = [];
+      this.pushSystemMessage(
+        `\u{1F9EA} **CRITICAL CONSENSUS REVIEW \u2014 ROUND ${round}/${this.maxCriticalReviewRounds}**
+
+Every agent must independently challenge the complete draft against the user's original brief. Approval is unanimous: one blocking objection sends the draft back for revision.`
+      );
+      for (const agentId of agentIds) {
+        if (this.isStopped) return;
+        const reviewContext = [
+          "## CRITICAL CONSENSUS REVIEW",
+          "",
+          "Act as an independent, adversarial copy chief. Question the draft instead of defending prior work.",
+          "Approve only when the copy is specific, credible, useful, and fully aligned with the user\u2019s core ask.",
+          "",
+          "Treat any of these as blocking:",
+          "- generic AI-sounding filler, clich\xE9s, empty superlatives, or repetitive cadence",
+          "- unsupported claims, invented proof, or capabilities absent from the brief/research",
+          "- drift from the requested audience, action, tone, constraints, or required sections",
+          "- copy that sounds polished but does not make a concrete, persuasive case",
+          "- contradictions, missing context, weak transitions, or a CTA disconnected from the offer",
+          "",
+          "Do not defer to the other agents and do not approve merely because the draft is complete.",
+          'Set verdict to "approve" only when there are no blocking issues and alignment_score is at least 85.',
+          "",
+          "Return exactly one JSON object with this schema:",
+          '{"verdict":"approve|revise","alignment_score":0,"critical_issues":["..."],"required_changes":["..."]}',
+          "",
+          "## ORIGINAL USER BRIEF AND REQUIRED OUTPUT",
+          this.session.config.goal.slice(0, 8e3),
+          "",
+          "## COMPLETE DRAFT UNDER REVIEW",
+          draft.slice(0, 24e3)
+        ].join("\n");
+        const message = await this.forceSpeakAndWait(
+          agentId,
+          `Critical review round ${round}`,
+          reviewContext
+        );
+        const review = this.parseCriticalCopyReview(message?.content, agentId, round);
+        reviews.push(review);
+        this.criticalConsensusStatus.reviews.push(review);
+      }
+      this.criticalConsensusStatus.roundsCompleted = round;
+      const unanimous = reviews.length === agentIds.length && reviews.every(
+        (review) => review.verdict === "approve" && review.alignmentScore >= 85
+      );
+      if (unanimous) {
+        this.criticalConsensusStatus.approved = true;
+        this.currentPhase = "consensus";
+        this.emit("phase_change", { phase: "consensus" });
+        this.pushSystemMessage(
+          `[CONSENSUS] **UNANIMOUS COPY APPROVAL** \u2014 ${agentIds.length}/${agentIds.length} agents approved the final draft against the original brief in review round ${round}.`
+        );
+        return;
+      }
+      const blockingFeedback = reviews.filter((review) => review.verdict === "revise" || review.alignmentScore < 85).map((review) => {
+        const issues = review.criticalIssues.length ? review.criticalIssues.join("; ") : "Reviewer withheld approval.";
+        const changes = review.requiredChanges.length ? review.requiredChanges.join("; ") : "Resolve the blocking issues and realign with the brief.";
+        return `- ${review.agentId} (${review.alignmentScore}/100): ${issues}
+  Required: ${changes}`;
+      }).join("\n");
+      this.pushSystemMessage(
+        `\u26A0\uFE0F **CONSENSUS WITHHELD \u2014 ROUND ${round}**
+
+${blockingFeedback}`
+      );
+      if (round < this.maxCriticalReviewRounds) {
+        await this.reviseDraftForConsensus(
+          agentIds[(round - 1) % agentIds.length],
+          sections,
+          draft,
+          blockingFeedback,
+          round
+        );
+      }
+    }
+    const lastRound = this.criticalConsensusStatus.reviews.filter(
+      (review) => review.round === this.criticalConsensusStatus.roundsCompleted
+    );
+    const dissenters = lastRound.filter((review) => review.verdict !== "approve" || review.alignmentScore < 85).map((review) => review.agentId).join(", ");
+    this.pushSystemMessage(
+      `\u{1F6D1} **COPYWRITE RUN STOPPED** \u2014 unanimous approval was not reached. Dissenting reviewers: ${dissenters || "unknown"}. No final deliverable will be presented as consensus.`
+    );
+    throw new Error(
+      `Unanimous copy approval was not reached after ${this.maxCriticalReviewRounds} review rounds` + (dissenters ? ` (${dissenters} withheld approval).` : ".")
+    );
+  }
+  parseCriticalCopyReview(content, agentId, round) {
+    const fallback = (issue) => ({
+      round,
+      agentId,
+      verdict: "revise",
+      alignmentScore: 0,
+      criticalIssues: [issue],
+      requiredChanges: ["Return a valid critical review before the draft can pass."]
+    });
+    if (!content) return fallback("Reviewer did not respond.");
+    const match = content.match(/\{[\s\S]*\}/);
+    if (!match) return fallback("Reviewer did not return the required JSON verdict.");
+    try {
+      const parsed = JSON.parse(match[0]);
+      const score = Number(parsed.alignment_score);
+      const toStrings = (value) => Array.isArray(value) ? value.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 12) : [];
+      const alignmentScore = Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
+      const criticalIssues = toStrings(parsed.critical_issues);
+      const requiredChanges = toStrings(parsed.required_changes);
+      const verdict = parsed.verdict === "approve" && alignmentScore >= 85 && criticalIssues.length === 0 && requiredChanges.length === 0 ? "approve" : "revise";
+      return {
+        round,
+        agentId,
+        verdict,
+        alignmentScore,
+        criticalIssues,
+        requiredChanges
+      };
+    } catch {
+      return fallback("Reviewer returned malformed JSON.");
+    }
+  }
+  async reviseDraftForConsensus(reviserId, sections, draft, blockingFeedback, round) {
+    const requiredHeadings = sections.map((section) => `## ${section.name}`).join("\n");
+    const revisionContext = [
+      "## UNANIMOUS REVISION TASK",
+      "",
+      `The draft failed critical consensus review round ${round}. Rewrite the complete deliverable so every blocking concern is resolved.`,
+      "Preserve strong, specific material, but do not defend the old draft or explain your edits.",
+      "Do not invent proof, metrics, customers, guarantees, or capabilities.",
+      "",
+      "Output the full replacement draft only, using every required heading exactly once and in this order:",
+      requiredHeadings,
+      "",
+      "## ORIGINAL USER BRIEF AND REQUIRED OUTPUT",
+      this.session.config.goal.slice(0, 8e3),
+      "",
+      "## BLOCKING REVIEW FEEDBACK",
+      blockingFeedback.slice(0, 8e3),
+      "",
+      "## DRAFT TO REVISE",
+      draft.slice(0, 24e3)
+    ].join("\n");
+    const message = await this.forceSpeakAndWait(
+      reviserId,
+      `Consensus revision after round ${round}`,
+      revisionContext
+    );
+    if (!message?.content) return;
+    for (const section of this.copySections) {
+      const replacement = extractSection(message.content, section.name);
+      if (replacement) section.content = replacement.trim();
     }
   }
   /**
@@ -9927,27 +10265,33 @@ ${draft}`
   }
   /**
    * Drive one agent to speak with an optional focused context, waiting up to
-   * `speakTimeoutMs` for the message. Returns the produced Message or null.
+   * `speakTimeoutMs` for the message. Automated phase-machine runs fail loud
+   * when a worker is missing, errors, times out, or returns an empty answer;
+   * they must never drift forward with placeholder copy and claim consensus.
    */
   async forceSpeakAndWait(agentId, reason, contextOverride) {
     const listener = this.agentListeners.get(agentId);
     if (!listener) {
-      console.warn(`[EDAOrchestrator] forceSpeakAndWait: ${agentId} not found`);
-      return null;
+      throw new Error(`Required Forge worker "${agentId}" was not found during ${reason}.`);
     }
     let timer = null;
-    const timeout = new Promise((resolve4) => {
-      timer = setTimeout(() => resolve4(null), this.speakTimeoutMs);
+    const timeout = new Promise((resolve5) => {
+      timer = setTimeout(() => resolve5(null), this.speakTimeoutMs);
     });
     try {
       const result = await Promise.race([
         listener.speakNow(reason, contextOverride),
         timeout
       ]);
+      if (!result?.content.trim()) {
+        throw new Error(
+          `Required Forge worker "${agentId}" returned no response during ${reason}.`
+        );
+      }
       return result;
     } catch (err2) {
       console.error(`[EDAOrchestrator] forceSpeakAndWait error for ${agentId}:`, err2);
-      return null;
+      throw err2;
     } finally {
       if (timer) clearTimeout(timer);
     }
@@ -10439,7 +10783,7 @@ async function runSession(orchestrator, briefContent) {
   await orchestrator.addHumanMessage(`Here is the brief:
 
 ${briefContent}`);
-  return new Promise((resolve4) => {
+  return new Promise((resolve5) => {
     let checkCount = 0;
     const maxChecks = 60;
     const checkInterval = setInterval(() => {
@@ -10448,7 +10792,7 @@ ${briefContent}`);
       if (session.status === "completed" || session.currentPhase === "completed" || checkCount >= maxChecks) {
         clearInterval(checkInterval);
         orchestrator.stop();
-        resolve4();
+        resolve5();
       }
     }, 5e3);
   });
@@ -10617,10 +10961,10 @@ async function deleteSession(name, options) {
       input: process.stdin,
       output: process.stdout
     });
-    const confirmed = await new Promise((resolve4) => {
+    const confirmed = await new Promise((resolve5) => {
       rl.question(`Delete session "${path8.basename(sessionDir)}"? [y/N]: `, (answer) => {
         rl.close();
-        resolve4(answer.toLowerCase() === "y");
+        resolve5(answer.toLowerCase() === "y");
       });
     });
     if (!confirmed) {
@@ -11450,9 +11794,9 @@ async function editConfig(options) {
     await saveConfig(configPath2, {});
   }
   const editor = process.env.EDITOR || process.env.VISUAL || "vi";
-  const { spawn } = await import("child_process");
+  const { spawn: spawn2 } = await import("child_process");
   console.log(`Opening ${configPath2} with ${editor}...`);
-  const child = spawn(editor, [configPath2], {
+  const child = spawn2(editor, [configPath2], {
     stdio: "inherit"
   });
   child.on("exit", (code) => {
@@ -11782,7 +12126,7 @@ init_init();
 import * as p2 from "@clack/prompts";
 import chalk8 from "chalk";
 import * as path18 from "path";
-import * as fs15 from "fs/promises";
+import * as fs16 from "fs/promises";
 
 // cli/prompts/banner.ts
 import chalk6 from "chalk";
@@ -11858,24 +12202,24 @@ init_ClaudeCodeCLIRunner();
 import React4 from "react";
 import { v4 as uuid2 } from "uuid";
 import * as path17 from "path";
-import * as fs14 from "fs/promises";
+import * as fs15 from "fs/promises";
 import chalk7 from "chalk";
 init_personas();
 
 // cli/adapters/auth-bridge.ts
-import * as fs12 from "fs/promises";
+import * as fs13 from "fs/promises";
 import * as path15 from "path";
 import * as os4 from "os";
 var FORGE_DIR = path15.join(os4.homedir(), ".forge");
 var AUTH_FILE = path15.join(FORGE_DIR, "auth.json");
 var ensureDir = async () => {
-  await fs12.mkdir(FORGE_DIR, { recursive: true });
+  await fs13.mkdir(FORGE_DIR, { recursive: true });
 };
 var createFileAuthBridge = () => ({
   save: async (payload) => {
     try {
       await ensureDir();
-      await fs12.writeFile(AUTH_FILE, JSON.stringify(payload, null, 2), {
+      await fs13.writeFile(AUTH_FILE, JSON.stringify(payload, null, 2), {
         encoding: "utf-8",
         mode: 384
       });
@@ -11887,7 +12231,7 @@ var createFileAuthBridge = () => ({
   },
   load: async () => {
     try {
-      const data = await fs12.readFile(AUTH_FILE, "utf-8");
+      const data = await fs13.readFile(AUTH_FILE, "utf-8");
       return JSON.parse(data);
     } catch {
       return null;
@@ -11895,7 +12239,7 @@ var createFileAuthBridge = () => ({
   },
   clear: async () => {
     try {
-      await fs12.unlink(AUTH_FILE);
+      await fs13.unlink(AUTH_FILE);
       return true;
     } catch {
       return true;
@@ -12415,7 +12759,7 @@ async function launchSession(req) {
   if (req.personaSet) {
     const personasPath = path17.join(cwd, "personas", `${req.personaSet}.json`);
     try {
-      const content = await fs14.readFile(personasPath, "utf-8");
+      const content = await fs15.readFile(personasPath, "utf-8");
       availablePersonas = JSON.parse(content);
     } catch {
       return {
@@ -12425,7 +12769,7 @@ async function launchSession(req) {
     }
     const skillsPath = path17.join(cwd, "personas", `${req.personaSet}.skills.md`);
     try {
-      domainSkills = await fs14.readFile(skillsPath, "utf-8");
+      domainSkills = await fs15.readFile(skillsPath, "utf-8");
     } catch {
     }
     registerCustomPersonas(availablePersonas);
@@ -12518,7 +12862,7 @@ async function launchSession(req) {
   for (const candidate of ["reactions.json"]) {
     const p7 = path17.join(cwd, candidate);
     try {
-      const raw = await fs14.readFile(p7, "utf-8");
+      const raw = await fs15.readFile(p7, "utf-8");
       reactionConfig = JSON.parse(raw);
       console.error(chalk7.dim(`  \xB7 reactions loaded from ${candidate}`));
       break;
@@ -12566,8 +12910,8 @@ async function launchSession(req) {
     targetFps: 15
   });
   const root = createRoot(renderer);
-  const done = new Promise((resolve4) => {
-    renderer.on("destroy", () => resolve4());
+  const done = new Promise((resolve5) => {
+    renderer.on("destroy", () => resolve5());
   });
   root.render(
     React4.createElement(OpenTuiApp2, {
@@ -12603,14 +12947,14 @@ function defaultAgents(mode) {
 }
 async function listSessions2(outputDir) {
   try {
-    const entries = await fs15.readdir(outputDir, { withFileTypes: true });
+    const entries = await fs16.readdir(outputDir, { withFileTypes: true });
     const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
     const metas = [];
     for (const name of dirs) {
       const dir = path18.join(outputDir, name);
       const metaPath = path18.join(dir, "session.json");
       try {
-        const raw = await fs15.readFile(metaPath, "utf-8");
+        const raw = await fs16.readFile(metaPath, "utf-8");
         const parsed = JSON.parse(raw);
         metas.push({
           dir,
@@ -12719,7 +13063,7 @@ async function newSessionWizard(defaults) {
 async function viewSession(meta) {
   const transcriptPath = path18.join(meta.dir, "transcript.md");
   try {
-    const text2 = await fs15.readFile(transcriptPath, "utf-8");
+    const text2 = await fs16.readFile(transcriptPath, "utf-8");
     console.log("");
     console.log(chalk8.bold(`\u2500\u2500\u2500 ${meta.project} \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500`));
     console.log(chalk8.dim(meta.dir));
@@ -12955,7 +13299,7 @@ function createAutoCommand() {
 init_CLIAgentRunner();
 init_ClaudeCodeCLIRunner();
 import { Command as Command11 } from "commander";
-import * as fs16 from "fs/promises";
+import * as fs17 from "fs/promises";
 import * as path19 from "path";
 import chalk10 from "chalk";
 var SYSTEM_PROMPT = `You are a transcript compressor. Distill the deliberation into a handoff brief a new session could pick up without reading the full transcript.
@@ -12981,7 +13325,7 @@ var SYSTEM_PROMPT = `You are a transcript compressor. Distill the deliberation i
 Keep every section under 300 words. Preserve citations, file paths, and specific numbers verbatim.`;
 async function readInput(inputPath) {
   if (inputPath) {
-    return fs16.readFile(inputPath, "utf-8");
+    return fs17.readFile(inputPath, "utf-8");
   }
   if (process.stdin.isTTY) {
     throw new Error("No input \u2014 pass a file or pipe a transcript via stdin");
@@ -13012,9 +13356,9 @@ ${input}`,
   const compressed = result.content.trim();
   const after = Math.round(compressed.length / 4);
   if (opts.output) {
-    await fs16.mkdir(path19.dirname(opts.output), { recursive: true }).catch(() => {
+    await fs17.mkdir(path19.dirname(opts.output), { recursive: true }).catch(() => {
     });
-    await fs16.writeFile(opts.output, compressed);
+    await fs17.writeFile(opts.output, compressed);
     console.error(
       chalk10.green("\u2713"),
       `${opts.output}  \xB7  ${chalk10.dim(`~${before.toLocaleString()} \u2192 ~${after.toLocaleString()} tokens (${Math.round((1 - after / before) * 100)}% smaller)`)}`
@@ -13041,8 +13385,9 @@ function createCompressCommand() {
 
 // cli/commands/mcp.ts
 import { Command as Command12 } from "commander";
-import * as path20 from "path";
-import * as fs17 from "fs/promises";
+import * as path21 from "path";
+import * as fs19 from "fs/promises";
+import { fileURLToPath } from "node:url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -13050,15 +13395,345 @@ import {
   ListToolsRequestSchema
 } from "@modelcontextprotocol/sdk/types.js";
 init_personas();
+
+// cli/lib/headless-session.ts
+import * as path20 from "node:path";
+import * as fs18 from "node:fs/promises";
+init_console_capture();
+
+// cli/adapters/HostAgentRunner.ts
+init_CLIAgentRunner();
+init_ClaudeCodeCLIRunner();
+
+// cli/adapters/CodexCLIRunner.ts
+import { spawn } from "node:child_process";
+var MAX_STDERR_CHARS = 12e3;
+var CodexCLIRunner = class {
+  model;
+  constructor(model = process.env.FORGE_CODEX_MODEL) {
+    this.model = model || void 0;
+  }
+  async query(params) {
+    const prompt = [
+      params.systemPrompt ? `## System instructions
+
+${params.systemPrompt}` : "",
+      `## Task
+
+${params.prompt}`,
+      "Return only the requested response. Do not edit files or run tools."
+    ].filter(Boolean).join("\n\n---\n\n");
+    const args = [
+      "exec",
+      "--ephemeral",
+      "--sandbox",
+      "read-only",
+      "--skip-git-repo-check",
+      "--ignore-user-config",
+      "--ignore-rules",
+      "--color",
+      "never",
+      "-C",
+      process.cwd()
+    ];
+    if (this.model) args.push("--model", this.model);
+    args.push("-");
+    return new Promise((resolve5) => {
+      const childEnv = { ...process.env };
+      delete childEnv.CODEX_THREAD_ID;
+      delete childEnv.CODEX_SANDBOX;
+      delete childEnv.CODEX_CI;
+      const child = spawn("codex", args, {
+        env: childEnv,
+        stdio: ["pipe", "pipe", "pipe"]
+      });
+      let stdout = "";
+      let stderr = "";
+      child.stdout.setEncoding("utf8");
+      child.stderr.setEncoding("utf8");
+      child.stdout.on("data", (chunk) => {
+        stdout += chunk;
+      });
+      child.stderr.on("data", (chunk) => {
+        stderr = (stderr + chunk).slice(-MAX_STDERR_CHARS);
+      });
+      child.on("error", (error) => {
+        resolve5({ success: false, error: error.message });
+      });
+      child.on("close", (code) => {
+        const content = stdout.trim();
+        if (code === 0 && content) {
+          resolve5({ success: true, content });
+          return;
+        }
+        const rawError = stderr.trim() || content || `codex exec exited with code ${code ?? "unknown"}`;
+        const recursiveSandboxHint = rawError.includes(
+          "failed to initialize in-process app-server client: Operation not permitted"
+        ) ? "\nForge could not start a nested Codex worker inside this managed Codex sandbox. Use the installed forge-copywrite Codex skill, which delegates through native host subagents, or run `forge mcp` from a normal terminal." : "";
+        resolve5({
+          success: false,
+          error: `${rawError}${recursiveSandboxHint}`
+        });
+      });
+      child.stdin.end(prompt);
+    });
+  }
+  async evaluate(params) {
+    const result = await this.query({
+      prompt: params.evalPrompt,
+      systemPrompt: "Evaluate whether an agent should speak. Respond with one JSON object only."
+    });
+    if (!result.success || !result.content) {
+      return {
+        success: false,
+        urgency: "pass",
+        reason: result.error || "Codex returned no evaluation",
+        responseType: ""
+      };
+    }
+    const match = result.content.match(/\{[\s\S]*\}/);
+    if (!match) {
+      return { success: true, urgency: "pass", reason: "No JSON evaluation", responseType: "" };
+    }
+    try {
+      const parsed = JSON.parse(match[0]);
+      return {
+        success: true,
+        urgency: parsed.urgency ?? "pass",
+        reason: parsed.reason ?? "",
+        responseType: parsed.responseType ?? ""
+      };
+    } catch {
+      return { success: true, urgency: "pass", reason: "Invalid JSON evaluation", responseType: "" };
+    }
+  }
+};
+
+// cli/adapters/HostAgentRunner.ts
+function createHostAgentRunner(backend = process.env.FORGE_AGENT_BACKEND) {
+  if (backend === "codex") return new CodexCLIRunner();
+  if (backend === "claude") return new ClaudeCodeCLIRunner();
+  return process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner() : new ClaudeCodeCLIRunner();
+}
+
+// cli/lib/headless-session.ts
+init_ReactionEngine();
+init_personas();
+init_skills();
+var DEFAULT_COPYWRITE_AGENTS = ["skeptic", "pragmatist", "analyst"];
+var DEFAULT_COPYWRITE_SECTIONS = [
+  "Hero",
+  "Problem",
+  "Solution",
+  "Benefits",
+  "How It Works",
+  "FAQ",
+  "Final CTA"
+];
+function renderCriticalConsensusReport(status2) {
+  const lines = [
+    "# Critical Copy Consensus",
+    "",
+    `**Status:** ${status2.approved ? "UNANIMOUSLY APPROVED" : "NOT APPROVED"}`,
+    `**Reviewers:** ${status2.reviewerCount}`,
+    `**Rounds:** ${status2.roundsCompleted}`,
+    ""
+  ];
+  for (let round = 1; round <= status2.roundsCompleted; round++) {
+    lines.push(`## Round ${round}`, "");
+    for (const review of status2.reviews.filter((entry) => entry.round === round)) {
+      lines.push(
+        `### ${review.agentId} \u2014 ${review.verdict.toUpperCase()} (${review.alignmentScore}/100)`,
+        "",
+        "**Critical issues**",
+        ...review.criticalIssues.length ? review.criticalIssues.map((issue) => `- ${issue}`) : ["- None"],
+        "",
+        "**Required changes**",
+        ...review.requiredChanges.length ? review.requiredChanges.map((change) => `- ${change}`) : ["- None"],
+        ""
+      );
+    }
+  }
+  return lines.join("\n").trim() + "\n";
+}
+function sanitizeProjectName(raw) {
+  const cleaned = (raw || "Forge Copywrite").replace(/[\\/\0<>:"|?*]+/g, " ").replace(/\s+/g, " ").trim().replace(/^[.\s-]+|[.\s-]+$/g, "").slice(0, 80);
+  return cleaned || "Forge Copywrite";
+}
+function buildCopywriteGoal(brief, sections) {
+  const sectionList = sections.map((section, index2) => `${index2 + 1}. **${section.trim().toUpperCase()}**`).join("\n");
+  return `Create complete, production-ready copy from the brief below using the Forge copywrite consensus method.
+
+The final response must be usable as-is. Resolve disagreements during synthesis, then draft every required section. Do not return an outline, commentary, or placeholders. Never invent testimonials, metrics, customers, guarantees, or product capabilities that are not supported by the brief or grounded research.
+
+## Copywriting brief
+
+${brief.trim()}
+
+## Required sections
+
+${sectionList}`;
+}
+function validateSections(sections) {
+  const cleaned = sections.map((section) => section.replace(/[#*\r\n]+/g, " ").replace(/\s+/g, " ").trim()).filter((section) => section.length >= 3 && section.length <= 40);
+  if (cleaned.length < 2) {
+    throw new Error("At least two valid output sections are required.");
+  }
+  return Array.from(new Set(cleaned)).slice(0, 12);
+}
+function validateAgents(agents) {
+  const known = new Set(AGENT_PERSONAS.map((agent) => agent.id));
+  const valid = Array.from(new Set(agents.filter((agent) => known.has(agent))));
+  if (valid.length < 2) {
+    throw new Error("A consensus run requires at least two valid Forge agent IDs.");
+  }
+  return valid.slice(0, 5);
+}
+async function runHeadlessCopywriteSession(request) {
+  if (!request.brief || request.brief.trim().length < 20) {
+    throw new Error("The copywriting brief must contain at least 20 characters.");
+  }
+  const startedAt = Date.now();
+  const cwd = path20.resolve(request.workspacePath ?? process.cwd());
+  const projectName = sanitizeProjectName(request.projectName);
+  const sections = validateSections(request.sections ?? DEFAULT_COPYWRITE_SECTIONS);
+  const agents = validateAgents(request.agents ?? DEFAULT_COPYWRITE_AGENTS);
+  const outputDir = request.outputDir ? path20.resolve(cwd, request.outputDir) : path20.join(cwd, "output", "sessions");
+  const contextPath = request.contextPath ? path20.resolve(cwd, request.contextPath) : cwd;
+  const goal = buildCopywriteGoal(request.brief, sections);
+  const config = {
+    id: crypto.randomUUID(),
+    projectName,
+    goal,
+    enabledAgents: agents,
+    humanParticipation: false,
+    maxRounds: 10,
+    consensusThreshold: 0.6,
+    methodology: getDefaultMethodology(),
+    contextDir: contextPath,
+    outputDir,
+    language: request.language ?? "english",
+    mode: "copywrite"
+  };
+  const session = {
+    id: config.id,
+    config,
+    messages: [],
+    currentPhase: "initialization",
+    currentRound: 0,
+    decisions: [],
+    drafts: [],
+    startedAt: /* @__PURE__ */ new Date(),
+    status: "running"
+  };
+  const fsAdapter = new FileSystemAdapter(cwd);
+  const persistence = new SessionPersistence(fsAdapter, { outputDir });
+  await persistence.initSession(session);
+  const sessionDir = persistence.getSessionDir();
+  if (!sessionDir) throw new Error("Forge could not initialize the session directory.");
+  const resolvedSkills = await loadSkills({
+    cwd,
+    modeId: "copywrite",
+    enabledAgents: agents,
+    sessionWorkdir: sessionDir,
+    goal
+  });
+  for (const agentId of agents) {
+    const projectSkills = resolvedSkills.perAgent.get(agentId)?.trim();
+    resolvedSkills.perAgent.set(
+      agentId,
+      [COPYWRITING_EXPERTISE.trim(), projectSkills].filter(Boolean).join("\n\n---\n\n")
+    );
+  }
+  const orchestrator = new EDAOrchestrator(session, void 0, COPYWRITING_EXPERTISE, {
+    agentRunner: request.agentRunner ?? createHostAgentRunner(),
+    fileSystem: fsAdapter,
+    autoRunPhaseMachine: true,
+    sessionWorkdir: sessionDir,
+    perAgentSkills: resolvedSkills.perAgent,
+    phaseMachineOptions: request.speakTimeoutMs === void 0 && request.criticalReviewRounds === void 0 ? void 0 : {
+      speakTimeoutMs: request.speakTimeoutMs,
+      criticalReviewRounds: request.criticalReviewRounds
+    }
+  });
+  const reactions = new ReactionEngine(orchestrator, DEFAULT_RULES);
+  orchestrator.on((event) => {
+    if (event.type === "agent_message") {
+      persistence.updateSession(orchestrator.getSession());
+    }
+  });
+  const captured = captureConsoleToFile(sessionDir);
+  let unsubscribe;
+  let timeout;
+  try {
+    const completed = new Promise((resolve5, reject) => {
+      unsubscribe = orchestrator.on((event) => {
+        if (event.type === "session_end") resolve5();
+        if (event.type === "session_error") {
+          const detail = event.data;
+          reject(
+            new Error(
+              `The Forge phase machine failed: ${String(detail?.error ?? "unknown error")}`
+            )
+          );
+        }
+      });
+    });
+    const timedOut = new Promise((_, reject) => {
+      timeout = setTimeout(
+        () => reject(new Error("The Forge consensus run timed out before finalization.")),
+        request.timeoutMs ?? 45 * 6e4
+      );
+    });
+    reactions.start();
+    await orchestrator.start();
+    await Promise.race([completed, timedOut]);
+    const output = await orchestrator.getConsolidatedDraft();
+    const draftedSections = orchestrator.getCopySections();
+    const criticalConsensus = orchestrator.getCriticalConsensusStatus();
+    const completedSections = draftedSections.filter(
+      (section) => section.content && !section.content.includes("_(agent did not respond in time)_")
+    ).length;
+    await fs18.mkdir(path20.join(sessionDir, "consensus"), { recursive: true });
+    await Promise.all([
+      fs18.writeFile(path20.join(sessionDir, "final.md"), output, "utf8"),
+      fs18.writeFile(path20.join(sessionDir, "consensus", "final-copy.md"), output, "utf8"),
+      fs18.writeFile(
+        path20.join(sessionDir, "consensus", "critical-review.md"),
+        renderCriticalConsensusReport(criticalConsensus),
+        "utf8"
+      )
+    ]);
+    await persistence.saveFull();
+    return {
+      sessionId: session.id,
+      sessionDir,
+      output,
+      completedSections,
+      totalSections: draftedSections.length,
+      durationMs: Date.now() - startedAt,
+      criticalConsensus
+    };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+    unsubscribe?.();
+    reactions.stop();
+    orchestrator.stop();
+    await persistence.saveFull().catch(() => void 0);
+    captured.restore();
+  }
+}
+
+// cli/commands/mcp.ts
 async function listSessions3(outputDir = "output/sessions") {
   try {
-    const entries = await fs17.readdir(outputDir, { withFileTypes: true });
+    const entries = await fs19.readdir(outputDir, { withFileTypes: true });
     const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name).sort().reverse();
     const metas = [];
     for (const name of dirs.slice(0, 50)) {
-      const dir = path20.join(outputDir, name);
+      const dir = path21.join(outputDir, name);
       try {
-        const raw = await fs17.readFile(path20.join(dir, "session.json"), "utf-8");
+        const raw = await fs19.readFile(path21.join(dir, "session.json"), "utf-8");
         const parsed = JSON.parse(raw);
         metas.push({
           name,
@@ -13078,13 +13753,13 @@ async function listSessions3(outputDir = "output/sessions") {
   }
 }
 async function listConsensusArtifacts(sessionDir) {
-  const dir = path20.join(sessionDir, "consensus");
+  const dir = path21.join(sessionDir, "consensus");
   try {
-    const files = await fs17.readdir(dir);
+    const files = await fs19.readdir(dir);
     const out = [];
     for (const f of files.sort()) {
       if (!f.endsWith(".md")) continue;
-      const body = await fs17.readFile(path20.join(dir, f), "utf-8");
+      const body = await fs19.readFile(path21.join(dir, f), "utf-8");
       out.push({ file: f, body });
     }
     return out;
@@ -13092,11 +13767,26 @@ async function listConsensusArtifacts(sessionDir) {
     return [];
   }
 }
+function sessionDirFromName(session, workspaceDir = process.cwd()) {
+  const name = String(session ?? "");
+  if (!name || name !== path21.basename(name) || name === "." || name === "..") return null;
+  return path21.join(workspaceDir, "output", "sessions", name);
+}
 async function runMcp() {
   const server = new Server(
-    { name: "forge", version: "0.2.0" },
+    { name: "forge", version: "0.3.0" },
     { capabilities: { tools: {} } }
   );
+  let consensusRunActive = false;
+  const getWorkspaceDir = async () => {
+    try {
+      const result = await server.listRoots();
+      const fileRoot = result.roots.find((root) => root.uri.startsWith("file:"));
+      if (fileRoot) return fileURLToPath(fileRoot.uri);
+    } catch {
+    }
+    return process.cwd();
+  };
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: [
       {
@@ -13137,6 +13827,50 @@ async function runMcp() {
         }
       },
       {
+        name: "run_copywrite_consensus",
+        description: "Run a complete, headless Forge copywriting consensus session. The tool blocks through discovery, research, synthesis, drafting, and adversarial review/revision rounds. It returns finished Markdown only after every enabled reviewer approves alignment with the original brief; otherwise it fails closed. Use this when the user asks Forge to write or rewrite copy, not merely to plan it.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            brief: {
+              type: "string",
+              minLength: 20,
+              description: "The complete copywriting brief: product/offer, audience, goal, differentiators, tone, constraints, and all known proof points."
+            },
+            project_name: {
+              type: "string",
+              description: "Short name used in the output title and session artifacts."
+            },
+            sections: {
+              type: "array",
+              minItems: 2,
+              maxItems: 12,
+              items: { type: "string" },
+              description: `Required final sections. Defaults to: ${DEFAULT_COPYWRITE_SECTIONS.join(", ")}.`
+            },
+            agents: {
+              type: "array",
+              minItems: 2,
+              maxItems: 5,
+              items: { type: "string" },
+              description: `Forge persona IDs. Defaults to: ${DEFAULT_COPYWRITE_AGENTS.join(", ")}.`
+            },
+            language: {
+              type: "string",
+              enum: ["english", "hebrew", "mixed"],
+              description: "Language for the final copy. Defaults to english."
+            }
+          },
+          required: ["brief"]
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: true
+        }
+      },
+      {
         name: "route",
         description: 'Smart-router: take a natural-language request, return a proposed (mode, agents, goal) plan without running a session. The caller can then invoke `forge auto "..."` or `forge start -m ...` with the suggestion.',
         inputSchema: {
@@ -13172,22 +13906,31 @@ async function runMcp() {
       return { content: [{ type: "text", text: JSON.stringify(agents, null, 2) }] };
     }
     if (name === "list_sessions") {
-      const sessions = await listSessions3();
+      const workspaceDir = await getWorkspaceDir();
+      const sessions = await listSessions3(path21.join(workspaceDir, "output", "sessions"));
       return { content: [{ type: "text", text: JSON.stringify(sessions, null, 2) }] };
     }
     if (name === "get_consensus") {
-      const session = String(args.session ?? "");
-      const dir = path20.join("output/sessions", session);
+      const dir = sessionDirFromName(args.session, await getWorkspaceDir());
+      if (!dir) {
+        return {
+          content: [{ type: "text", text: "Invalid session name." }],
+          isError: true
+        };
+      }
       const artifacts = await listConsensusArtifacts(dir);
       return { content: [{ type: "text", text: JSON.stringify(artifacts, null, 2) }] };
     }
     if (name === "get_transcript") {
-      const session = String(args.session ?? "");
+      const dir = sessionDirFromName(args.session, await getWorkspaceDir());
+      if (!dir) {
+        return {
+          content: [{ type: "text", text: "Invalid session name." }],
+          isError: true
+        };
+      }
       try {
-        const body = await fs17.readFile(
-          path20.join("output/sessions", session, "transcript.md"),
-          "utf-8"
-        );
+        const body = await fs19.readFile(path21.join(dir, "transcript.md"), "utf-8");
         return { content: [{ type: "text", text: body }] };
       } catch (err2) {
         return {
@@ -13196,11 +13939,67 @@ async function runMcp() {
         };
       }
     }
+    if (name === "run_copywrite_consensus") {
+      if (consensusRunActive) {
+        return {
+          content: [{ type: "text", text: "A Forge consensus run is already active in this MCP server." }],
+          isError: true
+        };
+      }
+      consensusRunActive = true;
+      try {
+        const workspaceDir = await getWorkspaceDir();
+        const result = await runHeadlessCopywriteSession({
+          brief: String(args.brief ?? ""),
+          projectName: typeof args.project_name === "string" ? args.project_name : void 0,
+          sections: Array.isArray(args.sections) ? args.sections.map(String) : void 0,
+          agents: Array.isArray(args.agents) ? args.agents.map(String) : void 0,
+          language: args.language === "hebrew" || args.language === "mixed" ? args.language : "english",
+          workspacePath: workspaceDir
+        });
+        const complete = result.completedSections === result.totalSections && result.criticalConsensus.approved;
+        const metadata = {
+          sessionId: result.sessionId,
+          sessionDir: result.sessionDir,
+          completedSections: result.completedSections,
+          totalSections: result.totalSections,
+          unanimousApproval: result.criticalConsensus.approved,
+          reviewRounds: result.criticalConsensus.roundsCompleted,
+          reviewerCount: result.criticalConsensus.reviewerCount,
+          durationMs: result.durationMs
+        };
+        return {
+          content: [
+            {
+              type: "text",
+              text: `${result.output}
+
+---
+
+Forge run metadata:
+${JSON.stringify(metadata, null, 2)}`
+            }
+          ],
+          structuredContent: { ...metadata, output: result.output },
+          ...complete ? {} : { isError: true }
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Forge copywrite consensus failed: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ],
+          isError: true
+        };
+      } finally {
+        consensusRunActive = false;
+      }
+    }
     if (name === "route") {
       const request = String(args.request ?? "");
-      const { CLIAgentRunner: CLIAgentRunner2 } = await Promise.resolve().then(() => (init_CLIAgentRunner(), CLIAgentRunner_exports));
-      const { ClaudeCodeCLIRunner: ClaudeCodeCLIRunner2 } = await Promise.resolve().then(() => (init_ClaudeCodeCLIRunner(), ClaudeCodeCLIRunner_exports));
-      const runner = process.env.ANTHROPIC_API_KEY ? new CLIAgentRunner2() : new ClaudeCodeCLIRunner2();
+      const runner = createHostAgentRunner();
       const modes = getAllModes();
       const system = `You are a router. Pick the right Forge mode and 3-4 agents.
 
@@ -13235,7 +14034,7 @@ Return JSON only.`,
   });
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  process.stderr.write("forge mcp \xB7 ready \xB7 tools: list_modes, list_agents, list_sessions, get_consensus, get_transcript, route\n");
+  process.stderr.write("forge mcp \xB7 ready \xB7 tools: list_modes, list_agents, list_sessions, get_consensus, get_transcript, run_copywrite_consensus, route\n");
 }
 function createMcpCommand() {
   return new Command12("mcp").description("Run Forge as an MCP server over stdio (for Cursor, Claude Code, etc.)").action(async () => {
@@ -13252,8 +14051,8 @@ function createMcpCommand() {
 // cli/commands/parallel.ts
 import { Command as Command13 } from "commander";
 import * as p4 from "@clack/prompts";
-import * as path21 from "path";
-import * as fs18 from "fs/promises";
+import * as path22 from "path";
+import * as fs20 from "fs/promises";
 import chalk11 from "chalk";
 init_personas();
 init_CLIAgentRunner();
@@ -13319,11 +14118,11 @@ async function aggregate(parallelDir, runs) {
       lines.push(`**Session:** \`${sessionDir}\``);
       lines.push(``);
       try {
-        const consensusDir = path21.join(sessionDir, "consensus");
-        const files = await fs18.readdir(consensusDir);
+        const consensusDir = path22.join(sessionDir, "consensus");
+        const files = await fs20.readdir(consensusDir);
         for (const f of files.sort()) {
           if (!f.endsWith(".md")) continue;
-          const body = await fs18.readFile(path21.join(consensusDir, f), "utf-8");
+          const body = await fs20.readFile(path22.join(consensusDir, f), "utf-8");
           lines.push(`### ${f}`);
           lines.push("");
           lines.push(body.trim());
@@ -13340,8 +14139,8 @@ async function aggregate(parallelDir, runs) {
     lines.push(`---`);
     lines.push(``);
   }
-  const out = path21.join(parallelDir, "AGGREGATE.md");
-  await fs18.writeFile(out, lines.join("\n"));
+  const out = path22.join(parallelDir, "AGGREGATE.md");
+  await fs20.writeFile(out, lines.join("\n"));
   return out;
 }
 async function run3(spec, opts) {
@@ -13372,12 +14171,12 @@ async function run3(spec, opts) {
     return;
   }
   const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
-  const parallelDir = path21.join(opts.output ?? "output/sessions", `parallel-${ts}`);
-  await fs18.mkdir(parallelDir, { recursive: true });
+  const parallelDir = path22.join(opts.output ?? "output/sessions", `parallel-${ts}`);
+  await fs20.mkdir(parallelDir, { recursive: true });
   const runs = [];
   for (let i = 0; i < plans.length; i++) {
     const plan = plans[i];
-    const subDir = path21.join(parallelDir, `${String(i + 1).padStart(2, "0")}-${plan.projectName.replace(/[^a-z0-9]+/gi, "-")}`);
+    const subDir = path22.join(parallelDir, `${String(i + 1).padStart(2, "0")}-${plan.projectName.replace(/[^a-z0-9]+/gi, "-")}`);
     p4.note(`Starting ${i + 1}/${plans.length}: ${plan.projectName}`, "Running");
     const result = await launchSession({
       projectName: plan.projectName,
@@ -13408,8 +14207,8 @@ function createParallelCommand() {
 // cli/commands/pipeline.ts
 import { Command as Command14 } from "commander";
 import * as p5 from "@clack/prompts";
-import * as path22 from "path";
-import * as fs19 from "fs/promises";
+import * as path23 from "path";
+import * as fs21 from "fs/promises";
 import chalk12 from "chalk";
 init_personas();
 var DEFAULT_CHAINS = {
@@ -13428,14 +14227,14 @@ function agentsFor(mode) {
   return preferred.filter((id) => AGENT_PERSONAS.some((a) => a.id === id));
 }
 async function readConsensusBundle(sessionDir) {
-  const dir = path22.join(sessionDir, "consensus");
+  const dir = path23.join(sessionDir, "consensus");
   try {
-    const files = await fs19.readdir(dir);
+    const files = await fs21.readdir(dir);
     const mds = files.filter((f) => f.endsWith(".md")).sort();
     if (mds.length === 0) return "";
     const parts = [];
     for (const f of mds.slice(0, 6)) {
-      const body = await fs19.readFile(path22.join(dir, f), "utf-8");
+      const body = await fs21.readFile(path23.join(dir, f), "utf-8");
       parts.push(body.trim());
     }
     return parts.join("\n\n---\n\n");
@@ -13497,8 +14296,8 @@ async function run4(spec, opts) {
     }
   }
   const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
-  const pipelineDir = path22.join(opts.output ?? "output/sessions", `pipeline-${ts}`);
-  await fs19.mkdir(pipelineDir, { recursive: true });
+  const pipelineDir = path23.join(opts.output ?? "output/sessions", `pipeline-${ts}`);
+  await fs21.mkdir(pipelineDir, { recursive: true });
   let priorMode = "";
   let priorConsensus = "";
   const phaseResults = [];
@@ -13511,7 +14310,7 @@ async function run4(spec, opts) {
 ${goal.slice(0, 200)}${goal.length > 200 ? "\u2026" : ""}`,
       `Phase ${i + 1}`
     );
-    const phaseDir = path22.join(pipelineDir, `${String(i + 1).padStart(2, "0")}-${modeId}`);
+    const phaseDir = path23.join(pipelineDir, `${String(i + 1).padStart(2, "0")}-${modeId}`);
     const result = await launchSession({
       projectName: `Pipeline-${modeId}`,
       goal,
@@ -13548,8 +14347,8 @@ ${goal.slice(0, 200)}${goal.length > 200 ? "\u2026" : ""}`,
     aggregate2.push("---");
     aggregate2.push("");
   }
-  const aggPath = path22.join(pipelineDir, "AGGREGATE.md");
-  await fs19.writeFile(aggPath, aggregate2.join("\n"));
+  const aggPath = path23.join(pipelineDir, "AGGREGATE.md");
+  await fs21.writeFile(aggPath, aggregate2.join("\n"));
   p5.outro(chalk12.green(`Pipeline complete \xB7 ${aggPath}`));
 }
 function createPipelineCommand() {
@@ -13734,10 +14533,10 @@ var repo = createSessionRepository(
 );
 var ask = (question) => {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve4) => {
+  return new Promise((resolve5) => {
     rl.question(question, (answer) => {
       rl.close();
-      resolve4(answer.trim());
+      resolve5(answer.trim());
     });
   });
 };
@@ -13930,7 +14729,7 @@ var fetchAll = () => ResultAsync.fromPromise(
 });
 
 // cli/adapters/services.ts
-import * as path26 from "path";
+import * as path27 from "path";
 
 // src/lib/connections/errors.ts
 var bridgeUnavailable3 = makeError("BridgeUnavailable");
@@ -13961,7 +14760,7 @@ var started = false;
 async function ensureServices() {
   if (started) return;
   started = true;
-  const p2pDataDir = path26.join(forgeDataDir, "p2p");
+  const p2pDataDir = path27.join(forgeDataDir, "p2p");
   try {
     const { peerId } = await startP2P(p2pDataDir);
     console.log(`\x1B[2m[p2p] peer: ${peerId.slice(0, 12)}\u2026\x1B[0m`);
@@ -14013,10 +14812,10 @@ var isReaction = (payload) => {
 var shortenDid = (did) => did.length > 24 ? `${did.slice(0, 12)}\u2026${did.slice(-8)}` : did;
 var ask2 = (question) => {
   const rl = readline2.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve4) => {
+  return new Promise((resolve5) => {
     rl.question(question, (answer) => {
       rl.close();
-      resolve4(answer.trim());
+      resolve5(answer.trim());
     });
   });
 };

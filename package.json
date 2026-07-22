@@ -1,7 +1,7 @@
 {
   "name": "forge",
   "version": "1.0.0",
-  "description": "Multi-agent deliberation engine - reach consensus through structured debate",
+  "description": "Critical multi-agent consensus for copy that survives its own reviewers",
   "main": "electron/main.js",
   "type": "module",
   "bin": {
@@ -16,7 +16,9 @@
     "electron:preview": "vite build && electron .",
     "cli": "tsx cli/index.ts",
     "cli:kernel": "tsx cli/kernel-cli.ts",
-    "cli:build": "esbuild cli/index.ts --bundle --platform=node --target=node18 --outfile=dist-cli/cli/index.js --format=esm --packages=external --jsx=automatic",
+    "cli:build": "npm run cli:build:bin && npm run plugin:build",
+    "cli:build:bin": "esbuild cli/index.ts --bundle --platform=node --target=node18 --outfile=dist-cli/cli/index.js --format=esm --packages=external --jsx=automatic",
+    "plugin:build": "esbuild cli/mcp-entry.ts --bundle --platform=node --target=node18 --outfile=plugins/forge/dist/mcp.cjs --format=cjs --minify",
     "lint": "eslint src --ext ts,tsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

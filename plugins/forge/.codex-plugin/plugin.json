@@ -1,0 +1,28 @@
+{
+  "name": "forge",
+  "version": "0.1.0",
+  "description": "Make Codex question and revise its own copy until every independent reviewer approves the user's brief.",
+  "author": {
+    "name": "Sahar Barak",
+    "url": "https://github.com/SaharBarak"
+  },
+  "homepage": "https://github.com/SaharBarak/forge#claude-code-and-codex-plugin",
+  "repository": "https://github.com/SaharBarak/forge",
+  "license": "MIT",
+  "keywords": ["copywriting", "consensus", "multi-agent", "adversarial-review"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Forge Copywrite Consensus",
+    "shortDescription": "Copy that survives unanimous critical review.",
+    "longDescription": "Uses Codex's native delegated agents to challenge, revise, and unanimously approve complete copy against the original brief without recursively launching Codex inside itself.",
+    "developerName": "Sahar Barak",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/SaharBarak/forge",
+    "defaultPrompt": [
+      "Use Forge consensus to write landing-page copy.",
+      "Make this copy survive a critical Forge review."
+    ],
+    "brandColor": "#F97316"
+  }
+}

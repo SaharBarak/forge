@@ -266,7 +266,9 @@ export function useOrchestrator(): UseOrchestratorReturn {
       }
 
       // Create EDA orchestrator with skills
-      const orchestrator = new EDAOrchestrator(session, context, skills);
+      const orchestrator = new EDAOrchestrator(session, context, skills, {
+        autoRunPhaseMachine: !session.config.humanParticipation,
+      });
       orchestratorRef.current = orchestrator;
 
       // Subscribe to events

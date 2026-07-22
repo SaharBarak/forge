@@ -9,20 +9,23 @@
     ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 ```
 
-### *The Digital Renaissance of Ideas*
+### *Critical consensus for work worth shipping*
 
-**You don't need a smarter AI. You need five of them disagreeing — across six providers.**
+**Avoid AI copywriting slop by making your AI question its own work.**
 
-Three hours re-prompting one model gets you a longer draft, not a decision. Forge puts multiple agents — each running on a **different provider** (Claude · Gemini · OpenAI · OpenRouter · Perplexity · Ollama) — into a deterministic phase machine. Debate roles (skeptic / pragmatist / analyst / advocate / contrarian) rotate between the agents each phase, so every perspective comes from a different model every round.
+Forge turns one brief into a critical copy council. Independent agents research, challenge the strategy, draft the deliverable, and then review the **complete copy against the user's original prompt**. If even one reviewer finds generic filler, invented proof, audience drift, weak persuasion, or a missed constraint, the draft goes back for revision. Forge returns finished copy only after every reviewer approves it—or fails closed instead of calling disputed work “consensus.”
+
+Use the same method from **Claude Code, Codex, the Electron app, or the terminal**. For broader deliberation, Forge can also rotate agents across six providers (Claude · Gemini · OpenAI · OpenRouter · Perplexity · Ollama).
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-a78bfa.svg?style=flat-square)](#license)
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-3178c6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/tests-924%20passing-4ade80.svg?style=flat-square)](#build--test)
+[![Tests](https://img.shields.io/badge/tests-931%20passing-4ade80.svg?style=flat-square)](#build--test)
 [![CLI](https://img.shields.io/badge/CLI-first-fbbf24.svg?style=flat-square&logo=gnubash&logoColor=white)](#install)
 [![Providers: 6](https://img.shields.io/badge/providers-6-e879f9.svg?style=flat-square)](#providers)
 [![MCP](https://img.shields.io/badge/MCP-server-00b894.svg?style=flat-square)](#mcp-server)
 
 [**Landing page**](https://saharbarak.github.io/forge/) ·
+[**Anti-slop gate**](#the-anti-slop-copywriting-loop) ·
 [**Debate**](#signature-demo-forge-debate) ·
 [**Modes**](#the-eleven-modes) ·
 [**Agent Control**](#agent-control) ·
@@ -43,7 +46,45 @@ Three hours re-prompting one model gets you a longer draft, not a decision. Forg
 
 ---
 
-Forge ships **eleven deliberation modes**, **six pluggable providers** (Anthropic · Gemini · OpenAI · OpenRouter · Perplexity · Ollama), **28 personas**, a deterministic phase state machine, and an **MCP server** so Cursor or Claude Code can drive it. CLI-first, open source, no API key lock-in.
+Forge ships **eleven deliberation modes**, **six pluggable providers** (Anthropic · Gemini · OpenAI · OpenRouter · Perplexity · Ollama), **28 personas**, a deterministic phase state machine, and a dual-host plugin for Claude Code and Codex. CLI-first, Electron-ready, open source, no API key lock-in.
+
+---
+
+## The anti-slop copywriting loop
+
+Most AI writing tools optimize for producing an answer quickly. Forge optimizes for producing an answer its own critics cannot break.
+
+```text
+Your brief
+   ↓
+Discovery → grounded research → synthesis → section-by-section drafting
+   ↓
+Every agent independently reviews the complete draft against the original brief
+   ↓
+Any objection? → revise the full deliverable → review again
+   ↓
+Unanimous approval → return the finished copy
+No unanimous approval → stop and report failure; never fake consensus
+```
+
+The final gate is deliberately adversarial. Every reviewer checks for:
+
+- generic AI filler, clichés, empty superlatives, and repetitive “AI cadence”
+- claims, proof, metrics, or capabilities that were not grounded in the brief or research
+- drift from the requested audience, action, tone, constraints, or required sections
+- polished language that still fails to make a concrete, persuasive case
+- contradictions, weak transitions, missing context, and disconnected calls to action
+
+Approval requires a score of at least 85 from **every enabled agent**. A dissenting agent triggers another full revision and vote. Headless, terminal, and Claude MCP runs save every verdict to `consensus/critical-review.md`, so “the agents agreed” is auditable rather than a decorative label; Codex keeps the delegated-agent trace in the active host session.
+
+### Use it where you already work
+
+| Surface | How to run the method | What comes back |
+|---|---|---|
+| **Claude Code** | Install the Forge plugin and ask: “Use Forge copywrite consensus…” | A blocking MCP result containing the full approved Markdown deliverable |
+| **Codex** | Install the same plugin and ask for the `forge-copywrite` skill | A native three-reviewer subagent run and the full approved Markdown deliverable |
+| **Electron app** | Start a Copywriting session and enable the automatic unanimous-consensus run | Live agent/review activity plus the final approved draft |
+| **Terminal** | Run `forge` or invoke `forge mcp` from any MCP host | Live TUI output or the blocking MCP result, with persisted artifacts |
 
 ---
 
@@ -64,7 +105,7 @@ If you only have one provider configured, Forge falls back to putting multiple *
 
 ## What it does
 
-You pick a **mode** and give Forge a goal. It runs a deterministic phase state machine · Discovery → Research → Synthesis → Drafting → Finalization · with five reasoning archetypes debating, researching, and producing a structured deliverable. Phase transitions are automatic, loop detection is built in, and sessions always terminate cleanly with the artifact you asked for.
+You pick a **mode** and give Forge a goal. It runs a deterministic phase state machine with five reasoning archetypes debating, researching, and producing a structured deliverable. In Copywriting mode the path is Discovery → Research → Synthesis → Drafting → Critical Review → Revision → Unanimous Consensus → Finalization. Phase transitions are automatic, loop detection is built in, and disputed copy is never presented as approved output.
 
 ```bash
 $ forge start --mode will-it-work \
@@ -90,7 +131,7 @@ Each mode ships with its own phase sequence, per-phase focus, message limits, su
 
 | Mode | ID | Phases | Use when |
 |---|---|---|---|
-| **Copywriting** | `copywrite` | discovery → research → ideation → synthesis → drafting | Writing web copy that converts |
+| **Copywriting** | `copywrite` | discovery → research → synthesis → drafting → critical review ↺ → unanimous consensus | Writing web copy that must survive adversarial review |
 | **Idea Validation** | `idea-validation` | understand → research → stress-test → verdict | Deciding GO/NO-GO/PIVOT on an idea |
 | **Ideation** | `ideation` | scout → pattern → ideate → rank | Finding opportunities in a domain |
 | **Will It Work?** | `will-it-work` | define → evidence → debate → verdict | Forcing a YES/NO/MAYBE-IF answer |
@@ -126,7 +167,7 @@ Forge is a CLI-first Ink TUI with a deterministic phase executor at its core.
 │  runPhaseMachine() drives the deliberation state machine   │
 └──┬─────────────────────────────────────────────────────────┘
    │
-   │  Discovery → Research → Synthesis → Drafting → Final
+│  Discover → Research → Synthesize → Draft → Review ↺ → Final
    │
    ▼
 ┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
@@ -142,7 +183,7 @@ Forge is a CLI-first Ink TUI with a deterministic phase executor at its core.
 ```
 
 **Key modules:**
-- [`src/lib/eda/EDAOrchestrator.ts`](src/lib/eda/EDAOrchestrator.ts) · phase state machine, agent coordination, session lifecycle
+- [`src/lib/eda/EDAOrchestrator.ts`](src/lib/eda/EDAOrchestrator.ts) · phase state machine, unanimous critical-review gate, agent coordination, session lifecycle
 - [`src/lib/eda/AgentListener.ts`](src/lib/eda/AgentListener.ts) · per-agent message handling, `speakNow()` for turn-taking
 - [`src/lib/eda/MessageBus.ts`](src/lib/eda/MessageBus.ts) · typed pub/sub (`message:new`, `phase:change`, `session:end`, …)
 - [`src/lib/eda/GoalParser.ts`](src/lib/eda/GoalParser.ts) · extracts required sections from the goal string
@@ -151,6 +192,7 @@ Forge is a CLI-first Ink TUI with a deterministic phase executor at its core.
 - [`src/lib/modes/ModeController.ts`](src/lib/modes/ModeController.ts) · mode progression, loop detection, output validation
 - [`src/lib/research/ProjectIntrospector.ts`](src/lib/research/ProjectIntrospector.ts) · walks a project dir and answers questions grounded in real source code
 - [`cli/adapters/ClaudeCodeCLIRunner.ts`](cli/adapters/ClaudeCodeCLIRunner.ts) · shells out to `claude` via `@anthropic-ai/claude-agent-sdk`
+- [`cli/adapters/CodexCLIRunner.ts`](cli/adapters/CodexCLIRunner.ts) · terminal/MCP adapter for isolated `codex exec` workers outside an active Codex sandbox
 - [`src/lib/providers/`](src/lib/providers/) · `IProvider` registry with Anthropic + Gemini (see [PROVIDERS](specs/architecture/PROVIDERS.md))
 - [`src/lib/skills/SkillsLoader.ts`](src/lib/skills/SkillsLoader.ts) · per-agent skill resolution + catalog discovery
 - [`src/lib/eda/WorkdirManager.ts`](src/lib/eda/WorkdirManager.ts) · per-session disk layout + consensus capture
@@ -211,7 +253,7 @@ forge start --mode <m> --goal "<g>"   # power-user direct flag path (hidden from
 forge pipeline "<spec>" -c startup    # chain modes: ideation → validation → plan → gtm → vc-pitch
 forge parallel "<spec>" -n 4          # split into 4 sub-deliberations, run, aggregate
 forge compress transcript.md          # transcript → compact handoff brief
-forge mcp                             # run as MCP server on stdio (for Cursor / Claude Code)
+forge mcp                             # blocking consensus tool for Claude Code, Codex, Cursor, etc.
 forge skills list                     # browse the skill catalog (shared by all modes)
 forge sessions ls                     # list past sessions
 forge agents                          # list the 28 personas
@@ -250,7 +292,66 @@ Tools exposed:
 - `list_sessions` · past Forge sessions (newest first)
 - `get_consensus` · consensus artifacts for a given session
 - `get_transcript` · full transcript for a session
+- `run_copywrite_consensus` · draft, critically review, revise, and return only unanimously approved copy
 - `route` · natural-language request → proposed (mode, agents, goal) plan
+
+### Claude Code and Codex plugin
+
+Forge includes a dual-host plugin in [`plugins/forge`](plugins/forge). Both hosts wait through drafting and the unanimous critical-review gate, then receive the complete approved Markdown deliverable—not a job ID or a vague summary.
+
+| Host | Execution adapter |
+|---|---|
+| **Claude Code** | Calls the blocking `run_copywrite_consensus` MCP tool. Forge runs its deterministic phase machine with isolated Claude workers, persists the audit trail, and returns only unanimously approved copy. |
+| **Codex** | Uses Codex's native host subagents for three independent roles, revision, and ratification. It does **not** recursively launch `codex exec` from inside Codex—a managed host sandbox can forbid that pattern. |
+
+#### Add Forge to a Claude Code session
+
+Yes—Forge includes a Claude Code plugin with the consensus skill and its blocking MCP runtime. The easiest setup is to run these commands **inside Claude Code**:
+
+```text
+/plugin marketplace add SaharBarak/forge
+/plugin install forge@forge
+/reload-plugins
+```
+
+The installation defaults to user scope, so Forge is available in Claude Code sessions across your projects. You can also install it non-interactively from a normal terminal:
+
+```bash
+claude plugin marketplace add SaharBarak/forge
+claude plugin install forge@forge --scope user
+```
+
+Start a new Claude Code session—or run `/reload-plugins` in the current one—then ask naturally:
+
+```text
+Use Forge copywrite consensus to create landing-page copy for Acme.
+Keep questioning and revising the draft until every reviewer approves it
+against my original brief. Return the complete approved output.
+```
+
+You can invoke the skill explicitly with `/forge:forge-copywrite`. Run `/plugin` and check the **Installed** and **Errors** tabs if the command is unavailable. For local plugin development against the current checkout, skip marketplace installation and launch:
+
+```bash
+claude --plugin-dir ./plugins/forge
+```
+
+Install in Codex:
+
+```bash
+codex plugin marketplace add SaharBarak/forge
+codex plugin add forge@forge
+```
+
+Then start a new host session and ask naturally:
+
+```text
+Use Forge copywrite consensus to create landing-page copy for Acme.
+Audience: engineering managers at 20–100 person SaaS companies.
+Offer: a release-risk dashboard that connects to GitHub and Linear.
+Goal: book a demo. Tone: direct, credible, no hype.
+```
+
+Claude Code uses the installed `claude` login for Forge's isolated agents and persists the full run under `output/sessions/`, including `transcript.md`, `final.md`, `consensus/final-copy.md`, and `consensus/critical-review.md`. Codex uses the active session's native delegated agents and returns the ratified deliverable inline with a `3/3 approved` receipt. From a normal terminal or another MCP host, `FORGE_AGENT_BACKEND=codex forge mcp` can use isolated `codex exec` workers and persist the same artifacts.
 
 
 
@@ -362,7 +463,7 @@ No `ANTHROPIC_API_KEY` needed · Forge shells out to the authenticated `claude` 
 # TypeScript typecheck
 npx tsc --noEmit -p tsconfig.json
 
-# Full test suite (898 tests)
+# Full test suite (931 tests)
 npm test
 
 # Live end-to-end: generate a landing page for Forge itself

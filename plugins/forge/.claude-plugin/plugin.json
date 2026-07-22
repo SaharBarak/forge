@@ -1,0 +1,16 @@
+{
+  "name": "forge",
+  "displayName": "Forge Copywrite Consensus",
+  "version": "0.1.0",
+  "description": "Make AI question and revise its own copy until every Forge reviewer approves the user's brief.",
+  "author": {
+    "name": "Sahar Barak",
+    "url": "https://github.com/SaharBarak"
+  },
+  "homepage": "https://github.com/SaharBarak/forge#claude-code-and-codex-plugin",
+  "repository": "https://github.com/SaharBarak/forge",
+  "license": "MIT",
+  "keywords": ["copywriting", "consensus", "multi-agent", "mcp"],
+  "skills": "./skills/",
+  "mcpServers": "./claude.mcp.json"
+}
